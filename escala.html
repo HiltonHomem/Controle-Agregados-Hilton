@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escala Logística Diária</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+
+        .header {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header .subtitle { opacity: 0.9; font-size: 14px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.15);
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            background: rgba(255,255,255,0.25);
+        }
+        .nav-link.active {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .badge {
+            background: #1a73e8;
+            color: white;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-primary:hover { background: #1557b0; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+        .btn-success { background: #34a853; color: white; }
+        .btn-success:hover { background: #2d9249; }
+        .btn-danger { background: #ea4335; color: white; }
+        .btn-danger:hover { background: #d33426; }
+        .btn-secondary { background: #f1f3f4; color: #333; }
+        .btn-secondary:hover { background: #e5e7e8; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        .filters .form-group { flex: 1; min-width: 140px; }
+
+        .escala-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 15px;
+        }
+        .dia-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid #1a73e8;
+        }
+        .dia-card .dia-titulo {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+        .dia-card .veiculo-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .dia-card .veiculo-item:last-child { border-bottom: none; }
+
+        .status-ok { color: #34a853; font-weight: 600; }
+        .status-oficina { color: #fbbc04; font-weight: 600; }
+        .status-indisponivel { color: #ea4335; font-weight: 600; }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+            max-width: 400px;
+        }
+        .toast-success { background: #34a853; }
+        .toast-error { background: #ea4335; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .hidden { display: none !important; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; }
+            .form-grid { grid-template-columns: 1fr; }
+            .filters { flex-direction: column; }
+            .escala-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>📋 Escala Logística Diária</h1>
+                <div class="subtitle">Gestão de rotas e motoristas</div>
+            </div>
+            <div class="header-actions">
+                <div class="nav-links">
+                    <a href="escala.html" class="nav-link active">📋 Escala</a>
+                    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+                    <a href="controle_agregados.html" class="nav-link">💰 Agregados</a>
+                </div>
+                <button class="btn btn-secondary" onclick="carregarDados()">🔄 Atualizar</button>
+            </div>
+        </div>
+
+        <!-- Form de Escala -->
+        <div class="card">
+            <div class="card-title">
+                📝 Nova Escala
+                <span class="badge" id="escalaFormMode">Inserção</span>
+            </div>
+            <form id="escalaForm" onsubmit="salvarEscala(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="escalaData">Data *</label>
+                        <input type="date" id="escalaData" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="escalaDiaSemana">Dia da Semana *</label>
+                        <select id="escalaDiaSemana" required>
+                            <option value="SEGUNDA">Segunda-feira</option>
+                            <option value="TERCA">Terça-feira</option>
+                            <option value="QUARTA">Quarta-feira</option>
+                            <option value="QUINTA">Quinta-feira</option>
+                            <option value="SEXTA">Sexta-feira</option>
+                            <option value="SABADO">Sábado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="escalaVeiculo">Veículo *</label>
+                        <select id="escalaVeiculo" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="escalaMotorista">Motorista</label>
+                        <select id="escalaMotorista">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="escalaAjudante">Ajudante(s)</label>
+                        <input type="text" id="escalaAjudante" placeholder="Ex: João, Pedro">
+                    </div>
+                    <div class="form-group">
+                        <label for="escalaRota">Rota *</label>
+                        <input type="text" id="escalaRota" placeholder="Ex: ZONA SUL" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="escalaStatus">Status</label>
+                        <select id="escalaStatus">
+                            <option value="OK">OK</option>
+                            <option value="OFICINA">Oficina</option>
+                            <option value="INDISPONÍVEL">Indisponível</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="escalaObs">Observação</label>
+                        <input type="text" id="escalaObs" placeholder="Observações">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary" id="btnSalvarEscala">💾 Salvar Escala</button>
+                    <button type="button" class="btn btn-secondary" onclick="limparFormEscala()">🗑️ Limpar</button>
+                    <button type="button" class="btn btn-secondary hidden" id="btnCancelarEscala" onclick="cancelarEdicaoEscala()">❌ Cancelar</button>
+                </div>
+                <input type="hidden" id="editEscalaId" value="">
+            </form>
+        </div>
+
+        <!-- Filtros Escala -->
+        <div class="card">
+            <div class="card-title">
+                📅 Escalas Diárias
+                <span class="badge" id="totalEscalasBadge">0</span>
+            </div>
+            <div class="filters">
+                <div class="form-group">
+                    <label for="filtroEscalaData">Data</label>
+                    <input type="date" id="filtroEscalaData" onchange="aplicarFiltros()">
+                </div>
+                <div class="form-group">
+                    <label for="filtroEscalaDia">Dia da Semana</label>
+                    <select id="filtroEscalaDia" onchange="aplicarFiltros()">
+                        <option value="">Todos</option>
+                        <option value="SEGUNDA">Segunda</option>
+                        <option value="TERCA">Terça</option>
+                        <option value="QUARTA">Quarta</option>
+                        <option value="QUINTA">Quinta</option>
+                        <option value="SEXTA">Sexta</option>
+                        <option value="SABADO">Sábado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filtroEscalaMotorista">Motorista</label>
+                    <input type="text" id="filtroEscalaMotorista" placeholder="Filtrar..." oninput="aplicarFiltros()">
+                </div>
+            </div>
+
+            <div id="escalaCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px;">
+                <div class="empty-state" style="grid-column:1/-1;">
+                    <div class="icon">📋</div>
+                    <p>Nenhuma escala encontrada</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= CONFIGURAÇÃO =================
+        // Dados mockados para demonstração
+        const MOCK_VEICULOS_ESCALA = [
+            { id: 'v1', nome: 'VW 17.250 CNC', placa: 'KOR 6942', tipo: 'FP' },
+            { id: 'v2', nome: 'SPRINTER', placa: 'KYK 3G96', tipo: 'FP' },
+            { id: 'v3', nome: 'FORD 350 G', placa: 'LPB-4188', tipo: 'FP' },
+            { id: 'v4', nome: 'STRADA', placa: 'LUP 6940', tipo: 'FP' },
+            { id: 'v5', nome: 'VW 5.150', placa: 'LSN 8H48', tipo: 'FP' },
+            { id: 'v6', nome: 'VW 5.150', placa: 'KRT 7455', tipo: 'FP' },
+            { id: 'v7', nome: 'VW 10.160', placa: 'LRY 1G30', tipo: 'FP' },
+            { id: 'v8', nome: 'VW 8.160', placa: 'LMF-2276', tipo: 'FP' },
+            { id: 'v9', nome: 'VW 8.160', placa: 'RJS 4C39', tipo: 'FP' },
+            { id: 'v10', nome: 'VW 10.180', placa: 'RJC 3F21', tipo: 'FP' },
+            { id: 'v11', nome: 'FIORINO', placa: 'RUG 7E84', tipo: 'FP' },
+            { id: 'v12', nome: 'SCUDO (NOVA)', placa: 'TJD 2B93', tipo: 'FP' },
+            { id: 'v13', nome: 'SCUDO', placa: 'SRO 6H65', tipo: 'FP' },
+            { id: 'v14', nome: 'SCUDO (NOVA)', placa: 'UGQ 6E67', tipo: 'FP' },
+            { id: 'v15', nome: 'JUMPER', placa: 'SHN 8F18', tipo: 'FP' },
+            { id: 'v16', nome: 'MASTER', placa: 'KOB7G23', tipo: 'AG' },
+            { id: 'v17', nome: 'KIA BONGO', placa: 'LTK9254', tipo: 'AG' },
+            { id: 'v18', nome: 'IVECO', placa: 'LUY3337', tipo: 'AG' },
+            { id: 'v19', nome: 'HR', placa: 'LPD6082', tipo: 'AG' },
+            { id: 'v20', nome: 'HR', placa: 'KZN1B31', tipo: 'AG' },
+            { id: 'v21', nome: 'BONGO', placa: 'KYE2I24', tipo: 'AG' },
+            { id: 'v22', nome: 'SPRINTER 310', placa: 'LBV7763', tipo: 'AG' },
+            { id: 'v23', nome: 'FIORINO', placa: 'LRM8D78', tipo: 'AG' },
+            { id: 'v24', nome: 'DUCATO', placa: 'CXR1D52', tipo: 'AG' },
+        ];
+
+        const MOCK_MOTORISTAS = [
+            'GERMANO', 'HELIO', 'ANGELO', 'FRANCISCO', 'JOÃO JOSÉ', 
+            'CARLOS', 'ALEXANDRE', 'ESTEVÃO', 'MARCELO', 'DAMASCENO',
+            'NAILTON', 'DAVID', 'GUSTAVO', 'LUCIANO'
+        ];
+
+        // ================= VARIÁVEIS GLOBAIS =================
+        let escalas = [];
+
+        // ================= FUNÇÕES DE UTILIDADE =================
+        function formatarData(data) {
+            if (!data) return '-';
+            const d = new Date(data);
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function getDiaSemana(data) {
+            const dias = ['DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
+            return dias[new Date(data).getDay()];
+        }
+
+        function getStatusClass(status) {
+            if (!status) return 'status-ok';
+            const s = status.toUpperCase();
+            if (s === 'OK') return 'status-ok';
+            if (s === 'OFICINA') return 'status-oficina';
+            return 'status-indisponivel';
+        }
+
+        function mostrarToast(mensagem, tipo = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${tipo}`;
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ================= GERAR DADOS MOCK =================
+        function gerarEscalasMock() {
+            const escalas = [];
+            const hoje = new Date();
+            const dias = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
+            const rotas = ['ZONA SUL', 'CENTRO', 'NORTE/ILHA', 'OESTE 2', 'SAQUAREMA', 'CABO FRIO', 'NITEROI', 'SÃO GONÇALO', 'BARRA', 'MARICÁ', 'PETRÓPOLIS', 'TERESÓPOLIS', 'BAIXADA'];
+            const status = ['OK', 'OK', 'OK', 'OFICINA', 'INDISPONÍVEL'];
+            const ajudantes = ['João', 'Pedro', 'Carlos', 'Marcos', 'José', 'Francisco', 'Jeferson', 'Wallace', 'Maurício'];
+            
+            for (let i = 0; i < 50; i++) {
+                const data = new Date(hoje);
+                data.setDate(data.getDate() - Math.floor(Math.random() * 30));
+                
+                const diaSemana = dias[data.getDay() === 0 ? 6 : data.getDay() - 1];
+                const veiculo = MOCK_VEICULOS_ESCALA[Math.floor(Math.random() * MOCK_VEICULOS_ESCALA.length)];
+                const motorista = MOCK_MOTORISTAS[Math.floor(Math.random() * MOCK_MOTORISTAS.length)];
+                const ajudante = Math.random() > 0.4 ? ajudantes[Math.floor(Math.random() * ajudantes.length)] : '';
+                const segundoAjudante = Math.random() > 0.7 ? ajudantes[Math.floor(Math.random() * ajudantes.length)] : '';
+                
+                escalas.push({
+                    id: `mock_esc_${i}`,
+                    data: data.toISOString().split('T')[0],
+                    dia_semana: diaSemana,
+                    veiculo_id: veiculo.id,
+                    veiculos: { nome: veiculo.nome, placa: veiculo.placa },
+                    motorista: Math.random() > 0.3 ? motorista : '',
+                    ajudante: [ajudante, segundoAjudante].filter(Boolean).join(', '),
+                    rota: rotas[Math.floor(Math.random() * rotas.length)],
+                    status: status[Math.floor(Math.random() * status.length)],
+                    observacao: Math.random() > 0.85 ? 'Observação de teste' : ''
+                });
+            }
+            return escalas;
+        }
+
+        // ================= CRUD ESCALAS =================
+        function carregarDados() {
+            escalas = gerarEscalasMock();
+            escalas.sort((a, b) => new Date(b.data) - new Date(a.data));
+            atualizarSelects();
+            renderizarEscalas();
+            document.getElementById('totalEscalasBadge').textContent = escalas.length;
+            mostrarToast('Dados carregados com sucesso!');
+        }
+
+        function atualizarSelects() {
+            // Select de veículos
+            const selectVeiculo = document.getElementById('escalaVeiculo');
+            if (selectVeiculo) {
+                const value = selectVeiculo.value;
+                selectVeiculo.innerHTML = '<option value="">Selecione...</option>';
+                MOCK_VEICULOS_ESCALA.forEach(v => {
+                    selectVeiculo.innerHTML += `<option value="${v.id}">${v.nome} (${v.placa})</option>`;
+                });
+                if (value) selectVeiculo.value = value;
+            }
+
+            // Select de motoristas
+            const selectMotorista = document.getElementById('escalaMotorista');
+            if (selectMotorista) {
+                const value = selectMotorista.value;
+                selectMotorista.innerHTML = '<option value="">Selecione...</option>';
+                MOCK_MOTORISTAS.forEach(m => {
+                    selectMotorista.innerHTML += `<option value="${m}">${m}</option>`;
+                });
+                if (value) selectMotorista.value = value;
+            }
+        }
+
+        function salvarEscala(event) {
+            event.preventDefault();
+            const id = document.getElementById('editEscalaId').value;
+            const veiculoId = document.getElementById('escalaVeiculo').value;
+            const veiculo = MOCK_VEICULOS_ESCALA.find(v => v.id === veiculoId);
+            
+            const dados = {
+                data: document.getElementById('escalaData').value,
+                dia_semana: document.getElementById('escalaDiaSemana').value,
+                veiculo_id: veiculoId,
+                veiculos: veiculo ? { nome: veiculo.nome, placa: veiculo.placa } : null,
+                motorista: document.getElementById('escalaMotorista').value,
+                ajudante: document.getElementById('escalaAjudante').value.trim(),
+                rota: document.getElementById('escalaRota').value.trim(),
+                status: document.getElementById('escalaStatus').value,
+                observacao: document.getElementById('escalaObs').value.trim()
+            };
+
+            if (!dados.data || !dados.veiculo_id || !dados.rota) {
+                mostrarToast('Preencha Data, Veículo e Rota', 'error');
+                return;
+            }
+
+            if (id) {
+                const index = escalas.findIndex(e => e.id === id);
+                if (index !== -1) {
+                    escalas[index] = { ...escalas[index], ...dados };
+                }
+                mostrarToast('Escala atualizada!');
+            } else {
+                const novo = {
+                    id: `mock_esc_${Date.now()}`,
+                    ...dados
+                };
+                escalas.unshift(novo);
+                mostrarToast('Escala salva!');
+            }
+
+            escalas.sort((a, b) => new Date(b.data) - new Date(a.data));
+            limparFormEscala();
+            renderizarEscalas();
+            document.getElementById('totalEscalasBadge').textContent = escalas.length;
+        }
+
+        function excluirEscala(id) {
+            if (!confirm('Deseja excluir esta escala?')) return;
+            escalas = escalas.filter(e => e.id !== id);
+            mostrarToast('Escala excluída!');
+            renderizarEscalas();
+            document.getElementById('totalEscalasBadge').textContent = escalas.length;
+        }
+
+        function editarEscala(id) {
+            const item = escalas.find(e => e.id === id);
+            if (!item) return;
+            document.getElementById('editEscalaId').value = item.id;
+            document.getElementById('escalaData').value = item.data;
+            document.getElementById('escalaDiaSemana').value = item.dia_semana || getDiaSemana(item.data);
+            document.getElementById('escalaVeiculo').value = item.veiculo_id || '';
+            document.getElementById('escalaMotorista').value = item.motorista || '';
+            document.getElementById('escalaAjudante').value = item.ajudante || '';
+            document.getElementById('escalaRota').value = item.rota || '';
+            document.getElementById('escalaStatus').value = item.status || 'OK';
+            document.getElementById('escalaObs').value = item.observacao || '';
+            document.getElementById('escalaFormMode').textContent = 'Edição';
+            document.getElementById('btnSalvarEscala').textContent = '✏️ Atualizar';
+            document.getElementById('btnCancelarEscala').classList.remove('hidden');
+            document.querySelector('.card:first-child').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelarEdicaoEscala() { limparFormEscala(); }
+
+        function limparFormEscala() {
+            document.getElementById('editEscalaId').value = '';
+            document.getElementById('escalaData').value = new Date().toISOString().split('T')[0];
+            document.getElementById('escalaDiaSemana').value = '';
+            document.getElementById('escalaVeiculo').value = '';
+            document.getElementById('escalaMotorista').value = '';
+            document.getElementById('escalaAjudante').value = '';
+            document.getElementById('escalaRota').value = '';
+            document.getElementById('escalaStatus').value = 'OK';
+            document.getElementById('escalaObs').value = '';
+            document.getElementById('escalaFormMode').textContent = 'Inserção';
+            document.getElementById('btnSalvarEscala').textContent = '💾 Salvar Escala';
+            document.getElementById('btnCancelarEscala').classList.add('hidden');
+        }
+
+        function aplicarFiltros() { renderizarEscalas(); }
+
+        function renderizarEscalas() {
+            const container = document.getElementById('escalaCards');
+            let dados = [...escalas];
+
+            const filtroData = document.getElementById('filtroEscalaData').value;
+            const filtroDia = document.getElementById('filtroEscalaDia').value;
+            const filtroMotorista = document.getElementById('filtroEscalaMotorista').value.toLowerCase();
+
+            if (filtroData) dados = dados.filter(e => e.data === filtroData);
+            if (filtroDia) dados = dados.filter(e => e.dia_semana === filtroDia);
+            if (filtroMotorista) dados = dados.filter(e => 
+                (e.motorista || '').toLowerCase().includes(filtroMotorista)
+            );
+
+            if (dados.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">📋</div><p>Nenhuma escala encontrada</p></div>`;
+                return;
+            }
+
+            const dias = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
+            const nomesDias = { 'SEGUNDA': 'Segunda-feira', 'TERCA': 'Terça-feira', 'QUARTA': 'Quarta-feira', 'QUINTA': 'Quinta-feira', 'SEXTA': 'Sexta-feira', 'SABADO': 'Sábado' };
+
+            let html = '';
+            dias.forEach(dia => {
+                const items = dados.filter(e => e.dia_semana === dia);
+                if (items.length === 0) return;
+                const data = items[0]?.data || '';
+                html += `
+                    <div class="dia-card">
+                        <div class="dia-titulo">${nomesDias[dia] || dia} ${data ? formatarData(data) : ''}</div>
+                `;
+                items.forEach(e => {
+                    const statusClass = getStatusClass(e.status);
+                    const veiculoNome = e.veiculos?.nome || e.veiculo_id || 'Sem veículo';
+                    const placa = e.veiculos?.placa || '';
+                    html += `
+                        <div class="veiculo-item">
+                            <span><strong>${veiculoNome}</strong> ${placa ? `(${placa})` : ''}</span>
+                            <span>
+                                ${e.motorista || '-'} 
+                                ${e.ajudante ? `<span style="color:#777;">+ ${e.ajudante}</span>` : ''}
+                                <span class="${statusClass}">${e.status || 'OK'}</span>
+                            </span>
+                        </div>
+                        <div style="font-size:12px; color:#777; padding:2px 0 6px 0; border-bottom:1px solid #eee;">
+                            <span>${e.rota}</span>
+                            ${e.observacao ? `<span style="margin-left:10px;">📌 ${e.observacao}</span>` : ''}
+                            <span style="float:right;">
+                                <button class="btn btn-primary btn-sm" onclick="editarEscala('${e.id}')">✏️</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirEscala('${e.id}')">🗑️</button>
+                            </span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // ================= INICIALIZAÇÃO =================
+        function inicializar() {
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('escalaData').value = hoje;
+            document.getElementById('escalaDiaSemana').value = getDiaSemana(hoje);
+            carregarDados();
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializar);
+    </script>
+</body>
+</html>
