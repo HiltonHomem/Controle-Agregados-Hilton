@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Veículos</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.3s ease; }
+        .animate-slide-in { animation: slideIn 0.3s ease; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .status-ok { color: #22c55e; font-weight: 600; }
+        .status-oficina { color: #eab308; font-weight: 600; }
+        .status-indisponivel { color: #ef4444; font-weight: 600; }
+        
+        .badge-fp { background: #2563eb; }
+        .badge-ag { background: #22c55e; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-5">
+    <div class="max-w-7xl mx-auto">
+        <!-- ===== HEADER ===== -->
+        <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap justify-between items-center gap-3">
+            <div>
+                <h1 class="text-2xl font-bold">🚗 Gestão de Veículos</h1>
+                <p class="text-blue-100 text-sm">Frota própria e agregados</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <nav class="flex gap-1 flex-wrap">
+                    <a href="escala.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📋 Escala</a>
+                    <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📊 Dashboard</a>
+                    <a href="controle_agregados.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">💰 Agregados</a>
+                    <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/30 font-medium text-sm">🚗 Veículos</a>
+                </nav>
+                <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
+            </div>
+        </header>
+
+        <!-- ===== STATS ===== -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow-md p-4 text-center border-l-4 border-blue-600">
+                <div class="text-2xl font-bold text-blue-600" id="totalVeiculos">0</div>
+                <div class="text-xs text-gray-500 uppercase tracking-wide">Total Veículos</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-4 text-center border-l-4 border-blue-500">
+                <div class="text-2xl font-bold text-blue-500" id="totalFP">0</div>
+                <div class="text-xs text-gray-500 uppercase tracking-wide">Frota Própria</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-4 text-center border-l-4 border-green-500">
+                <div class="text-2xl font-bold text-green-500" id="totalAG">0</div>
+                <div class="text-xs text-gray-500 uppercase tracking-wide">Agregados</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-4 text-center border-l-4 border-red-500">
+                <div class="text-2xl font-bold text-red-500" id="totalIndisponiveis">0</div>
+                <div class="text-xs text-gray-500 uppercase tracking-wide">Indisponíveis</div>
+            </div>
+        </div>
+
+        <!-- ===== FORM ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📝 Novo Veículo</h2>
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="formMode">Inserção</span>
+            </div>
+            <form id="veiculoForm" onsubmit="salvarVeiculo(event)">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo *</label>
+                        <input type="text" id="veiculoNome" placeholder="Ex: VW 17.250 CNC" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Placa *</label>
+                        <input type="text" id="veiculoPlaca" placeholder="Ex: KOR 6942" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx. (kg)</label>
+                        <input type="number" id="veiculoPeso" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo</label>
+                        <select id="veiculoTipo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="FP">Frota Própria</option>
+                            <option value="AG">Agregado</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
+                        <select id="veiculoStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="OK">✅ OK</option>
+                            <option value="OFICINA">🔧 Oficina</option>
+                            <option value="INDISPONÍVEL">❌ Indisponível</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition" id="btnSalvar">💾 Salvar</button>
+                    <button type="button" onclick="limparForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar</button>
+                    <button type="button" onclick="cancelarEdicao()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hidden transition" id="btnCancelar">❌ Cancelar</button>
+                </div>
+                <input type="hidden" id="editId" value="">
+            </form>
+        </div>
+
+        <!-- ===== TABELA ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📋 Lista de Veículos</h2>
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="totalVeiculosBadge">0</span>
+            </div>
+            
+            <!-- Filtros -->
+            <div class="flex flex-wrap gap-3 mb-4">
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo</label>
+                    <select id="filtroTipo" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos</option>
+                        <option value="FP">Frota Própria</option>
+                        <option value="AG">Agregado</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
+                    <select id="filtroStatus" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos</option>
+                        <option value="OK">✅ OK</option>
+                        <option value="OFICINA">🔧 Oficina</option>
+                        <option value="INDISPONÍVEL">❌ Indisponível</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Buscar</label>
+                    <input type="text" id="filtroBusca" placeholder="Veículo ou placa..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- Tabela -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b-2 border-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Veículo</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Placa</th>
+                            <th class="px-3 py-2 text-right font-semibold text-gray-600">Peso Máx.</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Tipo</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Status</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="veiculosBody">
+                        <tr>
+                            <td colspan="6" class="text-center py-10 text-gray-400">
+                                <div class="text-5xl mb-2">🚗</div>
+                                <p>Carregando dados...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE EDIÇÃO ===== -->
+    <div id="modalEdicao" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[95vh] overflow-y-auto p-6 animate-slide-up">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b">
+                <h2 id="modalTitle" class="text-xl font-bold text-gray-800">✏️ Editar Veículo</h2>
+                <button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+            </div>
+            <form id="modalForm" onsubmit="salvarEdicaoModal(event)">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col sm:col-span-2">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo *</label>
+                        <input type="text" id="modalVeiculoNome" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Placa *</label>
+                        <input type="text" id="modalVeiculoPlaca" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx. (kg)</label>
+                        <input type="number" id="modalVeiculoPeso" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo</label>
+                        <select id="modalVeiculoTipo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="FP">Frota Própria</option>
+                            <option value="AG">Agregado</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
+                        <select id="modalVeiculoStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="OK">✅ OK</option>
+                            <option value="OFICINA">🔧 Oficina</option>
+                            <option value="INDISPONÍVEL">❌ Indisponível</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">💾 Salvar Alterações</button>
+                    <button type="button" onclick="confirmarExclusao()" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Excluir</button>
+                    <button type="button" onclick="fecharModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
+                </div>
+                <input type="hidden" id="modalEditId" value="">
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE CONFIRMAÇÃO ===== -->
+    <div id="modalConfirmacao" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center animate-slide-up">
+            <div class="text-6xl mb-2">⚠️</div>
+            <p class="text-lg font-semibold text-gray-800" id="confirmMessage">Deseja realmente excluir este veículo?</p>
+            <p class="text-sm text-gray-500 mt-1" id="confirmSubmessage">Esta ação não pode ser desfeita.</p>
+            <div class="flex gap-3 justify-center mt-4">
+                <button onclick="fecharConfirmacao()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
+                <button id="btnConfirmarExclusao" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Sim, excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= DADOS MOCKADOS =================
+        const MOCK_VEICULOS = [
+            // Frota Própria
+            { id: 'v1', nome: 'VW 17.250 CNC', placa: 'KOR 6942', peso: 8500, tipo: 'FP', status: 'OK' },
+            { id: 'v2', nome: 'SPRINTER', placa: 'KYK 3G96', peso: 1500, tipo: 'FP', status: 'OK' },
+            { id: 'v3', nome: 'FORD 350 G', placa: 'LPB-4188', peso: 1800, tipo: 'FP', status: 'OK' },
+            { id: 'v4', nome: 'STRADA', placa: 'LUP 6940', peso: 600, tipo: 'FP', status: 'OK' },
+            { id: 'v5', nome: 'VW 5.150', placa: 'LSN 8H48', peso: 1700, tipo: 'FP', status: 'OK' },
+            { id: 'v6', nome: 'VW 5.150', placa: 'KRT 7455', peso: 1700, tipo: 'FP', status: 'OFICINA' },
+            { id: 'v7', nome: 'VW 10.160', placa: 'LRY 1G30', peso: 4000, tipo: 'FP', status: 'OK' },
+            { id: 'v8', nome: 'VW 8.160', placa: 'LMF-2276', peso: 4000, tipo: 'FP', status: 'OFICINA' },
+            { id: 'v9', nome: 'VW 8.160', placa: 'RJS 4C39', peso: 4000, tipo: 'FP', status: 'OK' },
+            { id: 'v10', nome: 'VW 10.180', placa: 'RJC 3F21', peso: 4000, tipo: 'FP', status: 'OK' },
+            { id: 'v11', nome: 'FIORINO', placa: 'RUG 7E84', peso: 600, tipo: 'FP', status: 'OK' },
+            { id: 'v12', nome: 'RENAULT KANGOO', placa: 'KRV 8I51', peso: 700, tipo: 'FP', status: 'OFICINA' },
+            { id: 'v13', nome: 'SCUDO (NOVA)', placa: 'TJD 2B93', peso: 1400, tipo: 'FP', status: 'OK' },
+            { id: 'v14', nome: 'JUMPER', placa: 'SHN 8F18', peso: 1400, tipo: 'FP', status: 'OFICINA' },
+            { id: 'v15', nome: 'SCUDO', placa: 'SRO 6H65', peso: 1400, tipo: 'FP', status: 'OK' },
+            { id: 'v16', nome: 'SCUDO', placa: 'QSZ 2B21', peso: 1400, tipo: 'FP', status: 'INDISPONÍVEL' },
+            { id: 'v17', nome: 'SCUDO', placa: 'UGQ 6E67', peso: 1400, tipo: 'FP', status: 'OK' },
+            
+            // Agregados
+            { id: 'v18', nome: 'FIORINO', placa: 'RFV0B04', peso: 600, tipo: 'AG', status: 'OK' },
+            { id: 'v19', nome: 'IVECO', placa: 'DJE1I55', peso: 2500, tipo: 'AG', status: 'OK' },
+            { id: 'v20', nome: 'SPRINTER 310', placa: 'LOC9E05', peso: 1800, tipo: 'AG', status: 'OK' },
+            { id: 'v21', nome: 'DUCATO', placa: 'FDQ0E01', peso: 1500, tipo: 'AG', status: 'OK' },
+            { id: 'v22', nome: 'SPRINTER 310', placa: 'LSE0J82', peso: 1800, tipo: 'AG', status: 'OK' },
+            { id: 'v23', nome: 'KIA BONGO', placa: 'LTK9254', peso: 1500, tipo: 'AG', status: 'OK' },
+            { id: 'v24', nome: 'IVECO', placa: 'KOB 7G23', peso: 1500, tipo: 'AG', status: 'OK' },
+            { id: 'v25', nome: 'BONGO', placa: 'KYE2I24', peso: 1500, tipo: 'AG', status: 'OK' },
+            { id: 'v26', nome: 'SPLINTER', placa: 'CXR1D52', peso: 1500, tipo: 'AG', status: 'OK' },
+            { id: 'v27', nome: 'MASTER', placa: 'LPO7E41', peso: 1400, tipo: 'AG', status: 'OK' },
+            { id: 'v28', nome: 'SPRINTER 310', placa: 'LBV 7763', peso: 1400, tipo: 'AG', status: 'OK' },
+            { id: 'v29', nome: 'HR', placa: 'LPD 6082', peso: 1400, tipo: 'AG', status: 'OFICINA' },
+            { id: 'v30', nome: 'HR', placa: 'KZN 1131', peso: 1400, tipo: 'AG', status: 'OK' },
+            { id: 'v31', nome: 'FIORINO', placa: 'QNS2G64', peso: 600, tipo: 'AG', status: 'OK' },
+            { id: 'v32', nome: 'FIORINO', placa: 'LRM8D78', peso: 600, tipo: 'AG', status: 'OK' },
+            { id: 'v33', nome: 'FIORINO', placa: 'KQR7E43', peso: 600, tipo: 'AG', status: 'OK' },
+            { id: 'v34', nome: 'BONGO', placa: 'KRR 7348', peso: 1400, tipo: 'AG', status: 'OK' },
+            { id: 'v35', nome: 'SCUDO', placa: 'LTB8G57', peso: 1500, tipo: 'AG', status: 'OK' },
+        ];
+
+        // ================= VARIÁVEIS GLOBAIS =================
+        let veiculos = [];
+        let editandoId = null;
+        let itemParaExcluir = null;
+
+        // ================= FUNÇÕES DE UTILIDADE =================
+        function getStatusClass(status) {
+            if (!status || status === 'OK') return 'status-ok';
+            if (status === 'OFICINA') return 'status-oficina';
+            return 'status-indisponivel';
+        }
+
+        function getTipoLabel(tipo) {
+            return tipo === 'FP' ? 'Frota Própria' : 'Agregado';
+        }
+
+        function getTipoBadge(tipo) {
+            return tipo === 'FP' ? 'badge-fp' : 'badge-ag';
+        }
+
+        function mostrarToast(mensagem, tipo = 'success') {
+            const cores = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-5 right-5 ${cores[tipo] || 'bg-blue-500'} text-white px-6 py-3 rounded-xl shadow-lg font-medium animate-slide-in z-50 max-w-md`;
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ================= CRUD =================
+        function carregarDados() {
+            veiculos = [...MOCK_VEICULOS];
+            renderizarVeiculos();
+            atualizarStats();
+            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
+            mostrarToast('Dados carregados com sucesso!');
+        }
+
+        function salvarVeiculo(event) {
+            event.preventDefault();
+            const id = document.getElementById('editId').value;
+            
+            const dados = {
+                nome: document.getElementById('veiculoNome').value.trim(),
+                placa: document.getElementById('veiculoPlaca').value.trim().toUpperCase(),
+                peso: parseFloat(document.getElementById('veiculoPeso').value) || 0,
+                tipo: document.getElementById('veiculoTipo').value,
+                status: document.getElementById('veiculoStatus').value
+            };
+
+            if (!dados.nome || !dados.placa) {
+                mostrarToast('Preencha Veículo e Placa', 'error');
+                return;
+            }
+
+            if (id) {
+                const index = veiculos.findIndex(v => v.id === id);
+                if (index !== -1) {
+                    veiculos[index] = { ...veiculos[index], ...dados };
+                }
+                mostrarToast('Veículo atualizado!');
+            } else {
+                const novo = {
+                    id: `v_${Date.now()}`,
+                    ...dados
+                };
+                veiculos.push(novo);
+                mostrarToast('Veículo salvo!');
+            }
+
+            limparForm();
+            renderizarVeiculos();
+            atualizarStats();
+            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
+        }
+
+        function editarVeiculo(id) {
+            const item = veiculos.find(v => v.id === id);
+            if (!item) {
+                mostrarToast('Veículo não encontrado', 'error');
+                return;
+            }
+
+            editandoId = id;
+            
+            document.getElementById('modalEditId').value = item.id;
+            document.getElementById('modalVeiculoNome').value = item.nome;
+            document.getElementById('modalVeiculoPlaca').value = item.placa;
+            document.getElementById('modalVeiculoPeso').value = item.peso || 0;
+            document.getElementById('modalVeiculoTipo').value = item.tipo || 'FP';
+            document.getElementById('modalVeiculoStatus').value = item.status || 'OK';
+
+            document.getElementById('modalTitle').textContent = `✏️ Editar Veículo - ${item.nome}`;
+
+            document.getElementById('modalEdicao').classList.remove('hidden');
+            document.getElementById('modalEdicao').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function salvarEdicaoModal(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('modalEditId').value;
+            
+            const dados = {
+                nome: document.getElementById('modalVeiculoNome').value.trim(),
+                placa: document.getElementById('modalVeiculoPlaca').value.trim().toUpperCase(),
+                peso: parseFloat(document.getElementById('modalVeiculoPeso').value) || 0,
+                tipo: document.getElementById('modalVeiculoTipo').value,
+                status: document.getElementById('modalVeiculoStatus').value
+            };
+
+            if (!dados.nome || !dados.placa) {
+                mostrarToast('Preencha Veículo e Placa', 'error');
+                return;
+            }
+
+            const index = veiculos.findIndex(v => v.id === id);
+            if (index !== -1) {
+                veiculos[index] = { ...veiculos[index], ...dados };
+            }
+
+            fecharModal();
+            renderizarVeiculos();
+            atualizarStats();
+            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
+            mostrarToast('Veículo atualizado com sucesso!');
+        }
+
+        function excluirVeiculo(id) {
+            itemParaExcluir = id;
+            const item = veiculos.find(v => v.id === id);
+            
+            document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir este veículo?';
+            document.getElementById('confirmSubmessage').textContent = `${item?.nome} (${item?.placa})`;
+
+            document.getElementById('btnConfirmarExclusao').onclick = function() {
+                executarExclusao();
+            };
+
+            document.getElementById('modalConfirmacao').classList.remove('hidden');
+            document.getElementById('modalConfirmacao').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function executarExclusao() {
+            if (!itemParaExcluir) return;
+
+            veiculos = veiculos.filter(v => v.id !== itemParaExcluir);
+            itemParaExcluir = null;
+            
+            fecharConfirmacao();
+            
+            if (document.getElementById('modalEdicao').style.display === 'flex') {
+                fecharModal();
+            }
+            
+            renderizarVeiculos();
+            atualizarStats();
+            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
+            mostrarToast('Veículo excluído com sucesso!');
+        }
+
+        function confirmarExclusao() {
+            const id = document.getElementById('modalEditId').value;
+            if (id) {
+                fecharModal();
+                setTimeout(() => {
+                    excluirVeiculo(id);
+                }, 200);
+            }
+        }
+
+        function cancelarEdicao() { limparForm(); }
+
+        function limparForm() {
+            document.getElementById('editId').value = '';
+            document.getElementById('veiculoNome').value = '';
+            document.getElementById('veiculoPlaca').value = '';
+            document.getElementById('veiculoPeso').value = '0';
+            document.getElementById('veiculoTipo').value = 'FP';
+            document.getElementById('veiculoStatus').value = 'OK';
+            document.getElementById('formMode').textContent = 'Inserção';
+            document.getElementById('btnSalvar').textContent = '💾 Salvar';
+            document.getElementById('btnCancelar').classList.add('hidden');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalEdicao').style.display = 'none';
+            document.getElementById('modalEdicao').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            editandoId = null;
+        }
+
+        function fecharConfirmacao() {
+            document.getElementById('modalConfirmacao').style.display = 'none';
+            document.getElementById('modalConfirmacao').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            itemParaExcluir = null;
+        }
+
+        // Fechar modais ao clicar fora
+        document.getElementById('modalEdicao').addEventListener('click', function(e) {
+            if (e.target === this) fecharModal();
+        });
+
+        document.getElementById('modalConfirmacao').addEventListener('click', function(e) {
+            if (e.target === this) fecharConfirmacao();
+        });
+
+        // Fechar com ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.getElementById('modalEdicao').style.display === 'flex') fecharModal();
+                if (document.getElementById('modalConfirmacao').style.display === 'flex') fecharConfirmacao();
+            }
+        });
+
+        // ================= FUNÇÕES DA TABELA =================
+        function aplicarFiltros() { renderizarVeiculos(); }
+
+        function renderizarVeiculos() {
+            const tbody = document.getElementById('veiculosBody');
+            let dados = [...veiculos];
+            
+            const filtroTipo = document.getElementById('filtroTipo').value;
+            const filtroStatus = document.getElementById('filtroStatus').value;
+            const filtroBusca = document.getElementById('filtroBusca').value.toLowerCase();
+
+            if (filtroTipo) dados = dados.filter(v => v.tipo === filtroTipo);
+            if (filtroStatus) dados = dados.filter(v => v.status === filtroStatus);
+            if (filtroBusca) dados = dados.filter(v => 
+                v.nome.toLowerCase().includes(filtroBusca) ||
+                v.placa.toLowerCase().includes(filtroBusca)
+            );
+
+            if (dados.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-10 text-gray-400">
+                            <div class="text-5xl mb-2">🚗</div>
+                            <p>Nenhum veículo encontrado</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            dados.forEach(item => {
+                const statusClass = getStatusClass(item.status);
+                const tipoLabel = getTipoLabel(item.tipo);
+                const tipoBadge = getTipoBadge(item.tipo);
+                
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 font-medium">${item.nome}</td>
+                        <td class="px-3 py-2">${item.placa}</td>
+                        <td class="px-3 py-2 text-right">${item.peso || 0} kg</td>
+                        <td class="px-3 py-2 text-center">
+                            <span class="inline-block px-2 py-1 rounded-full text-white text-xs font-medium ${tipoBadge}">${tipoLabel}</span>
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <span class="${statusClass}">${item.status || 'OK'}</span>
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <button onclick="editarVeiculo('${item.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition">✏️</button>
+                            <button onclick="excluirVeiculo('${item.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function atualizarStats() {
+            const total = veiculos.length;
+            const fp = veiculos.filter(v => v.tipo === 'FP').length;
+            const ag = veiculos.filter(v => v.tipo === 'AG').length;
+            const indisponiveis = veiculos.filter(v => v.status !== 'OK').length;
+            
+            document.getElementById('totalVeiculos').textContent = total;
+            document.getElementById('totalFP').textContent = fp;
+            document.getElementById('totalAG').textContent = ag;
+            document.getElementById('totalIndisponiveis').textContent = indisponiveis;
+        }
+
+        // ================= INICIALIZAÇÃO =================
+        function inicializar() {
+            carregarDados();
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializar);
+    </script>
+</body>
+</html>

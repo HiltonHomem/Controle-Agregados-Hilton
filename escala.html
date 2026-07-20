@@ -5,372 +5,477 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escala Logística Diária</title>
     
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            padding: 20px;
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-        .container { max-width: 1600px; margin: 0 auto; }
-
-        .header {
-            background: linear-gradient(135deg, #1a73e8, #0d47a1);
-            color: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .header h1 { font-size: 24px; font-weight: 600; }
-        .header .subtitle { opacity: 0.9; font-size: 14px; }
-        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-        .nav-links {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .nav-link {
-            color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.15);
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-        .nav-link:hover {
-            background: rgba(255,255,255,0.25);
-        }
-        .nav-link.active {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
-        }
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .badge {
-            background: #1a73e8;
-            color: white;
-            padding: 2px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-        .form-group label {
-            font-size: 13px;
-            font-weight: 500;
-            color: #555;
-            margin-bottom: 5px;
-        }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            padding: 10px 12px;
-            border: 1.5px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #1a73e8;
-            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
-        }
-
-        .btn {
-            padding: 10px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-primary { background: #1a73e8; color: white; }
-        .btn-primary:hover { background: #1557b0; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
-        .btn-success { background: #34a853; color: white; }
-        .btn-success:hover { background: #2d9249; }
-        .btn-danger { background: #ea4335; color: white; }
-        .btn-danger:hover { background: #d33426; }
-        .btn-secondary { background: #f1f3f4; color: #333; }
-        .btn-secondary:hover { background: #e5e7e8; }
-        .btn-sm { padding: 6px 14px; font-size: 12px; }
-
-        .filters {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            align-items: flex-end;
-        }
-        .filters .form-group { flex: 1; min-width: 140px; }
-
-        .escala-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 15px;
-        }
-        .dia-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            border-left: 4px solid #1a73e8;
-        }
-        .dia-card .dia-titulo {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 10px;
-            color: #1a1a1a;
-        }
-        .dia-card .veiculo-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            font-size: 13px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .dia-card .veiculo-item:last-child { border-bottom: none; }
-
-        .status-ok { color: #34a853; font-weight: 600; }
-        .status-oficina { color: #fbbc04; font-weight: 600; }
-        .status-indisponivel { color: #ea4335; font-weight: 600; }
-
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 15px 25px;
-            border-radius: 10px;
-            color: white;
-            font-weight: 500;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease;
-            z-index: 1000;
-            max-width: 400px;
-        }
-        .toast-success { background: #34a853; }
-        .toast-error { background: #ea4335; }
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-
-        .hidden { display: none !important; }
-        .empty-state { text-align: center; padding: 40px; color: #999; }
-        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
-
-        @media (max-width: 768px) {
-            .header { flex-direction: column; text-align: center; }
-            .form-grid { grid-template-columns: 1fr; }
-            .filters { flex-direction: column; }
-            .escala-grid { grid-template-columns: 1fr; }
+        .animate-slide-up { animation: slideUp 0.3s ease; }
+        .animate-slide-in { animation: slideIn 0.3s ease; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .status-ok { color: #22c55e; font-weight: 600; }
+        .status-oficina { color: #eab308; font-weight: 600; }
+        .status-indisponivel { color: #ef4444; font-weight: 600; }
+        .status-escalado { color: #3b82f6; font-weight: 600; }
+        .status-disponivel { color: #8b5cf6; font-weight: 600; }
+        
+        .badge-fp { background: #2563eb; }
+        .badge-ag { background: #22c55e; }
+        
+        .escala-card {
+            transition: all 0.2s;
+            border-left: 4px solid #2563eb;
+        }
+        .escala-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .escala-card .veiculo-info {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .escala-card .detalhes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 13px;
+            color: #555;
+        }
+        .escala-card .detalhes span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .escala-card .detalhes .label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .dia-group {
+            margin-bottom: 20px;
+        }
+        .dia-group .dia-header {
+            background: #f8f9fa;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #2563eb;
+        }
+        .dia-group .dia-header .dia-nome {
+            font-weight: 700;
+            font-size: 16px;
+            color: #1a1a1a;
+        }
+        .dia-group .dia-header .dia-data {
+            font-size: 14px;
+            color: #777;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
+<body class="bg-gray-100 p-4 md:p-5">
+    <div class="max-w-7xl mx-auto">
+        <!-- ===== HEADER ===== -->
+        <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap justify-between items-center gap-3">
             <div>
-                <h1>📋 Escala Logística Diária</h1>
-                <div class="subtitle">Gestão de rotas e motoristas</div>
+                <h1 class="text-2xl font-bold">📋 Escala Logística Diária</h1>
+                <p class="text-blue-100 text-sm">Gestão de rotas e motoristas</p>
             </div>
-            <div class="header-actions">
-                <div class="nav-links">
-                    <a href="escala.html" class="nav-link active">📋 Escala</a>
-                    <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
-                    <a href="controle_agregados.html" class="nav-link">💰 Agregados</a>
-                </div>
-                <button class="btn btn-secondary" onclick="carregarDados()">🔄 Atualizar</button>
+            <div class="flex flex-wrap gap-2">
+                <nav class="flex gap-1 flex-wrap">
+                    <a href="escala.html" class="px-4 py-2 rounded-lg bg-white/30 font-medium text-sm">📋 Escala</a>
+                    <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📊 Dashboard</a>
+                    <a href="controle_agregados.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">💰 Agregados</a>
+                    <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">🚗 Veículos</a>
+                </nav>
+                <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
             </div>
-        </div>
+        </header>
 
-        <!-- Form de Escala -->
-        <div class="card">
-            <div class="card-title">
-                📝 Nova Escala
-                <span class="badge" id="escalaFormMode">Inserção</span>
+        <!-- ===== FORM ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📝 Nova Escala</h2>
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="escalaFormMode">Inserção</span>
             </div>
             <form id="escalaForm" onsubmit="salvarEscala(event)">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="escalaData">Data *</label>
-                        <input type="date" id="escalaData" required>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data *</label>
+                        <input type="date" id="escalaData" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                     </div>
-                    <div class="form-group">
-                        <label for="escalaDiaSemana">Dia da Semana *</label>
-                        <select id="escalaDiaSemana" required>
-                            <option value="SEGUNDA">Segunda-feira</option>
-                            <option value="TERCA">Terça-feira</option>
-                            <option value="QUARTA">Quarta-feira</option>
-                            <option value="QUINTA">Quinta-feira</option>
-                            <option value="SEXTA">Sexta-feira</option>
-                            <option value="SABADO">Sábado</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="escalaVeiculo">Veículo *</label>
-                        <select id="escalaVeiculo" required>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo *</label>
+                        <select id="escalaVeiculo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="escalaMotorista">Motorista</label>
-                        <select id="escalaMotorista">
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Placa</label>
+                        <input type="text" id="escalaPlaca" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx.</label>
+                        <input type="number" id="escalaPeso" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
+                        <select id="escalaStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="ESCALADO">📌 Escalado</option>
+                            <option value="OK">✅ OK</option>
+                            <option value="OFICINA">🔧 Oficina</option>
+                            <option value="INDISPONÍVEL">❌ Indisponível</option>
+                            <option value="DISPONÍVEL">🟣 Disponível</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
+                        <select id="escalaMotorista" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Selecione...</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="escalaAjudante">Ajudante(s)</label>
-                        <input type="text" id="escalaAjudante" placeholder="Ex: João, Pedro">
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
+                        <input type="text" id="escalaAjudante" placeholder="Ex: João, Pedro" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
-                    <div class="form-group">
-                        <label for="escalaRota">Rota *</label>
-                        <input type="text" id="escalaRota" placeholder="Ex: ZONA SUL" required>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota *</label>
+                        <input type="text" id="escalaRota" placeholder="Ex: ZONA SUL" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                     </div>
-                    <div class="form-group">
-                        <label for="escalaStatus">Status</label>
-                        <select id="escalaStatus">
-                            <option value="OK">OK</option>
-                            <option value="OFICINA">Oficina</option>
-                            <option value="INDISPONÍVEL">Indisponível</option>
-                        </select>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Celular</label>
+                        <input type="text" id="escalaCelular" placeholder="REI 07" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
-                    <div class="form-group">
-                        <label for="escalaObs">Observação</label>
-                        <input type="text" id="escalaObs" placeholder="Observações">
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Máq. Cartão</label>
+                        <input type="number" id="escalaMaquina" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NF</label>
+                        <input type="number" id="escalaNF" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga (kg)</label>
+                        <input type="number" id="escalaPesoCarga" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Retornos</label>
+                        <input type="text" id="escalaRetornos" placeholder="Ex: 11 NOTAS \ 171 KG" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Carregamento</label>
+                        <input type="text" id="escalaCarregamento" placeholder="Ex: 16943 / 16961" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="escalaObs" placeholder="Observações" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button type="submit" class="btn btn-primary" id="btnSalvarEscala">💾 Salvar Escala</button>
-                    <button type="button" class="btn btn-secondary" onclick="limparFormEscala()">🗑️ Limpar</button>
-                    <button type="button" class="btn btn-secondary hidden" id="btnCancelarEscala" onclick="cancelarEdicaoEscala()">❌ Cancelar</button>
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition" id="btnSalvarEscala">💾 Salvar Escala</button>
+                    <button type="button" onclick="limparFormEscala()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar</button>
+                    <button type="button" onclick="cancelarEdicaoEscala()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hidden transition" id="btnCancelarEscala">❌ Cancelar</button>
                 </div>
                 <input type="hidden" id="editEscalaId" value="">
             </form>
         </div>
 
-        <!-- Filtros Escala -->
-        <div class="card">
-            <div class="card-title">
-                📅 Escalas Diárias
-                <span class="badge" id="totalEscalasBadge">0</span>
+        <!-- ===== LISTA DE ESCALAS ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📅 Escalas Diárias</h2>
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="totalEscalasBadge">0</span>
             </div>
-            <div class="filters">
-                <div class="form-group">
-                    <label for="filtroEscalaData">Data</label>
-                    <input type="date" id="filtroEscalaData" onchange="aplicarFiltros()">
+            
+            <!-- Filtros -->
+            <div class="flex flex-wrap gap-3 mb-4">
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data</label>
+                    <input type="date" id="filtroEscalaData" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <div class="form-group">
-                    <label for="filtroEscalaDia">Dia da Semana</label>
-                    <select id="filtroEscalaDia" onchange="aplicarFiltros()">
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
+                    <input type="text" id="filtroEscalaMotorista" placeholder="Filtrar..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo</label>
+                    <input type="text" id="filtroEscalaVeiculo" placeholder="Filtrar..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota</label>
+                    <input type="text" id="filtroEscalaRota" placeholder="Filtrar rota..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
+                    <select id="filtroEscalaStatus" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
-                        <option value="SEGUNDA">Segunda</option>
-                        <option value="TERCA">Terça</option>
-                        <option value="QUARTA">Quarta</option>
-                        <option value="QUINTA">Quinta</option>
-                        <option value="SEXTA">Sexta</option>
-                        <option value="SABADO">Sábado</option>
+                        <option value="ESCALADO">📌 Escalado</option>
+                        <option value="OK">✅ OK</option>
+                        <option value="OFICINA">🔧 Oficina</option>
+                        <option value="INDISPONÍVEL">❌ Indisponível</option>
+                        <option value="DISPONÍVEL">🟣 Disponível</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label for="filtroEscalaMotorista">Motorista</label>
-                    <input type="text" id="filtroEscalaMotorista" placeholder="Filtrar..." oninput="aplicarFiltros()">
                 </div>
             </div>
 
-            <div id="escalaCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px;">
-                <div class="empty-state" style="grid-column:1/-1;">
-                    <div class="icon">📋</div>
+            <!-- Cards em Lista Única -->
+            <div id="escalaCards" class="space-y-6">
+                <div class="text-center py-10 text-gray-400">
+                    <div class="text-5xl mb-2">📋</div>
                     <p>Nenhuma escala encontrada</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ===== MODAL DE CONFIRMAÇÃO DE VIAGEM ===== -->
+    <div id="modalConfirmarViagem" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 animate-slide-up">
+            <div class="text-center">
+                <div class="text-5xl mb-2">✅</div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmar Viagem</h3>
+                <p class="text-gray-600 text-sm mb-4">Confirme a realização da viagem para gerar o pagamento.</p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <span class="text-gray-500">Motorista:</span>
+                    <span class="font-medium" id="modalConfMotorista">-</span>
+                    <span class="text-gray-500">Data:</span>
+                    <span class="font-medium" id="modalConfData">-</span>
+                    <span class="text-gray-500">Rota:</span>
+                    <span class="font-medium" id="modalConfRota">-</span>
+                    <span class="text-gray-500">Veículo:</span>
+                    <span class="font-medium" id="modalConfVeiculo">-</span>
+                </div>
+            </div>
+
+            <form id="confirmarViagemForm" onsubmit="confirmarViagem(event)">
+                <div class="space-y-3">
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor da Diária (R$) *</label>
+                        <input type="number" id="confValorDiaria" step="0.01" placeholder="0.00" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Pedágio (R$)</label>
+                        <input type="number" id="confPedagio" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Almoço (R$)</label>
+                        <input type="number" id="confAlmoco" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa (R$)</label>
+                        <input type="number" id="confChapa" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto (R$)</label>
+                        <input type="number" id="confDesconto" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="confObservacao" placeholder="Informações adicionais" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex gap-3 justify-end mt-4 pt-4 border-t">
+                    <button type="button" onclick="fecharModalConfirmar()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
+                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">✅ Confirmar Viagem</button>
+                </div>
+                <input type="hidden" id="confEscalaId" value="">
+                <input type="hidden" id="confMotoristaId" value="">
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE EDIÇÃO ===== -->
+    <div id="modalEdicao" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto p-6 animate-slide-up">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b">
+                <h2 id="modalTitle" class="text-xl font-bold text-gray-800">✏️ Editar Escala</h2>
+                <button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+            </div>
+            <form id="modalForm" onsubmit="salvarEdicaoModal(event)">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data *</label>
+                        <input type="date" id="modalData" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo *</label>
+                        <select id="modalVeiculo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Placa</label>
+                        <input type="text" id="modalPlaca" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx.</label>
+                        <input type="number" id="modalPeso" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
+                        <select id="modalStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="ESCALADO">📌 Escalado</option>
+                            <option value="OK">✅ OK</option>
+                            <option value="OFICINA">🔧 Oficina</option>
+                            <option value="INDISPONÍVEL">❌ Indisponível</option>
+                            <option value="DISPONÍVEL">🟣 Disponível</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
+                        <select id="modalMotorista" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
+                        <input type="text" id="modalAjudante" placeholder="Ex: João, Pedro" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota *</label>
+                        <input type="text" id="modalRota" placeholder="Ex: ZONA SUL" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Celular</label>
+                        <input type="text" id="modalCelular" placeholder="REI 07" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Máq. Cartão</label>
+                        <input type="number" id="modalMaquina" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NF</label>
+                        <input type="number" id="modalNF" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga (kg)</label>
+                        <input type="number" id="modalPesoCarga" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Retornos</label>
+                        <input type="text" id="modalRetornos" placeholder="Ex: 11 NOTAS \ 171 KG" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Carregamento</label>
+                        <input type="text" id="modalCarregamento" placeholder="Ex: 16943 / 16961" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex flex-col sm:col-span-2">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="modalObs" placeholder="Observações" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">💾 Salvar Alterações</button>
+                    <button type="button" onclick="confirmarExclusao()" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Excluir</button>
+                    <button type="button" onclick="fecharModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
+                </div>
+                <input type="hidden" id="modalEditId" value="">
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE CONFIRMAÇÃO DE EXCLUSÃO ===== -->
+    <div id="modalConfirmacao" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center animate-slide-up">
+            <div class="text-6xl mb-2">⚠️</div>
+            <p class="text-lg font-semibold text-gray-800" id="confirmMessage">Deseja realmente excluir esta escala?</p>
+            <p class="text-sm text-gray-500 mt-1" id="confirmSubmessage">Esta ação não pode ser desfeita.</p>
+            <div class="flex gap-3 justify-center mt-4">
+                <button onclick="fecharConfirmacao()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
+                <button id="btnConfirmarExclusao" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Sim, excluir</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // ================= CONFIGURAÇÃO =================
-        // Dados mockados para demonstração
+        // ================= DADOS MOCKADOS =================
         const MOCK_VEICULOS_ESCALA = [
-            { id: 'v1', nome: 'VW 17.250 CNC', placa: 'KOR 6942', tipo: 'FP' },
-            { id: 'v2', nome: 'SPRINTER', placa: 'KYK 3G96', tipo: 'FP' },
-            { id: 'v3', nome: 'FORD 350 G', placa: 'LPB-4188', tipo: 'FP' },
-            { id: 'v4', nome: 'STRADA', placa: 'LUP 6940', tipo: 'FP' },
-            { id: 'v5', nome: 'VW 5.150', placa: 'LSN 8H48', tipo: 'FP' },
-            { id: 'v6', nome: 'VW 5.150', placa: 'KRT 7455', tipo: 'FP' },
-            { id: 'v7', nome: 'VW 10.160', placa: 'LRY 1G30', tipo: 'FP' },
-            { id: 'v8', nome: 'VW 8.160', placa: 'LMF-2276', tipo: 'FP' },
-            { id: 'v9', nome: 'VW 8.160', placa: 'RJS 4C39', tipo: 'FP' },
-            { id: 'v10', nome: 'VW 10.180', placa: 'RJC 3F21', tipo: 'FP' },
-            { id: 'v11', nome: 'FIORINO', placa: 'RUG 7E84', tipo: 'FP' },
-            { id: 'v12', nome: 'SCUDO (NOVA)', placa: 'TJD 2B93', tipo: 'FP' },
-            { id: 'v13', nome: 'SCUDO', placa: 'SRO 6H65', tipo: 'FP' },
-            { id: 'v14', nome: 'SCUDO (NOVA)', placa: 'UGQ 6E67', tipo: 'FP' },
-            { id: 'v15', nome: 'JUMPER', placa: 'SHN 8F18', tipo: 'FP' },
-            { id: 'v16', nome: 'MASTER', placa: 'KOB7G23', tipo: 'AG' },
-            { id: 'v17', nome: 'KIA BONGO', placa: 'LTK9254', tipo: 'AG' },
-            { id: 'v18', nome: 'IVECO', placa: 'LUY3337', tipo: 'AG' },
-            { id: 'v19', nome: 'HR', placa: 'LPD6082', tipo: 'AG' },
-            { id: 'v20', nome: 'HR', placa: 'KZN1B31', tipo: 'AG' },
-            { id: 'v21', nome: 'BONGO', placa: 'KYE2I24', tipo: 'AG' },
-            { id: 'v22', nome: 'SPRINTER 310', placa: 'LBV7763', tipo: 'AG' },
-            { id: 'v23', nome: 'FIORINO', placa: 'LRM8D78', tipo: 'AG' },
-            { id: 'v24', nome: 'DUCATO', placa: 'CXR1D52', tipo: 'AG' },
+            { id: 'v1', nome: 'VW 17.250 CNC', placa: 'KOR 6942', peso: 8500, tipo: 'FP' },
+            { id: 'v2', nome: 'SPRINTER', placa: 'KYK 3G96', peso: 1500, tipo: 'FP' },
+            { id: 'v3', nome: 'FORD 350 G', placa: 'LPB-4188', peso: 1800, tipo: 'FP' },
+            { id: 'v4', nome: 'STRADA', placa: 'LUP 6940', peso: 600, tipo: 'FP' },
+            { id: 'v5', nome: 'VW 5.150', placa: 'LSN 8H48', peso: 1700, tipo: 'FP' },
+            { id: 'v6', nome: 'VW 5.150', placa: 'KRT 7455', peso: 1700, tipo: 'FP' },
+            { id: 'v7', nome: 'VW 10.160', placa: 'LRY 1G30', peso: 4000, tipo: 'FP' },
+            { id: 'v8', nome: 'VW 8.160', placa: 'LMF-2276', peso: 4000, tipo: 'FP' },
+            { id: 'v9', nome: 'VW 8.160', placa: 'RJS 4C39', peso: 4000, tipo: 'FP' },
+            { id: 'v10', nome: 'VW 10.180', placa: 'RJC 3F21', peso: 4000, tipo: 'FP' },
+            { id: 'v11', nome: 'FIORINO', placa: 'RUG 7E84', peso: 600, tipo: 'FP' },
+            { id: 'v12', nome: 'RENAULT KANGOO', placa: 'KRV 8I51', peso: 700, tipo: 'FP' },
+            { id: 'v13', nome: 'SCUDO (NOVA)', placa: 'TJD 2B93', peso: 1400, tipo: 'FP' },
+            { id: 'v14', nome: 'JUMPER', placa: 'SHN 8F18', peso: 1400, tipo: 'FP' },
+            { id: 'v15', nome: 'SCUDO', placa: 'SRO 6H65', peso: 1400, tipo: 'FP' },
+            { id: 'v16', nome: 'SCUDO', placa: 'QSZ 2B21', peso: 1400, tipo: 'FP' },
+            { id: 'v17', nome: 'SCUDO', placa: 'UGQ 6E67', peso: 1400, tipo: 'FP' },
+            { id: 'v18', nome: 'FIORINO', placa: 'RFV0B04', peso: 600, tipo: 'AG' },
+            { id: 'v19', nome: 'IVECO', placa: 'DJE1I55', peso: 2500, tipo: 'AG' },
+            { id: 'v20', nome: 'SPRINTER 310', placa: 'LOC9E05', peso: 1800, tipo: 'AG' },
+            { id: 'v21', nome: 'DUCATO', placa: 'FDQ0E01', peso: 1500, tipo: 'AG' },
+            { id: 'v22', nome: 'SPRINTER 310', placa: 'LSE0J82', peso: 1800, tipo: 'AG' },
+            { id: 'v23', nome: 'KIA BONGO', placa: 'LTK9254', peso: 1500, tipo: 'AG' },
+            { id: 'v24', nome: 'IVECO', placa: 'KOB 7G23', peso: 1500, tipo: 'AG' },
+            { id: 'v25', nome: 'BONGO', placa: 'KYE2I24', peso: 1500, tipo: 'AG' },
+            { id: 'v26', nome: 'SPLINTER', placa: 'CXR1D52', peso: 1500, tipo: 'AG' },
+            { id: 'v27', nome: 'MASTER', placa: 'LPO7E41', peso: 1400, tipo: 'AG' },
+            { id: 'v28', nome: 'SPRINTER 310', placa: 'LBV 7763', peso: 1400, tipo: 'AG' },
+            { id: 'v29', nome: 'HR', placa: 'LPD 6082', peso: 1400, tipo: 'AG' },
+            { id: 'v30', nome: 'HR', placa: 'KZN 1131', peso: 1400, tipo: 'AG' },
+            { id: 'v31', nome: 'FIORINO', placa: 'QNS2G64', peso: 600, tipo: 'AG' },
+            { id: 'v32', nome: 'FIORINO', placa: 'LRM8D78', peso: 600, tipo: 'AG' },
+            { id: 'v33', nome: 'FIORINO', placa: 'KQR7E43', peso: 600, tipo: 'AG' },
+            { id: 'v34', nome: 'BONGO', placa: 'KRR 7348', peso: 1400, tipo: 'AG' },
+            { id: 'v35', nome: 'SCUDO', placa: 'LTB8G57', peso: 1500, tipo: 'AG' },
         ];
 
         const MOCK_MOTORISTAS = [
-            'GERMANO', 'HELIO', 'ANGELO', 'FRANCISCO', 'JOÃO JOSÉ', 
-            'CARLOS', 'ALEXANDRE', 'ESTEVÃO', 'MARCELO', 'DAMASCENO',
-            'NAILTON', 'DAVID', 'GUSTAVO', 'LUCIANO'
+            { id: 'mock_1', nome: 'GERMANO', veiculo: 'MASTER', placa: 'KOB7G23' },
+            { id: 'mock_2', nome: 'HELIO', veiculo: 'MASTER', placa: 'LPO7E41' },
+            { id: 'mock_3', nome: 'ANGELO', veiculo: 'KIA BONGO', placa: 'LTK9254' },
+            { id: 'mock_4', nome: 'FRANCISCO', veiculo: 'SPRINTER 310', placa: 'LSE0J82' },
+            { id: 'mock_5', nome: 'JOÃO JOSÉ', veiculo: 'SPRINTER 310', placa: 'LBV7763' },
+            { id: 'mock_6', nome: 'CARLOS', veiculo: 'HR', placa: 'LPD6082' },
+            { id: 'mock_7', nome: 'ALEXANDRE', veiculo: 'HR', placa: 'KZN1B31' },
+            { id: 'mock_8', nome: 'ESTEVÃO', veiculo: 'IVECO', placa: 'LUY3337' },
+            { id: 'mock_9', nome: 'MARCELO', veiculo: 'FIORINO', placa: 'LRM8D78' },
+            { id: 'mock_10', nome: 'DAMASCENO', veiculo: 'FIORINO', placa: 'QNS2G64' },
+            { id: 'mock_11', nome: 'NAILTON', veiculo: 'IVECO', placa: 'KOB7G23' },
+            { id: 'mock_12', nome: 'DAVID', veiculo: 'DUCATO', placa: 'CXR1D52' },
+            { id: 'mock_13', nome: 'GUSTAVO', veiculo: 'BONGO', placa: 'KYE2I24' },
+            { id: 'mock_14', nome: 'LUCIANO', veiculo: 'BONGO', placa: 'KRR7348' },
         ];
 
-        // ================= VARIÁVEIS GLOBAIS =================
-        let escalas = [];
+        const MOCK_AJUDANTES = ['João', 'Pedro', 'Carlos', 'Marcos', 'José', 'Francisco', 'Jeferson', 'Wallace', 'Maurício', 'Roberto', 'Anderson', 'Thiago', 'Lucio', 'Fabricio', 'Sidney', 'Rafael'];
+        const MOCK_ROTAS = ['ZONA SUL', 'CENTRO', 'NORTE/ILHA', 'OESTE 2', 'SAQUAREMA', 'CABO FRIO', 'NITEROI', 'SÃO GONÇALO', 'BARRA', 'MARICÁ', 'PETRÓPOLIS', 'TERESÓPOLIS', 'BAIXADA', 'MUNDIAL', 'TORRE'];
 
-        // ================= FUNÇÕES DE UTILIDADE =================
+        // ================= VARIÁVEIS =================
+        let escalas = [];
+        let editandoId = null;
+        let itemParaExcluir = null;
+        let ultimoId = 1000;
+
+        // ================= FUNÇÕES =================
         function formatarData(data) {
             if (!data) return '-';
-            const d = new Date(data);
-            return d.toLocaleDateString('pt-BR');
+            return new Date(data).toLocaleDateString('pt-BR');
         }
 
         function getDiaSemana(data) {
@@ -379,57 +484,89 @@
         }
 
         function getStatusClass(status) {
-            if (!status) return 'status-ok';
-            const s = status.toUpperCase();
-            if (s === 'OK') return 'status-ok';
-            if (s === 'OFICINA') return 'status-oficina';
-            return 'status-indisponivel';
+            if (!status || status === 'OK') return 'status-ok';
+            if (status === 'OFICINA') return 'status-oficina';
+            if (status === 'INDISPONÍVEL') return 'status-indisponivel';
+            if (status === 'ESCALADO') return 'status-escalado';
+            if (status === 'DISPONÍVEL') return 'status-disponivel';
+            return 'status-ok';
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'OK': '✅ OK',
+                'OFICINA': '🔧 Oficina',
+                'INDISPONÍVEL': '❌ Indisponível',
+                'ESCALADO': '📌 Escalado',
+                'DISPONÍVEL': '🟣 Disponível'
+            };
+            return labels[status] || status;
         }
 
         function mostrarToast(mensagem, tipo = 'success') {
+            const cores = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
             const toast = document.createElement('div');
-            toast.className = `toast toast-${tipo}`;
+            toast.className = `fixed bottom-5 right-5 ${cores[tipo] || 'bg-blue-500'} text-white px-6 py-3 rounded-xl shadow-lg font-medium animate-slide-in z-50 max-w-md`;
             toast.textContent = mensagem;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
 
+        function getVeiculoById(id) {
+            return MOCK_VEICULOS_ESCALA.find(v => v.id === id);
+        }
+
+        function getMotoristaById(id) {
+            return MOCK_MOTORISTAS.find(m => m.id === id);
+        }
+
+        function gerarId() {
+            ultimoId++;
+            return ultimoId;
+        }
+
         // ================= GERAR DADOS MOCK =================
         function gerarEscalasMock() {
-            const escalas = [];
+            const esc = [];
             const hoje = new Date();
-            const dias = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
-            const rotas = ['ZONA SUL', 'CENTRO', 'NORTE/ILHA', 'OESTE 2', 'SAQUAREMA', 'CABO FRIO', 'NITEROI', 'SÃO GONÇALO', 'BARRA', 'MARICÁ', 'PETRÓPOLIS', 'TERESÓPOLIS', 'BAIXADA'];
-            const status = ['OK', 'OK', 'OK', 'OFICINA', 'INDISPONÍVEL'];
-            const ajudantes = ['João', 'Pedro', 'Carlos', 'Marcos', 'José', 'Francisco', 'Jeferson', 'Wallace', 'Maurício'];
+            const status = ['ESCALADO', 'ESCALADO', 'ESCALADO', 'OK', 'OFICINA', 'INDISPONÍVEL', 'DISPONÍVEL'];
+            const celulares = ['REI 07', 'REI 02', 'REI 12', 'REI 14', 'REI 15', 'REI 16', 'REI 19', 'SIDNEY', 'LUCIO'];
             
             for (let i = 0; i < 50; i++) {
                 const data = new Date(hoje);
                 data.setDate(data.getDate() - Math.floor(Math.random() * 30));
                 
-                const diaSemana = dias[data.getDay() === 0 ? 6 : data.getDay() - 1];
                 const veiculo = MOCK_VEICULOS_ESCALA[Math.floor(Math.random() * MOCK_VEICULOS_ESCALA.length)];
-                const motorista = MOCK_MOTORISTAS[Math.floor(Math.random() * MOCK_MOTORISTAS.length)];
-                const ajudante = Math.random() > 0.4 ? ajudantes[Math.floor(Math.random() * ajudantes.length)] : '';
-                const segundoAjudante = Math.random() > 0.7 ? ajudantes[Math.floor(Math.random() * ajudantes.length)] : '';
+                const motorista = Math.random() > 0.2 ? MOCK_MOTORISTAS[Math.floor(Math.random() * MOCK_MOTORISTAS.length)] : null;
+                const ajudante = Math.random() > 0.4 ? MOCK_AJUDANTES[Math.floor(Math.random() * MOCK_AJUDANTES.length)] : '';
+                const segundoAjudante = Math.random() > 0.7 ? MOCK_AJUDANTES[Math.floor(Math.random() * MOCK_AJUDANTES.length)] : '';
                 
-                escalas.push({
-                    id: `mock_esc_${i}`,
+                esc.push({
+                    id: `esc_${gerarId()}`,
                     data: data.toISOString().split('T')[0],
-                    dia_semana: diaSemana,
                     veiculo_id: veiculo.id,
-                    veiculos: { nome: veiculo.nome, placa: veiculo.placa },
-                    motorista: Math.random() > 0.3 ? motorista : '',
+                    veiculos: { nome: veiculo.nome, placa: veiculo.placa, peso: veiculo.peso },
+                    placa: veiculo.placa,
+                    peso_max: veiculo.peso,
+                    motorista_id: motorista?.id || '',
+                    motorista_nome: motorista?.nome || '',
                     ajudante: [ajudante, segundoAjudante].filter(Boolean).join(', '),
-                    rota: rotas[Math.floor(Math.random() * rotas.length)],
+                    rota: MOCK_ROTAS[Math.floor(Math.random() * MOCK_ROTAS.length)],
                     status: status[Math.floor(Math.random() * status.length)],
-                    observacao: Math.random() > 0.85 ? 'Observação de teste' : ''
+                    celular: Math.random() > 0.4 ? celulares[Math.floor(Math.random() * celulares.length)] : '',
+                    maquina_cartao: Math.random() > 0.5 ? Math.round(Math.random() * 15) : 0,
+                    nf: Math.random() > 0.3 ? Math.floor(Math.random() * 30 + 1) : 0,
+                    peso_carga: Math.random() > 0.3 ? Math.round(Math.random() * 1500 + 100) : 0,
+                    retornos: Math.random() > 0.7 ? `${Math.floor(Math.random() * 20 + 1)} NOTAS \\ ${Math.round(Math.random() * 200 + 50)} KG` : '',
+                    carregamento: Math.random() > 0.5 ? `${Math.floor(Math.random() * 17000 + 16000)}` : '',
+                    observacao: Math.random() > 0.85 ? 'Observação de teste' : '',
+                    confirmado: false
                 });
             }
-            return escalas;
+            return esc;
         }
 
-        // ================= CRUD ESCALAS =================
+        // ================= CRUD =================
         function carregarDados() {
             escalas = gerarEscalasMock();
             escalas.sort((a, b) => new Date(b.data) - new Date(a.data));
@@ -440,45 +577,93 @@
         }
 
         function atualizarSelects() {
-            // Select de veículos
             const selectVeiculo = document.getElementById('escalaVeiculo');
             if (selectVeiculo) {
                 const value = selectVeiculo.value;
                 selectVeiculo.innerHTML = '<option value="">Selecione...</option>';
                 MOCK_VEICULOS_ESCALA.forEach(v => {
-                    selectVeiculo.innerHTML += `<option value="${v.id}">${v.nome} (${v.placa})</option>`;
+                    selectVeiculo.innerHTML += `<option value="${v.id}" data-placa="${v.placa}" data-peso="${v.peso}">${v.nome} (${v.placa}) - ${v.peso}kg</option>`;
                 });
                 if (value) selectVeiculo.value = value;
+                atualizarCamposVeiculo();
             }
 
-            // Select de motoristas
             const selectMotorista = document.getElementById('escalaMotorista');
             if (selectMotorista) {
                 const value = selectMotorista.value;
                 selectMotorista.innerHTML = '<option value="">Selecione...</option>';
                 MOCK_MOTORISTAS.forEach(m => {
-                    selectMotorista.innerHTML += `<option value="${m}">${m}</option>`;
+                    selectMotorista.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
                 });
                 if (value) selectMotorista.value = value;
             }
+
+            // Modal selects
+            const modalVeiculo = document.getElementById('modalVeiculo');
+            if (modalVeiculo) {
+                const value = modalVeiculo.value;
+                modalVeiculo.innerHTML = '<option value="">Selecione...</option>';
+                MOCK_VEICULOS_ESCALA.forEach(v => {
+                    modalVeiculo.innerHTML += `<option value="${v.id}" data-placa="${v.placa}" data-peso="${v.peso}">${v.nome} (${v.placa}) - ${v.peso}kg</option>`;
+                });
+                if (value) modalVeiculo.value = value;
+            }
+
+            const modalMotorista = document.getElementById('modalMotorista');
+            if (modalMotorista) {
+                const value = modalMotorista.value;
+                modalMotorista.innerHTML = '<option value="">Selecione...</option>';
+                MOCK_MOTORISTAS.forEach(m => {
+                    modalMotorista.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+                });
+                if (value) modalMotorista.value = value;
+            }
         }
+
+        function atualizarCamposVeiculo() {
+            const select = document.getElementById('escalaVeiculo');
+            const selected = select.options[select.selectedIndex];
+            document.getElementById('escalaPlaca').value = selected?.dataset?.placa || '';
+            document.getElementById('escalaPeso').value = selected?.dataset?.peso || '';
+        }
+
+        function atualizarCamposVeiculoModal() {
+            const select = document.getElementById('modalVeiculo');
+            const selected = select.options[select.selectedIndex];
+            document.getElementById('modalPlaca').value = selected?.dataset?.placa || '';
+            document.getElementById('modalPeso').value = selected?.dataset?.peso || '';
+        }
+
+        document.getElementById('escalaVeiculo')?.addEventListener('change', atualizarCamposVeiculo);
+        document.getElementById('modalVeiculo')?.addEventListener('change', atualizarCamposVeiculoModal);
 
         function salvarEscala(event) {
             event.preventDefault();
             const id = document.getElementById('editEscalaId').value;
             const veiculoId = document.getElementById('escalaVeiculo').value;
-            const veiculo = MOCK_VEICULOS_ESCALA.find(v => v.id === veiculoId);
+            const veiculo = getVeiculoById(veiculoId);
+            const motoristaId = document.getElementById('escalaMotorista').value;
+            const motorista = getMotoristaById(motoristaId);
             
             const dados = {
                 data: document.getElementById('escalaData').value,
-                dia_semana: document.getElementById('escalaDiaSemana').value,
                 veiculo_id: veiculoId,
-                veiculos: veiculo ? { nome: veiculo.nome, placa: veiculo.placa } : null,
-                motorista: document.getElementById('escalaMotorista').value,
+                veiculos: veiculo ? { nome: veiculo.nome, placa: veiculo.placa, peso: veiculo.peso } : null,
+                placa: veiculo ? veiculo.placa : '',
+                peso_max: veiculo ? veiculo.peso : 0,
+                motorista_id: motoristaId || '',
+                motorista_nome: motorista?.nome || '',
                 ajudante: document.getElementById('escalaAjudante').value.trim(),
                 rota: document.getElementById('escalaRota').value.trim(),
-                status: document.getElementById('escalaStatus').value,
-                observacao: document.getElementById('escalaObs').value.trim()
+                status: document.getElementById('escalaStatus').value || 'ESCALADO',
+                celular: document.getElementById('escalaCelular').value.trim(),
+                maquina_cartao: parseFloat(document.getElementById('escalaMaquina').value) || 0,
+                nf: parseFloat(document.getElementById('escalaNF').value) || 0,
+                peso_carga: parseFloat(document.getElementById('escalaPesoCarga').value) || 0,
+                retornos: document.getElementById('escalaRetornos').value.trim(),
+                carregamento: document.getElementById('escalaCarregamento').value.trim(),
+                observacao: document.getElementById('escalaObs').value.trim(),
+                confirmado: false
             };
 
             if (!dados.data || !dados.veiculo_id || !dados.rota) {
@@ -488,15 +673,10 @@
 
             if (id) {
                 const index = escalas.findIndex(e => e.id === id);
-                if (index !== -1) {
-                    escalas[index] = { ...escalas[index], ...dados };
-                }
+                if (index !== -1) escalas[index] = { ...escalas[index], ...dados };
                 mostrarToast('Escala atualizada!');
             } else {
-                const novo = {
-                    id: `mock_esc_${Date.now()}`,
-                    ...dados
-                };
+                const novo = { id: `esc_${gerarId()}`, ...dados };
                 escalas.unshift(novo);
                 mostrarToast('Escala salva!');
             }
@@ -507,106 +687,317 @@
             document.getElementById('totalEscalasBadge').textContent = escalas.length;
         }
 
+        // ===== CONFIRMAR VIAGEM =====
+        function abrirModalConfirmar(id) {
+            const item = escalas.find(e => e.id === id);
+            if (!item) {
+                mostrarToast('Escala não encontrada', 'error');
+                return;
+            }
+
+            if (item.confirmado) {
+                mostrarToast('Esta viagem já foi confirmada!', 'error');
+                return;
+            }
+
+            if (!item.motorista_id) {
+                mostrarToast('Esta escala não tem um motorista vinculado!', 'error');
+                return;
+            }
+
+            document.getElementById('confEscalaId').value = item.id;
+            document.getElementById('confMotoristaId').value = item.motorista_id;
+            document.getElementById('modalConfMotorista').textContent = item.motorista_nome || 'N/A';
+            document.getElementById('modalConfData').textContent = formatarData(item.data);
+            document.getElementById('modalConfRota').textContent = item.rota;
+            document.getElementById('modalConfVeiculo').textContent = item.veiculos?.nome || 'N/A';
+            
+            // Preencher valores sugeridos baseados na rota
+            const valorSugerido = item.rota.includes('ZONA SUL') ? 550 : 
+                                  item.rota.includes('CENTRO') ? 600 :
+                                  item.rota.includes('NORTE') ? 650 :
+                                  item.rota.includes('OESTE') ? 650 :
+                                  item.rota.includes('SAQUAREMA') ? 900 :
+                                  item.rota.includes('CABO FRIO') ? 950 : 550;
+            
+            document.getElementById('confValorDiaria').value = valorSugerido;
+            document.getElementById('confPedagio').value = 0;
+            document.getElementById('confAlmoco').value = 0;
+            document.getElementById('confChapa').value = 0;
+            document.getElementById('confDesconto').value = 0;
+            document.getElementById('confObservacao').value = `Viagem confirmada - ${item.rota}`;
+
+            document.getElementById('modalConfirmarViagem').classList.remove('hidden');
+            document.getElementById('modalConfirmarViagem').style.display = 'flex';
+        }
+
+        function fecharModalConfirmar() {
+            document.getElementById('modalConfirmarViagem').style.display = 'none';
+            document.getElementById('modalConfirmarViagem').classList.add('hidden');
+        }
+
+        function confirmarViagem(event) {
+            event.preventDefault();
+            
+            const escalaId = document.getElementById('confEscalaId').value;
+            const motoristaId = document.getElementById('confMotoristaId').value;
+            
+            const valorDiaria = parseFloat(document.getElementById('confValorDiaria').value) || 0;
+            const pedagio = parseFloat(document.getElementById('confPedagio').value) || 0;
+            const almoco = parseFloat(document.getElementById('confAlmoco').value) || 0;
+            const chapa = parseFloat(document.getElementById('confChapa').value) || 0;
+            const desconto = parseFloat(document.getElementById('confDesconto').value) || 0;
+            const observacao = document.getElementById('confObservacao').value.trim();
+
+            if (valorDiaria <= 0) {
+                mostrarToast('Informe o valor da diária', 'error');
+                return;
+            }
+
+            // Encontrar a escala
+            const escalaIndex = escalas.findIndex(e => e.id === escalaId);
+            if (escalaIndex === -1) {
+                mostrarToast('Escala não encontrada', 'error');
+                return;
+            }
+
+            const escala = escalas[escalaIndex];
+            const motorista = getMotoristaById(motoristaId);
+
+            // Criar lançamento no controle_agregados
+            const novoLancamento = {
+                id: `mock_lanc_${Date.now()}`,
+                agregado_id: motoristaId,
+                agregados: motorista ? { nome: motorista.nome, veiculo: motorista.veiculo, placa: motorista.placa } : null,
+                data: escala.data,
+                rota: escala.rota,
+                valor_diaria: valorDiaria,
+                pedagio: pedagio,
+                almoco: almoco,
+                chapa: chapa,
+                desconto: desconto,
+                veiculo_utilizado: escala.veiculos?.nome || '',
+                observacao: observacao || `Viagem confirmada - ${escala.rota}`,
+                origem: 'escala',
+                escala_id: escalaId
+            };
+
+            // Salvar no localStorage para integração com controle_agregados
+            const lancamentosSalvos = JSON.parse(localStorage.getItem('lancamentos_agregados') || '[]');
+            lancamentosSalvos.push(novoLancamento);
+            localStorage.setItem('lancamentos_agregados', JSON.stringify(lancamentosSalvos));
+
+            // Atualizar status da escala para OK
+            escalas[escalaIndex].status = 'OK';
+            escalas[escalaIndex].confirmado = true;
+            escalas[escalaIndex].observacao = (escalas[escalaIndex].observacao || '') + ` | Confirmado em ${new Date().toLocaleString('pt-BR')}`;
+
+            fecharModalConfirmar();
+            renderizarEscalas();
+            
+            mostrarToast(`Viagem confirmada! Lançamento gerado para ${motorista?.nome || 'motorista'}`);
+            
+            // Disparar evento para sincronizar com controle_agregados
+            window.dispatchEvent(new CustomEvent('lancamentoAdicionado', { detail: novoLancamento }));
+        }
+
+        // ===== FUNÇÕES DA ESCALA =====
         function excluirEscala(id) {
-            if (!confirm('Deseja excluir esta escala?')) return;
-            escalas = escalas.filter(e => e.id !== id);
-            mostrarToast('Escala excluída!');
+            itemParaExcluir = id;
+            const item = escalas.find(e => e.id === id);
+            document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir esta escala?';
+            document.getElementById('confirmSubmessage').textContent = `${item?.veiculos?.nome || 'Item'} - ${item?.data ? formatarData(item.data) : ''}`;
+            document.getElementById('btnConfirmarExclusao').onclick = executarExclusao;
+            document.getElementById('modalConfirmacao').classList.remove('hidden');
+            document.getElementById('modalConfirmacao').style.display = 'flex';
+        }
+
+        function executarExclusao() {
+            if (!itemParaExcluir) return;
+            escalas = escalas.filter(e => e.id !== itemParaExcluir);
+            itemParaExcluir = null;
+            fecharConfirmacao();
+            if (document.getElementById('modalEdicao').style.display === 'flex') fecharModal();
             renderizarEscalas();
             document.getElementById('totalEscalasBadge').textContent = escalas.length;
+            mostrarToast('Escala excluída com sucesso!');
         }
 
         function editarEscala(id) {
             const item = escalas.find(e => e.id === id);
             if (!item) return;
-            document.getElementById('editEscalaId').value = item.id;
-            document.getElementById('escalaData').value = item.data;
-            document.getElementById('escalaDiaSemana').value = item.dia_semana || getDiaSemana(item.data);
-            document.getElementById('escalaVeiculo').value = item.veiculo_id || '';
-            document.getElementById('escalaMotorista').value = item.motorista || '';
-            document.getElementById('escalaAjudante').value = item.ajudante || '';
-            document.getElementById('escalaRota').value = item.rota || '';
-            document.getElementById('escalaStatus').value = item.status || 'OK';
-            document.getElementById('escalaObs').value = item.observacao || '';
-            document.getElementById('escalaFormMode').textContent = 'Edição';
-            document.getElementById('btnSalvarEscala').textContent = '✏️ Atualizar';
-            document.getElementById('btnCancelarEscala').classList.remove('hidden');
-            document.querySelector('.card:first-child').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('modalEditId').value = item.id;
+            document.getElementById('modalData').value = item.data;
+            document.getElementById('modalVeiculo').value = item.veiculo_id || '';
+            document.getElementById('modalStatus').value = item.status || 'ESCALADO';
+            document.getElementById('modalMotorista').value = item.motorista_id || '';
+            document.getElementById('modalAjudante').value = item.ajudante || '';
+            document.getElementById('modalRota').value = item.rota || '';
+            document.getElementById('modalCelular').value = item.celular || '';
+            document.getElementById('modalMaquina').value = item.maquina_cartao || 0;
+            document.getElementById('modalNF').value = item.nf || 0;
+            document.getElementById('modalPesoCarga').value = item.peso_carga || 0;
+            document.getElementById('modalRetornos').value = item.retornos || '';
+            document.getElementById('modalCarregamento').value = item.carregamento || '';
+            document.getElementById('modalObs').value = item.observacao || '';
+            document.getElementById('modalTitle').textContent = `✏️ Editar Escala - ${item.veiculos?.nome || 'N/A'}`;
+            atualizarCamposVeiculoModal();
+            document.getElementById('modalEdicao').style.display = 'flex';
+            document.getElementById('modalEdicao').classList.remove('hidden');
         }
 
-        function cancelarEdicaoEscala() { limparFormEscala(); }
+        function fecharModal() {
+            document.getElementById('modalEdicao').style.display = 'none';
+            document.getElementById('modalEdicao').classList.add('hidden');
+        }
+
+        function fecharConfirmacao() {
+            document.getElementById('modalConfirmacao').style.display = 'none';
+            document.getElementById('modalConfirmacao').classList.add('hidden');
+        }
+
+        function confirmarExclusao() {
+            const id = document.getElementById('modalEditId').value;
+            if (id) {
+                fecharModal();
+                setTimeout(() => excluirEscala(id), 200);
+            }
+        }
 
         function limparFormEscala() {
+            const hoje = new Date().toISOString().split('T')[0];
             document.getElementById('editEscalaId').value = '';
-            document.getElementById('escalaData').value = new Date().toISOString().split('T')[0];
-            document.getElementById('escalaDiaSemana').value = '';
+            document.getElementById('escalaData').value = hoje;
             document.getElementById('escalaVeiculo').value = '';
+            document.getElementById('escalaPlaca').value = '';
+            document.getElementById('escalaPeso').value = '';
             document.getElementById('escalaMotorista').value = '';
             document.getElementById('escalaAjudante').value = '';
             document.getElementById('escalaRota').value = '';
-            document.getElementById('escalaStatus').value = 'OK';
+            document.getElementById('escalaStatus').value = 'ESCALADO';
+            document.getElementById('escalaCelular').value = '';
+            document.getElementById('escalaMaquina').value = '0';
+            document.getElementById('escalaNF').value = '0';
+            document.getElementById('escalaPesoCarga').value = '0';
+            document.getElementById('escalaRetornos').value = '';
+            document.getElementById('escalaCarregamento').value = '';
             document.getElementById('escalaObs').value = '';
             document.getElementById('escalaFormMode').textContent = 'Inserção';
             document.getElementById('btnSalvarEscala').textContent = '💾 Salvar Escala';
             document.getElementById('btnCancelarEscala').classList.add('hidden');
         }
 
+        function cancelarEdicaoEscala() { limparFormEscala(); }
+
         function aplicarFiltros() { renderizarEscalas(); }
 
+        // ===== RENDERIZAÇÃO EM LISTA ÚNICA =====
         function renderizarEscalas() {
             const container = document.getElementById('escalaCards');
             let dados = [...escalas];
 
             const filtroData = document.getElementById('filtroEscalaData').value;
-            const filtroDia = document.getElementById('filtroEscalaDia').value;
             const filtroMotorista = document.getElementById('filtroEscalaMotorista').value.toLowerCase();
+            const filtroVeiculo = document.getElementById('filtroEscalaVeiculo').value.toLowerCase();
+            const filtroRota = document.getElementById('filtroEscalaRota').value.toLowerCase();
+            const filtroStatus = document.getElementById('filtroEscalaStatus').value;
 
             if (filtroData) dados = dados.filter(e => e.data === filtroData);
-            if (filtroDia) dados = dados.filter(e => e.dia_semana === filtroDia);
-            if (filtroMotorista) dados = dados.filter(e => 
-                (e.motorista || '').toLowerCase().includes(filtroMotorista)
-            );
+            if (filtroMotorista) dados = dados.filter(e => (e.motorista_nome || '').toLowerCase().includes(filtroMotorista));
+            if (filtroVeiculo) dados = dados.filter(e => (e.veiculos?.nome || '').toLowerCase().includes(filtroVeiculo));
+            if (filtroRota) dados = dados.filter(e => (e.rota || '').toLowerCase().includes(filtroRota));
+            if (filtroStatus) dados = dados.filter(e => e.status === filtroStatus);
 
             if (dados.length === 0) {
-                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">📋</div><p>Nenhuma escala encontrada</p></div>`;
+                container.innerHTML = `
+                    <div class="text-center py-10 text-gray-400">
+                        <div class="text-5xl mb-2">📋</div>
+                        <p>Nenhuma escala encontrada</p>
+                    </div>
+                `;
                 return;
             }
 
-            const dias = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
-            const nomesDias = { 'SEGUNDA': 'Segunda-feira', 'TERCA': 'Terça-feira', 'QUARTA': 'Quarta-feira', 'QUINTA': 'Quinta-feira', 'SEXTA': 'Sexta-feira', 'SABADO': 'Sábado' };
+            // Agrupar por data
+            const grupos = {};
+            dados.forEach(e => {
+                if (!grupos[e.data]) grupos[e.data] = [];
+                grupos[e.data].push(e);
+            });
+
+            const datasOrdenadas = Object.keys(grupos).sort((a, b) => new Date(b) - new Date(a));
+            const nomesDias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
             let html = '';
-            dias.forEach(dia => {
-                const items = dados.filter(e => e.dia_semana === dia);
-                if (items.length === 0) return;
-                const data = items[0]?.data || '';
+            datasOrdenadas.forEach(data => {
+                const items = grupos[data];
+                const dataFormatada = formatarData(data);
+                const nomeDia = nomesDias[new Date(data).getDay()];
+                
                 html += `
-                    <div class="dia-card">
-                        <div class="dia-titulo">${nomesDias[dia] || dia} ${data ? formatarData(data) : ''}</div>
+                    <div class="dia-group">
+                        <div class="dia-header">
+                            <span class="dia-nome">${dataFormatada}</span>
+                            <span class="dia-data">${nomeDia} · ${items.length} veículo${items.length > 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="space-y-3">
                 `;
+
                 items.forEach(e => {
                     const statusClass = getStatusClass(e.status);
-                    const veiculoNome = e.veiculos?.nome || e.veiculo_id || 'Sem veículo';
-                    const placa = e.veiculos?.placa || '';
+                    const statusLabel = getStatusLabel(e.status);
+                    const veiculoNome = e.veiculos?.nome || 'Sem veículo';
+                    const placa = e.placa || e.veiculos?.placa || '';
+                    const peso = e.peso_max || e.veiculos?.peso || '';
+                    
+                    // Definir cor da borda baseada no status
+                    let borderColor = 'border-blue-600';
+                    if (e.status === 'OK') borderColor = 'border-green-500';
+                    else if (e.status === 'OFICINA') borderColor = 'border-yellow-500';
+                    else if (e.status === 'INDISPONÍVEL') borderColor = 'border-red-500';
+                    else if (e.status === 'DISPONÍVEL') borderColor = 'border-purple-500';
+                    else if (e.status === 'ESCALADO') borderColor = 'border-blue-600';
+                    
                     html += `
-                        <div class="veiculo-item">
-                            <span><strong>${veiculoNome}</strong> ${placa ? `(${placa})` : ''}</span>
-                            <span>
-                                ${e.motorista || '-'} 
-                                ${e.ajudante ? `<span style="color:#777;">+ ${e.ajudante}</span>` : ''}
-                                <span class="${statusClass}">${e.status || 'OK'}</span>
-                            </span>
-                        </div>
-                        <div style="font-size:12px; color:#777; padding:2px 0 6px 0; border-bottom:1px solid #eee;">
-                            <span>${e.rota}</span>
-                            ${e.observacao ? `<span style="margin-left:10px;">📌 ${e.observacao}</span>` : ''}
-                            <span style="float:right;">
-                                <button class="btn btn-primary btn-sm" onclick="editarEscala('${e.id}')">✏️</button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirEscala('${e.id}')">🗑️</button>
-                            </span>
+                        <div class="bg-white rounded-xl shadow-sm p-4 escala-card border-l-4 ${borderColor}">
+                            <div class="flex flex-wrap justify-between items-start gap-2">
+                                <div class="veiculo-info">
+                                    <span class="font-semibold text-gray-800 text-base">${veiculoNome}</span>
+                                    ${placa ? `<span class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">${placa}</span>` : ''}
+                                    ${peso ? `<span class="text-sm text-gray-400">${peso}kg</span>` : ''}
+                                    <span class="text-sm font-medium ${statusClass}">${statusLabel}</span>
+                                    ${e.confirmado ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ Confirmado</span>' : ''}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm text-gray-600">
+                                        ${e.motorista_nome ? `<span class="font-medium">${e.motorista_nome}</span>` : '-'}
+                                        ${e.ajudante ? `<span class="text-gray-400 text-xs">+ ${e.ajudante}</span>` : ''}
+                                    </span>
+                                    <div class="flex gap-1">
+                                        ${!e.confirmado && e.motorista_id ? `<button onclick="abrirModalConfirmar('${e.id}')" class="bg-green-500 hover:bg-green-600 text-white px-2.5 py-1 rounded text-xs transition">✅</button>` : ''}
+                                        <button onclick="editarEscala('${e.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2.5 py-1 rounded text-xs transition">✏️</button>
+                                        <button onclick="excluirEscala('${e.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs transition">🗑️</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="detalhes mt-2 pt-2 border-t border-gray-100">
+                                <span><span class="label">Rota:</span> ${e.rota}</span>
+                                ${e.celular ? `<span><span class="label">Cel:</span> ${e.celular}</span>` : ''}
+                                ${e.maquina_cartao ? `<span><span class="label">MC:</span> ${e.maquina_cartao}</span>` : ''}
+                                ${e.nf ? `<span><span class="label">NF:</span> ${e.nf}</span>` : ''}
+                                ${e.peso_carga ? `<span><span class="label">Peso:</span> ${e.peso_carga}kg</span>` : ''}
+                                ${e.retornos ? `<span>🔄 ${e.retornos}</span>` : ''}
+                                ${e.carregamento ? `<span>📦 ${e.carregamento}</span>` : ''}
+                                ${e.observacao ? `<span class="text-yellow-600">📌 ${e.observacao}</span>` : ''}
+                            </div>
                         </div>
                     `;
                 });
-                html += `</div>`;
+
+                html += `
+                        </div>
+                    </div>
+                `;
             });
 
             container.innerHTML = html;
@@ -616,7 +1007,7 @@
         function inicializar() {
             const hoje = new Date().toISOString().split('T')[0];
             document.getElementById('escalaData').value = hoje;
-            document.getElementById('escalaDiaSemana').value = getDiaSemana(hoje);
+            document.getElementById('filtroEscalaData').value = hoje;
             carregarDados();
         }
 
