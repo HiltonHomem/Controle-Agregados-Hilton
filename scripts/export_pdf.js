@@ -86,13 +86,9 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
     
     const corPrimaria = [26, 115, 232];
     const corSecundaria = [52, 168, 83];
-    const corDanger = [234, 67, 53];
-    const corWarning = [251, 188, 4];
 
-    // Remover apenas emojis do nome do motorista (mantém acentos)
     const nomeLimpo = removerEmojis(motoristaNome);
 
-    // Agrupar por mês
     const meses = {};
     dados.forEach(item => {
         const data = new Date(item.data);
@@ -101,9 +97,7 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
         meses[mesAno].push(item);
     });
 
-    // Ordenar meses
     const mesesOrdenados = Object.keys(meses).sort();
-
     let pagina = 1;
 
     mesesOrdenados.forEach((mesAno, idx) => {
@@ -116,7 +110,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
         const nomeMes = getNomeMes(mes);
         const itensMes = meses[mesAno];
 
-        // ===== CABEÇALHO (SEM EMOJIS, COM ACENTOS) =====
         doc.setFontSize(18);
         doc.setTextColor(corPrimaria[0], corPrimaria[1], corPrimaria[2]);
         doc.text(`Relatório Quinzenal - ${nomeMes}/${ano}`, 14, 25);
@@ -133,27 +126,21 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
         doc.setDrawColor(200, 200, 200);
         doc.line(14, 54, 196, 54);
 
-        // ===== SEPARAR POR QUINZENA =====
         const quinzena1 = itensMes.filter(item => getQuinzena(item.data) === 1);
         const quinzena2 = itensMes.filter(item => getQuinzena(item.data) === 2);
 
-        // Ordenar por data
         quinzena1.sort((a, b) => new Date(a.data) - new Date(b.data));
         quinzena2.sort((a, b) => new Date(a.data) - new Date(b.data));
 
         let yPos = 60;
 
-        // ===== FUNÇÃO PARA RENDERIZAR UMA QUINZENA =====
         function renderizarQuinzena(quizenData, titulo, cor) {
-            // Título da quinzena (SEM EMOJIS, COM ACENTOS)
             doc.setFontSize(12);
             doc.setTextColor(cor[0], cor[1], cor[2]);
             doc.setFont(undefined, 'bold');
             doc.text(titulo, 14, yPos);
             yPos += 6;
             
-            // ===== VEÍCULOS UTILIZADOS NA QUINZENA =====
-            // Extrair veículos únicos
             const veiculosUnicos = [];
             quizenData.forEach(item => {
                 const veiculo = item.veiculo_utilizado || item.agregados?.veiculo || '';
@@ -171,7 +158,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                 yPos += 6;
             }
 
-            // ===== TOTAIS DA QUINZENA =====
             const totalDiarias = quizenData.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
             const totalPedagios = quizenData.reduce((s, l) => s + (Number(l.pedagio) || 0), 0);
             const totalAlmoco = quizenData.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
@@ -179,23 +165,19 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             const totalDescontos = quizenData.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
             const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
 
-            // Resumo da quinzena (SEM EMOJIS, COM ACENTOS)
             doc.setFontSize(9);
             doc.setTextColor(60, 60, 60);
             doc.setFont(undefined, 'normal');
-            
             const resumoText = `Diárias: ${formatarMoedaPDF(totalDiarias)} | Pedágios: ${formatarMoedaPDF(totalPedagios)} | Almoço: ${formatarMoedaPDF(totalAlmoco)} | Chapa: ${formatarMoedaPDF(totalChapa)} | Descontos: ${formatarMoedaPDF(totalDescontos)}`;
             doc.text(resumoText, 14, yPos + 2);
             yPos += 6;
             
-            // Total a pagar (SEM EMOJIS, COM ACENTOS)
             doc.setFontSize(11);
             doc.setTextColor(corPrimaria[0], corPrimaria[1], corPrimaria[2]);
             doc.setFont(undefined, 'bold');
             doc.text(`Total a Pagar: ${formatarMoedaPDF(totalLiquido)}`, 14, yPos + 2);
             yPos += 8;
 
-            // Linha separadora
             doc.setDrawColor(220, 220, 220);
             doc.line(14, yPos, 196, yPos);
             yPos += 4;
@@ -209,7 +191,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                 return yPos;
             }
 
-            // ===== TABELA DA QUINZENA =====
             const headers = ['Data', 'Rota', 'Diária', 'Pedágio', 'Almoço', 'Chapa', 'Desconto', 'Total'];
 
             const rows = quizenData.map(item => {
@@ -226,20 +207,7 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                 ];
             });
 
-            // Verificar se cabe na página
-            const alturaNecessaria = 20 + (rows.length * 7);
-            if (yPos + alturaNecessaria > 275) {
-                doc.addPage();
-                pagina++;
-                yPos = 20;
-                
-                // Repetir cabeçalho na nova página
-                doc.setFontSize(12);
-                doc.setTextColor(corPrimaria[0], corPrimaria[1], corPrimaria[2]);
-                doc.text(`${titulo} (continuação)`, 14, yPos);
-                yPos += 8;
-            }
-
+            // Ajustar larguras para caber na página (total = 182mm)
             doc.autoTable({
                 startY: yPos,
                 head: [headers],
@@ -248,26 +216,26 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                 headStyles: {
                     fillColor: cor,
                     textColor: [255, 255, 255],
-                    fontSize: 8,
+                    fontSize: 7,
                     fontStyle: 'bold',
                     halign: 'center'
                 },
                 styles: {
-                    fontSize: 7,
-                    cellPadding: 2,
+                    fontSize: 6.5,
+                    cellPadding: 1.5,
                     lineColor: [220, 220, 220],
                     lineWidth: 0.1,
                     overflow: 'linebreak'
                 },
                 columnStyles: {
-                    0: { cellWidth: 22, halign: 'center' },
-                    1: { cellWidth: 38 },
-                    2: { cellWidth: 22, halign: 'right' },
-                    3: { cellWidth: 22, halign: 'right' },
-                    4: { cellWidth: 20, halign: 'right' },
-                    5: { cellWidth: 18, halign: 'right' },
-                    6: { cellWidth: 22, halign: 'right' },
-                    7: { cellWidth: 24, halign: 'right', fontStyle: 'bold' }
+                    0: { cellWidth: 20, halign: 'center' },
+                    1: { cellWidth: 32 },
+                    2: { cellWidth: 20, halign: 'right' },
+                    3: { cellWidth: 20, halign: 'right' },
+                    4: { cellWidth: 18, halign: 'right' },
+                    5: { cellWidth: 16, halign: 'right' },
+                    6: { cellWidth: 20, halign: 'right' },
+                    7: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
                 },
                 alternateRowStyles: {
                     fillColor: [248, 249, 250]
@@ -288,7 +256,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
 
             yPos = doc.lastAutoTable.finalY + 6;
 
-            // Rodapé da quinzena (SEM EMOJIS, COM ACENTOS)
             doc.setFontSize(8);
             doc.setTextColor(100, 100, 100);
             doc.setFont(undefined, 'normal');
@@ -296,7 +263,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             doc.text(`Total de registros: ${totalRegistros}  |  Total líquido: ${formatarMoedaPDF(totalLiquido)}`, 14, yPos);
             yPos += 4;
 
-            // Linha separadora grossa entre quinzenas
             doc.setDrawColor(180, 180, 180);
             doc.setLineWidth(0.5);
             doc.line(14, yPos, 196, yPos);
@@ -306,23 +272,16 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             return yPos;
         }
 
-        // ===== RENDERIZAR 1ª QUINZENA =====
         yPos = renderizarQuinzena(quinzena1, '1ª Quinzena', [26, 115, 232]);
-
-        // Espaço entre quinzenas
         yPos += 4;
-
-        // ===== RENDERIZAR 2ª QUINZENA =====
         yPos = renderizarQuinzena(quinzena2, '2ª Quinzena', [52, 168, 83]);
 
-        // ===== RESUMO DO MÊS (SEM EMOJIS, COM ACENTOS) =====
         if (yPos < 260) {
             yPos += 4;
             doc.setDrawColor(200, 200, 200);
             doc.line(14, yPos, 196, yPos);
             yPos += 4;
 
-            // Total do mês
             const totalMesDiarias = itensMes.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
             const totalMesPedagios = itensMes.reduce((s, l) => s + (Number(l.pedagio) || 0), 0);
             const totalMesAlmoco = itensMes.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
@@ -330,7 +289,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             const totalMesDescontos = itensMes.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
             const totalMesLiquido = totalMesDiarias + totalMesPedagios + totalMesAlmoco + totalMesChapa - totalMesDescontos;
 
-            // Veículos utilizados no mês
             const veiculosMes = [];
             itensMes.forEach(item => {
                 const veiculo = item.veiculo_utilizado || item.agregados?.veiculo || '';
@@ -360,7 +318,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             doc.text(`Diárias: ${formatarMoedaPDF(totalMesDiarias)} | Pedágios: ${formatarMoedaPDF(totalMesPedagios)} | Almoço: ${formatarMoedaPDF(totalMesAlmoco)} | Chapa: ${formatarMoedaPDF(totalMesChapa)} | Descontos: ${formatarMoedaPDF(totalMesDescontos)}`, 14, yPos + 2);
         }
 
-        // ===== RODAPÉ DA PÁGINA (SEM EMOJIS, COM ACENTOS) =====
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(`Página ${pagina}`, 196, 285, { align: 'right' });
@@ -372,43 +329,8 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
     mostrarToastPDF(`PDF "${filename}" gerado com sucesso!`);
 }
 
-// ================= FUNÇÃO PRINCIPAL DE EXPORTAÇÃO =================
-function exportarPDF(dados, titulo = 'Relatório de Lançamentos', filename = 'relatorio_agregados.pdf') {
-    gerarPDFGeral(dados, titulo);
-}
-
-// ================= EXPORTAR RELATÓRIO QUINZENAL =================
-function exportarQuinzenalMotorista(dados, motoristaId, dataInicio, dataFim) {
-    // Filtrar dados do motorista
-    const dadosMotorista = dados.filter(item => item.agregado_id === motoristaId);
-    
-    if (dadosMotorista.length === 0) {
-        mostrarToastPDF('Nenhum dado encontrado para este motorista', 'error');
-        return;
-    }
-
-    // Filtrar por período se informado
-    let dadosFiltrados = dadosMotorista;
-    if (dataInicio) {
-        dadosFiltrados = dadosFiltrados.filter(item => item.data >= dataInicio);
-    }
-    if (dataFim) {
-        dadosFiltrados = dadosFiltrados.filter(item => item.data <= dataFim);
-    }
-
-    if (dadosFiltrados.length === 0) {
-        mostrarToastPDF('Nenhum dado encontrado para este motorista no período', 'error');
-        return;
-    }
-
-    const motorista = dadosMotorista[0]?.agregados?.nome || 'Motorista';
-    
-    // Chamar a nova função de relatório quinzenal mensal
-    gerarPDFQuinzenalMensal(dadosFiltrados, motorista);
-}
-
-// ================= RELATÓRIO GERAL (Mantido) =================
-function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
+// ================= RELATÓRIO GERAL (CORRIGIDO) =================
+function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos', filename = 'relatorio_agregados.pdf') {
     if (!dados || dados.length === 0) {
         mostrarToastPDF('Sem dados para exportar', 'error');
         return;
@@ -422,7 +344,6 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
     const corDanger = [234, 67, 53];
     const corWarning = [251, 188, 4];
 
-    // Títulos sem emojis, com acentos
     const tituloLimpo = removerEmojis(titulo);
 
     // ===== CABEÇALHO =====
@@ -447,7 +368,6 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
     const totalDescontos = dados.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
     const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
 
-    // Linha separadora
     doc.setDrawColor(200, 200, 200);
     doc.line(14, 54, 196, 54);
 
@@ -455,7 +375,6 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
 
-    // Grid de resumo
     const resumo = [
         ['Diárias', formatarMoedaPDF(totalDiarias), corPrimaria],
         ['Pedágios', formatarMoedaPDF(totalPedagios), corSecundaria],
@@ -470,22 +389,18 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
         const x = startX + (index * colWidth);
         const cor = item[2];
         
-        // Fundo
         doc.setFillColor(248, 249, 250);
         doc.roundedRect(x, yPos, colWidth - 2, 18, 3, 3, 'F');
         
-        // Borda lateral
         doc.setDrawColor(cor[0], cor[1], cor[2]);
         doc.setLineWidth(1.5);
         doc.line(x, yPos + 2, x, yPos + 16);
         
-        // Valor
         doc.setFontSize(11);
         doc.setTextColor(cor[0], cor[1], cor[2]);
         doc.setFont(undefined, 'bold');
         doc.text(item[1], x + colWidth / 2, yPos + 8, { align: 'center' });
         
-        // Label
         doc.setFontSize(8);
         doc.setTextColor(119, 119, 119);
         doc.setFont(undefined, 'normal');
@@ -494,7 +409,7 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
 
     yPos += 24;
 
-    // ===== TABELA =====
+    // ===== TABELA (CORRIGIDA - LARGURAS AJUSTADAS) =====
     const headers = ['Data', 'Motorista', 'Rota', 'Diária', 'Pedágio', 'Almoço', 'Chapa', 'Desconto', 'Total'];
 
     const rows = dados.map(item => {
@@ -513,6 +428,7 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
         ];
     });
 
+    // Larguras ajustadas para caber na página (total = 182mm)
     doc.autoTable({
         startY: yPos,
         head: [headers],
@@ -521,27 +437,27 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
         headStyles: {
             fillColor: corPrimaria,
             textColor: [255, 255, 255],
-            fontSize: 8,
+            fontSize: 7,
             fontStyle: 'bold',
             halign: 'center'
         },
         styles: {
-            fontSize: 7,
-            cellPadding: 2.5,
+            fontSize: 6.5,
+            cellPadding: 1.5,
             lineColor: [220, 220, 220],
             lineWidth: 0.1,
             overflow: 'linebreak'
         },
         columnStyles: {
-            0: { cellWidth: 20, halign: 'center' },
-            1: { cellWidth: 28, fontStyle: 'bold' },
-            2: { cellWidth: 32 },
-            3: { cellWidth: 22, halign: 'right' },
-            4: { cellWidth: 22, halign: 'right' },
-            5: { cellWidth: 20, halign: 'right' },
-            6: { cellWidth: 18, halign: 'right' },
-            7: { cellWidth: 22, halign: 'right' },
-            8: { cellWidth: 24, halign: 'right', fontStyle: 'bold' }
+            0: { cellWidth: 18, halign: 'center' },      // Data
+            1: { cellWidth: 24, fontStyle: 'bold' },     // Motorista
+            2: { cellWidth: 28 },                         // Rota
+            3: { cellWidth: 20, halign: 'right' },       // Diária
+            4: { cellWidth: 18, halign: 'right' },       // Pedágio
+            5: { cellWidth: 16, halign: 'right' },       // Almoço
+            6: { cellWidth: 16, halign: 'right' },       // Chapa
+            7: { cellWidth: 20, halign: 'right' },       // Desconto
+            8: { cellWidth: 22, halign: 'right', fontStyle: 'bold' } // Total
         },
         alternateRowStyles: {
             fillColor: [248, 249, 250]
@@ -557,7 +473,7 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
                 data.cell.styles.textColor = [26, 115, 232];
             }
         },
-        margin: { left: 12, right: 12 }
+        margin: { left: 14, right: 14 }
     });
 
     // Rodapé
@@ -567,6 +483,37 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos') {
     doc.text(`Página ${pageCount}`, 196, 285, { align: 'right' });
     doc.text('Sistema de Controle de Agregados', 14, 285);
 
-    doc.save(filename || 'relatorio_agregados.pdf');
-    mostrarToastPDF(`PDF "${filename || 'relatorio_agregados.pdf'}" gerado com sucesso!`);
+    doc.save(filename);
+    mostrarToastPDF(`PDF "${filename}" gerado com sucesso!`);
+}
+
+// ================= FUNÇÃO PRINCIPAL DE EXPORTAÇÃO =================
+function exportarPDF(dados, titulo = 'Relatório de Lançamentos', filename = 'relatorio_agregados.pdf') {
+    gerarPDFGeral(dados, titulo, filename);
+}
+
+// ================= EXPORTAR RELATÓRIO QUINZENAL =================
+function exportarQuinzenalMotorista(dados, motoristaId, dataInicio, dataFim) {
+    const dadosMotorista = dados.filter(item => item.agregado_id === motoristaId);
+    
+    if (dadosMotorista.length === 0) {
+        mostrarToastPDF('Nenhum dado encontrado para este motorista', 'error');
+        return;
+    }
+
+    let dadosFiltrados = dadosMotorista;
+    if (dataInicio) {
+        dadosFiltrados = dadosFiltrados.filter(item => item.data >= dataInicio);
+    }
+    if (dataFim) {
+        dadosFiltrados = dadosFiltrados.filter(item => item.data <= dataFim);
+    }
+
+    if (dadosFiltrados.length === 0) {
+        mostrarToastPDF('Nenhum dado encontrado para este motorista no período', 'error');
+        return;
+    }
+
+    const motorista = dadosMotorista[0]?.agregados?.nome || 'Motorista';
+    gerarPDFQuinzenalMensal(dadosFiltrados, motorista);
 }

@@ -6,6 +6,8 @@
     <title>Gestão de Veículos</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js"></script>
     
     <style>
         @keyframes slideUp {
@@ -30,6 +32,7 @@
         
         .badge-fp { background: #2563eb; }
         .badge-ag { background: #22c55e; }
+        .badge-alug { background: #8b5cf6; }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-5">
@@ -38,7 +41,7 @@
         <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap justify-between items-center gap-3">
             <div>
                 <h1 class="text-2xl font-bold">🚗 Gestão de Veículos</h1>
-                <p class="text-blue-100 text-sm">Frota própria e agregados</p>
+                <p class="text-blue-100 text-sm">Frota própria, agregados e proprietários</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <nav class="flex gap-1 flex-wrap">
@@ -78,7 +81,7 @@
                 <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="formMode">Inserção</span>
             </div>
             <form id="veiculoForm" onsubmit="salvarVeiculo(event)">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo *</label>
                         <input type="text" id="veiculoNome" placeholder="Ex: VW 17.250 CNC" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
@@ -94,16 +97,23 @@
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo</label>
                         <select id="veiculoTipo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="FP">Frota Própria</option>
-                            <option value="AG">Agregado</option>
+                            <option value="Frota Propria">Frota Própria</option>
+                            <option value="Agregado">Agregado</option>
+                            <option value="Alugado">Alugado</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
                         <select id="veiculoStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="OK">✅ OK</option>
-                            <option value="OFICINA">🔧 Oficina</option>
-                            <option value="INDISPONÍVEL">❌ Indisponível</option>
+                            <option value="OK">OK</option>
+                            <option value="OFICINA">Oficina</option>
+                            <option value="INDISPONÍVEL">Indisponível</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Proprietário</label>
+                        <select id="veiculoProprietario" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Nenhum (Frota Própria)</option>
                         </select>
                     </div>
                 </div>
@@ -129,22 +139,29 @@
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo</label>
                     <select id="filtroTipo" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
-                        <option value="FP">Frota Própria</option>
-                        <option value="AG">Agregado</option>
+                        <option value="Frota Propria">Frota Própria</option>
+                        <option value="Agregado">Agregado</option>
+                        <option value="Alugado">Alugado</option>
                     </select>
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
                     <select id="filtroStatus" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
-                        <option value="OK">✅ OK</option>
-                        <option value="OFICINA">🔧 Oficina</option>
-                        <option value="INDISPONÍVEL">❌ Indisponível</option>
+                        <option value="OK">OK</option>
+                        <option value="OFICINA">Oficina</option>
+                        <option value="INDISPONÍVEL">Indisponível</option>
                     </select>
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Buscar</label>
                     <input type="text" id="filtroBusca" placeholder="Veículo ou placa..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Proprietário</label>
+                    <select id="filtroProprietario" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos</option>
+                    </select>
                 </div>
             </div>
 
@@ -158,12 +175,13 @@
                             <th class="px-3 py-2 text-right font-semibold text-gray-600">Peso Máx.</th>
                             <th class="px-3 py-2 text-center font-semibold text-gray-600">Tipo</th>
                             <th class="px-3 py-2 text-center font-semibold text-gray-600">Status</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Proprietário</th>
                             <th class="px-3 py-2 text-center font-semibold text-gray-600">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="veiculosBody">
                         <tr>
-                            <td colspan="6" class="text-center py-10 text-gray-400">
+                            <td colspan="7" class="text-center py-10 text-gray-400">
                                 <div class="text-5xl mb-2">🚗</div>
                                 <p>Carregando dados...</p>
                             </td>
@@ -198,16 +216,23 @@
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo</label>
                         <select id="modalVeiculoTipo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="FP">Frota Própria</option>
-                            <option value="AG">Agregado</option>
+                            <option value="Frota Propria">Frota Própria</option>
+                            <option value="Agregado">Agregado</option>
+                            <option value="Alugado">Alugado</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
                         <select id="modalVeiculoStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="OK">✅ OK</option>
-                            <option value="OFICINA">🔧 Oficina</option>
-                            <option value="INDISPONÍVEL">❌ Indisponível</option>
+                            <option value="OK">OK</option>
+                            <option value="OFICINA">Oficina</option>
+                            <option value="INDISPONÍVEL">Indisponível</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col sm:col-span-2">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Proprietário</label>
+                        <select id="modalVeiculoProprietario" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Nenhum (Frota Própria)</option>
                         </select>
                     </div>
                 </div>
@@ -235,50 +260,14 @@
     </div>
 
     <script>
-        // ================= DADOS MOCKADOS =================
-        const MOCK_VEICULOS = [
-            // Frota Própria
-            { id: 'v1', nome: 'VW 17.250 CNC', placa: 'KOR 6942', peso: 8500, tipo: 'FP', status: 'OK' },
-            { id: 'v2', nome: 'SPRINTER', placa: 'KYK 3G96', peso: 1500, tipo: 'FP', status: 'OK' },
-            { id: 'v3', nome: 'FORD 350 G', placa: 'LPB-4188', peso: 1800, tipo: 'FP', status: 'OK' },
-            { id: 'v4', nome: 'STRADA', placa: 'LUP 6940', peso: 600, tipo: 'FP', status: 'OK' },
-            { id: 'v5', nome: 'VW 5.150', placa: 'LSN 8H48', peso: 1700, tipo: 'FP', status: 'OK' },
-            { id: 'v6', nome: 'VW 5.150', placa: 'KRT 7455', peso: 1700, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v7', nome: 'VW 10.160', placa: 'LRY 1G30', peso: 4000, tipo: 'FP', status: 'OK' },
-            { id: 'v8', nome: 'VW 8.160', placa: 'LMF-2276', peso: 4000, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v9', nome: 'VW 8.160', placa: 'RJS 4C39', peso: 4000, tipo: 'FP', status: 'OK' },
-            { id: 'v10', nome: 'VW 10.180', placa: 'RJC 3F21', peso: 4000, tipo: 'FP', status: 'OK' },
-            { id: 'v11', nome: 'FIORINO', placa: 'RUG 7E84', peso: 600, tipo: 'FP', status: 'OK' },
-            { id: 'v12', nome: 'RENAULT KANGOO', placa: 'KRV 8I51', peso: 700, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v13', nome: 'SCUDO (NOVA)', placa: 'TJD 2B93', peso: 1400, tipo: 'FP', status: 'OK' },
-            { id: 'v14', nome: 'JUMPER', placa: 'SHN 8F18', peso: 1400, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v15', nome: 'SCUDO', placa: 'SRO 6H65', peso: 1400, tipo: 'FP', status: 'OK' },
-            { id: 'v16', nome: 'SCUDO', placa: 'QSZ 2B21', peso: 1400, tipo: 'FP', status: 'INDISPONÍVEL' },
-            { id: 'v17', nome: 'SCUDO', placa: 'UGQ 6E67', peso: 1400, tipo: 'FP', status: 'OK' },
-            
-            // Agregados
-            { id: 'v18', nome: 'FIORINO', placa: 'RFV0B04', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v19', nome: 'IVECO', placa: 'DJE1I55', peso: 2500, tipo: 'AG', status: 'OK' },
-            { id: 'v20', nome: 'SPRINTER 310', placa: 'LOC9E05', peso: 1800, tipo: 'AG', status: 'OK' },
-            { id: 'v21', nome: 'DUCATO', placa: 'FDQ0E01', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v22', nome: 'SPRINTER 310', placa: 'LSE0J82', peso: 1800, tipo: 'AG', status: 'OK' },
-            { id: 'v23', nome: 'KIA BONGO', placa: 'LTK9254', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v24', nome: 'IVECO', placa: 'KOB 7G23', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v25', nome: 'BONGO', placa: 'KYE2I24', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v26', nome: 'SPLINTER', placa: 'CXR1D52', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v27', nome: 'MASTER', placa: 'LPO7E41', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v28', nome: 'SPRINTER 310', placa: 'LBV 7763', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v29', nome: 'HR', placa: 'LPD 6082', peso: 1400, tipo: 'AG', status: 'OFICINA' },
-            { id: 'v30', nome: 'HR', placa: 'KZN 1131', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v31', nome: 'FIORINO', placa: 'QNS2G64', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v32', nome: 'FIORINO', placa: 'LRM8D78', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v33', nome: 'FIORINO', placa: 'KQR7E43', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v34', nome: 'BONGO', placa: 'KRR 7348', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v35', nome: 'SCUDO', placa: 'LTB8G57', peso: 1500, tipo: 'AG', status: 'OK' },
-        ];
+        // =====================================================
+        // USAR CLIENTE SUPABASE (já configurado no supabase.js)
+        // =====================================================
+        // A variável 'supabaseClient' já está disponível
 
         // ================= VARIÁVEIS GLOBAIS =================
         let veiculos = [];
+        let motoristas = [];
         let editandoId = null;
         let itemParaExcluir = null;
 
@@ -290,11 +279,17 @@
         }
 
         function getTipoLabel(tipo) {
-            return tipo === 'FP' ? 'Frota Própria' : 'Agregado';
+            if (tipo === 'Frota Propria') return 'Frota Própria';
+            if (tipo === 'Agregado') return 'Agregado';
+            if (tipo === 'Alugado') return 'Alugado';
+            return tipo;
         }
 
         function getTipoBadge(tipo) {
-            return tipo === 'FP' ? 'badge-fp' : 'badge-ag';
+            if (tipo === 'Frota Propria') return 'badge-fp';
+            if (tipo === 'Agregado') return 'badge-ag';
+            if (tipo === 'Alugado') return 'badge-alug';
+            return 'badge-fp';
         }
 
         function mostrarToast(mensagem, tipo = 'success') {
@@ -306,25 +301,74 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // ================= CRUD =================
-        function carregarDados() {
-            veiculos = [...MOCK_VEICULOS];
-            renderizarVeiculos();
-            atualizarStats();
-            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
-            mostrarToast('Dados carregados com sucesso!');
+        function getMotoristaNome(id) {
+            if (!id) return 'Nenhum';
+            const motorista = motoristas.find(m => m.id === id);
+            return motorista ? motorista.nome : 'Desconhecido';
         }
 
-        function salvarVeiculo(event) {
+        // ===== CARREGAR DADOS =====
+        async function carregarDados() {
+            try {
+                // Carregar motoristas (apenas agregados para serem proprietários)
+                const { data: motoristasData } = await supabaseClient
+                    .from('motoristas')
+                    .select('*')
+                    .eq('tipo', 'agregado')
+                    .eq('ativo', true)
+                    .order('nome');
+                motoristas = motoristasData || [];
+
+                // Carregar veículos com dados do proprietário
+                const { data: veiculosData } = await supabaseClient
+                    .from('veiculos')
+                    .select('*, motoristas!proprietario_id(id, nome)')
+                    .order('nome');
+                
+                // Mapear os dados para incluir proprietario_nome
+                veiculos = (veiculosData || []).map(v => ({
+                    ...v,
+                    proprietario_nome: v.motoristas?.nome || null
+                }));
+
+                atualizarSelects();
+                renderizarVeiculos();
+                atualizarStats();
+                document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
+                mostrarToast('Dados carregados com sucesso!');
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                mostrarToast('Erro ao carregar dados', 'error');
+            }
+        }
+
+        function atualizarSelects() {
+            const selects = ['veiculoProprietario', 'modalVeiculoProprietario', 'filtroProprietario'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                const value = select.value;
+                select.innerHTML = '<option value="">Nenhum (Frota Própria)</option>';
+                motoristas.forEach(m => {
+                    select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+                });
+                if (value) select.value = value;
+            });
+        }
+
+        // ===== SALVAR VEÍCULO =====
+        async function salvarVeiculo(event) {
             event.preventDefault();
             const id = document.getElementById('editId').value;
+            const proprietarioId = document.getElementById('veiculoProprietario').value;
             
             const dados = {
                 nome: document.getElementById('veiculoNome').value.trim(),
                 placa: document.getElementById('veiculoPlaca').value.trim().toUpperCase(),
-                peso: parseFloat(document.getElementById('veiculoPeso').value) || 0,
+                peso_max: parseFloat(document.getElementById('veiculoPeso').value) || 0,
                 tipo: document.getElementById('veiculoTipo').value,
-                status: document.getElementById('veiculoStatus').value
+                status: document.getElementById('veiculoStatus').value,
+                proprietario_id: proprietarioId ? parseInt(proprietarioId) : null
             };
 
             if (!dados.nome || !dados.placa) {
@@ -332,27 +376,32 @@
                 return;
             }
 
-            if (id) {
-                const index = veiculos.findIndex(v => v.id === id);
-                if (index !== -1) {
-                    veiculos[index] = { ...veiculos[index], ...dados };
+            try {
+                let result;
+                if (id) {
+                    result = await supabaseClient
+                        .from('veiculos')
+                        .update(dados)
+                        .eq('id', parseInt(id));
+                } else {
+                    result = await supabaseClient
+                        .from('veiculos')
+                        .insert([dados])
+                        .select();
                 }
-                mostrarToast('Veículo atualizado!');
-            } else {
-                const novo = {
-                    id: `v_${Date.now()}`,
-                    ...dados
-                };
-                veiculos.push(novo);
-                mostrarToast('Veículo salvo!');
-            }
 
-            limparForm();
-            renderizarVeiculos();
-            atualizarStats();
-            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
+                if (result.error) throw result.error;
+
+                mostrarToast(id ? 'Veículo atualizado!' : 'Veículo salvo!');
+                limparForm();
+                await carregarDados();
+            } catch (error) {
+                console.error('Erro ao salvar veículo:', error);
+                mostrarToast('Erro ao salvar veículo', 'error');
+            }
         }
 
+        // ===== EDIÇÃO =====
         function editarVeiculo(id) {
             const item = veiculos.find(v => v.id === id);
             if (!item) {
@@ -365,9 +414,10 @@
             document.getElementById('modalEditId').value = item.id;
             document.getElementById('modalVeiculoNome').value = item.nome;
             document.getElementById('modalVeiculoPlaca').value = item.placa;
-            document.getElementById('modalVeiculoPeso').value = item.peso || 0;
-            document.getElementById('modalVeiculoTipo').value = item.tipo || 'FP';
+            document.getElementById('modalVeiculoPeso').value = item.peso_max || 0;
+            document.getElementById('modalVeiculoTipo').value = item.tipo || 'Frota Propria';
             document.getElementById('modalVeiculoStatus').value = item.status || 'OK';
+            document.getElementById('modalVeiculoProprietario').value = item.proprietario_id || '';
 
             document.getElementById('modalTitle').textContent = `✏️ Editar Veículo - ${item.nome}`;
 
@@ -376,17 +426,19 @@
             document.body.style.overflow = 'hidden';
         }
 
-        function salvarEdicaoModal(event) {
+        async function salvarEdicaoModal(event) {
             event.preventDefault();
             
             const id = document.getElementById('modalEditId').value;
+            const proprietarioId = document.getElementById('modalVeiculoProprietario').value;
             
             const dados = {
                 nome: document.getElementById('modalVeiculoNome').value.trim(),
                 placa: document.getElementById('modalVeiculoPlaca').value.trim().toUpperCase(),
-                peso: parseFloat(document.getElementById('modalVeiculoPeso').value) || 0,
+                peso_max: parseFloat(document.getElementById('modalVeiculoPeso').value) || 0,
                 tipo: document.getElementById('modalVeiculoTipo').value,
-                status: document.getElementById('modalVeiculoStatus').value
+                status: document.getElementById('modalVeiculoStatus').value,
+                proprietario_id: proprietarioId ? parseInt(proprietarioId) : null
             };
 
             if (!dados.nome || !dados.placa) {
@@ -394,18 +446,24 @@
                 return;
             }
 
-            const index = veiculos.findIndex(v => v.id === id);
-            if (index !== -1) {
-                veiculos[index] = { ...veiculos[index], ...dados };
-            }
+            try {
+                const { error } = await supabaseClient
+                    .from('veiculos')
+                    .update(dados)
+                    .eq('id', parseInt(id));
 
-            fecharModal();
-            renderizarVeiculos();
-            atualizarStats();
-            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
-            mostrarToast('Veículo atualizado com sucesso!');
+                if (error) throw error;
+
+                fecharModal();
+                await carregarDados();
+                mostrarToast('Veículo atualizado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao atualizar veículo:', error);
+                mostrarToast('Erro ao atualizar veículo', 'error');
+            }
         }
 
+        // ===== EXCLUSÃO =====
         function excluirVeiculo(id) {
             itemParaExcluir = id;
             const item = veiculos.find(v => v.id === id);
@@ -413,40 +471,43 @@
             document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir este veículo?';
             document.getElementById('confirmSubmessage').textContent = `${item?.nome} (${item?.placa})`;
 
-            document.getElementById('btnConfirmarExclusao').onclick = function() {
-                executarExclusao();
-            };
-
+            document.getElementById('btnConfirmarExclusao').onclick = executarExclusao;
             document.getElementById('modalConfirmacao').classList.remove('hidden');
             document.getElementById('modalConfirmacao').style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
 
-        function executarExclusao() {
+        async function executarExclusao() {
             if (!itemParaExcluir) return;
 
-            veiculos = veiculos.filter(v => v.id !== itemParaExcluir);
-            itemParaExcluir = null;
-            
-            fecharConfirmacao();
-            
-            if (document.getElementById('modalEdicao').style.display === 'flex') {
-                fecharModal();
+            try {
+                const { error } = await supabaseClient
+                    .from('veiculos')
+                    .delete()
+                    .eq('id', parseInt(itemParaExcluir));
+                
+                if (error) throw error;
+
+                itemParaExcluir = null;
+                fecharConfirmacao();
+                
+                if (document.getElementById('modalEdicao').style.display === 'flex') {
+                    fecharModal();
+                }
+                
+                await carregarDados();
+                mostrarToast('Veículo excluído com sucesso!');
+            } catch (error) {
+                console.error('Erro ao excluir veículo:', error);
+                mostrarToast('Erro ao excluir veículo', 'error');
             }
-            
-            renderizarVeiculos();
-            atualizarStats();
-            document.getElementById('totalVeiculosBadge').textContent = veiculos.length;
-            mostrarToast('Veículo excluído com sucesso!');
         }
 
         function confirmarExclusao() {
             const id = document.getElementById('modalEditId').value;
             if (id) {
                 fecharModal();
-                setTimeout(() => {
-                    excluirVeiculo(id);
-                }, 200);
+                setTimeout(() => excluirVeiculo(id), 200);
             }
         }
 
@@ -457,8 +518,9 @@
             document.getElementById('veiculoNome').value = '';
             document.getElementById('veiculoPlaca').value = '';
             document.getElementById('veiculoPeso').value = '0';
-            document.getElementById('veiculoTipo').value = 'FP';
+            document.getElementById('veiculoTipo').value = 'Frota Propria';
             document.getElementById('veiculoStatus').value = 'OK';
+            document.getElementById('veiculoProprietario').value = '';
             document.getElementById('formMode').textContent = 'Inserção';
             document.getElementById('btnSalvar').textContent = '💾 Salvar';
             document.getElementById('btnCancelar').classList.add('hidden');
@@ -505,6 +567,7 @@
             const filtroTipo = document.getElementById('filtroTipo').value;
             const filtroStatus = document.getElementById('filtroStatus').value;
             const filtroBusca = document.getElementById('filtroBusca').value.toLowerCase();
+            const filtroProprietario = document.getElementById('filtroProprietario').value;
 
             if (filtroTipo) dados = dados.filter(v => v.tipo === filtroTipo);
             if (filtroStatus) dados = dados.filter(v => v.status === filtroStatus);
@@ -512,11 +575,12 @@
                 v.nome.toLowerCase().includes(filtroBusca) ||
                 v.placa.toLowerCase().includes(filtroBusca)
             );
+            if (filtroProprietario) dados = dados.filter(v => v.proprietario_id === parseInt(filtroProprietario));
 
             if (dados.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center py-10 text-gray-400">
+                        <td colspan="7" class="text-center py-10 text-gray-400">
                             <div class="text-5xl mb-2">🚗</div>
                             <p>Nenhum veículo encontrado</p>
                         </td>
@@ -530,18 +594,20 @@
                 const statusClass = getStatusClass(item.status);
                 const tipoLabel = getTipoLabel(item.tipo);
                 const tipoBadge = getTipoBadge(item.tipo);
+                const proprietario = item.proprietario_nome || 'Nenhum';
                 
                 html += `
                     <tr class="hover:bg-gray-50">
                         <td class="px-3 py-2 font-medium">${item.nome}</td>
                         <td class="px-3 py-2">${item.placa}</td>
-                        <td class="px-3 py-2 text-right">${item.peso || 0} kg</td>
+                        <td class="px-3 py-2 text-right">${item.peso_max || 0} kg</td>
                         <td class="px-3 py-2 text-center">
                             <span class="inline-block px-2 py-1 rounded-full text-white text-xs font-medium ${tipoBadge}">${tipoLabel}</span>
                         </td>
                         <td class="px-3 py-2 text-center">
                             <span class="${statusClass}">${item.status || 'OK'}</span>
                         </td>
+                        <td class="px-3 py-2 text-sm">${proprietario}</td>
                         <td class="px-3 py-2 text-center">
                             <button onclick="editarVeiculo('${item.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition">✏️</button>
                             <button onclick="excluirVeiculo('${item.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition">🗑️</button>
@@ -554,8 +620,9 @@
 
         function atualizarStats() {
             const total = veiculos.length;
-            const fp = veiculos.filter(v => v.tipo === 'FP').length;
-            const ag = veiculos.filter(v => v.tipo === 'AG').length;
+            const fp = veiculos.filter(v => v.tipo === 'Frota Propria').length;
+            const ag = veiculos.filter(v => v.tipo === 'Agregado').length;
+            const alug = veiculos.filter(v => v.tipo === 'Alugado').length;
             const indisponiveis = veiculos.filter(v => v.status !== 'OK').length;
             
             document.getElementById('totalVeiculos').textContent = total;

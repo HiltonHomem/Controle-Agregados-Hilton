@@ -6,6 +6,8 @@
     <title>Dashboard - Controle Integrado</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     
     <style>
@@ -36,7 +38,7 @@
                     <a href="controle_agregados.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">💰 Agregados</a>
                     <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">🚗 Veículos</a>
                 </nav>
-                <button onclick="atualizarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
+                <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
             </div>
         </header>
 
@@ -151,66 +153,16 @@
     </div>
 
     <script>
-        // ================= DADOS MOCKADOS =================
-        // Mesmos dados do controle_agregados.html e escala.html
-        const MOCK_MOTORISTAS = [
-            { id: 'mock_1', nome: 'GERMANO', veiculo: 'MASTER', placa: 'KOB7G23' },
-            { id: 'mock_2', nome: 'HELIO', veiculo: 'MASTER', placa: 'LPO7E41' },
-            { id: 'mock_3', nome: 'ANGELO', veiculo: 'KIA BONGO', placa: 'LTK9254' },
-            { id: 'mock_4', nome: 'FRANCISCO', veiculo: 'SPRINTER 310', placa: 'LSE0J82' },
-            { id: 'mock_5', nome: 'JOÃO JOSÉ', veiculo: 'SPRINTER 310', placa: 'LBV7763' },
-            { id: 'mock_6', nome: 'CARLOS', veiculo: 'HR', placa: 'LPD6082' },
-            { id: 'mock_7', nome: 'ALEXANDRE', veiculo: 'HR', placa: 'KZN1B31' },
-            { id: 'mock_8', nome: 'ESTEVÃO', veiculo: 'IVECO', placa: 'LUY3337' },
-            { id: 'mock_9', nome: 'MARCELO', veiculo: 'FIORINO', placa: 'LRM8D78' },
-            { id: 'mock_10', nome: 'DAMASCENO', veiculo: 'FIORINO', placa: 'QNS2G64' },
-            { id: 'mock_11', nome: 'NAILTON', veiculo: 'IVECO', placa: 'KOB7G23' },
-            { id: 'mock_12', nome: 'DAVID', veiculo: 'DUCATO', placa: 'CXR1D52' },
-            { id: 'mock_13', nome: 'GUSTAVO', veiculo: 'BONGO', placa: 'KYE2I24' },
-            { id: 'mock_14', nome: 'LUCIANO', veiculo: 'BONGO', placa: 'KRR7348' },
-        ];
-
-        const MOCK_VEICULOS = [
-            { id: 'v1', nome: 'VW 17.250 CNC', placa: 'KOR 6942', peso: 8500, tipo: 'FP', status: 'OK' },
-            { id: 'v2', nome: 'SPRINTER', placa: 'KYK 3G96', peso: 1500, tipo: 'FP', status: 'OK' },
-            { id: 'v3', nome: 'FORD 350 G', placa: 'LPB-4188', peso: 1800, tipo: 'FP', status: 'OK' },
-            { id: 'v4', nome: 'STRADA', placa: 'LUP 6940', peso: 600, tipo: 'FP', status: 'OK' },
-            { id: 'v5', nome: 'VW 5.150', placa: 'LSN 8H48', peso: 1700, tipo: 'FP', status: 'OK' },
-            { id: 'v6', nome: 'VW 5.150', placa: 'KRT 7455', peso: 1700, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v7', nome: 'VW 10.160', placa: 'LRY 1G30', peso: 4000, tipo: 'FP', status: 'OK' },
-            { id: 'v8', nome: 'VW 8.160', placa: 'LMF-2276', peso: 4000, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v9', nome: 'VW 8.160', placa: 'RJS 4C39', peso: 4000, tipo: 'FP', status: 'OK' },
-            { id: 'v10', nome: 'VW 10.180', placa: 'RJC 3F21', peso: 4000, tipo: 'FP', status: 'OK' },
-            { id: 'v11', nome: 'FIORINO', placa: 'RUG 7E84', peso: 600, tipo: 'FP', status: 'OK' },
-            { id: 'v12', nome: 'RENAULT KANGOO', placa: 'KRV 8I51', peso: 700, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v13', nome: 'SCUDO (NOVA)', placa: 'TJD 2B93', peso: 1400, tipo: 'FP', status: 'OK' },
-            { id: 'v14', nome: 'JUMPER', placa: 'SHN 8F18', peso: 1400, tipo: 'FP', status: 'OFICINA' },
-            { id: 'v15', nome: 'SCUDO', placa: 'SRO 6H65', peso: 1400, tipo: 'FP', status: 'OK' },
-            { id: 'v16', nome: 'SCUDO', placa: 'QSZ 2B21', peso: 1400, tipo: 'FP', status: 'INDISPONÍVEL' },
-            { id: 'v17', nome: 'SCUDO', placa: 'UGQ 6E67', peso: 1400, tipo: 'FP', status: 'OK' },
-            { id: 'v18', nome: 'FIORINO', placa: 'RFV0B04', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v19', nome: 'IVECO', placa: 'DJE1I55', peso: 2500, tipo: 'AG', status: 'OK' },
-            { id: 'v20', nome: 'SPRINTER 310', placa: 'LOC9E05', peso: 1800, tipo: 'AG', status: 'OK' },
-            { id: 'v21', nome: 'DUCATO', placa: 'FDQ0E01', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v22', nome: 'SPRINTER 310', placa: 'LSE0J82', peso: 1800, tipo: 'AG', status: 'OK' },
-            { id: 'v23', nome: 'KIA BONGO', placa: 'LTK9254', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v24', nome: 'IVECO', placa: 'KOB 7G23', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v25', nome: 'BONGO', placa: 'KYE2I24', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v26', nome: 'SPLINTER', placa: 'CXR1D52', peso: 1500, tipo: 'AG', status: 'OK' },
-            { id: 'v27', nome: 'MASTER', placa: 'LPO7E41', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v28', nome: 'SPRINTER 310', placa: 'LBV 7763', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v29', nome: 'HR', placa: 'LPD 6082', peso: 1400, tipo: 'AG', status: 'OFICINA' },
-            { id: 'v30', nome: 'HR', placa: 'KZN 1131', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v31', nome: 'FIORINO', placa: 'QNS2G64', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v32', nome: 'FIORINO', placa: 'LRM8D78', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v33', nome: 'FIORINO', placa: 'KQR7E43', peso: 600, tipo: 'AG', status: 'OK' },
-            { id: 'v34', nome: 'BONGO', placa: 'KRR 7348', peso: 1400, tipo: 'AG', status: 'OK' },
-            { id: 'v35', nome: 'SCUDO', placa: 'LTB8G57', peso: 1500, tipo: 'AG', status: 'OK' },
-        ];
+        // =====================================================
+        // USAR CLIENTE SUPABASE (já configurado no supabase.js)
+        // =====================================================
+        // A variável 'supabaseClient' já está disponível
 
         // ================= VARIÁVEIS GLOBAIS =================
         let lancamentos = [];
         let escalas = [];
+        let motoristas = [];
+        let veiculos = [];
         let charts = {};
         let chartInitialized = false;
 
@@ -247,81 +199,55 @@
             return dias[new Date(data).getDay()];
         }
 
-        // ================= GERAR DADOS MOCK =================
-        function gerarLancamentosMock() {
-            const lanc = [];
-            const hoje = new Date();
-            const rotas = ['ZONA SUL', 'CENTRO', 'NORTE/ILHA', 'OESTE 2', 'SAQUAREMA', 'CABO FRIO', 'NITEROI', 'SÃO GONÇALO', 'BARRA', 'MARICÁ'];
-            
-            for (let i = 0; i < 60; i++) {
-                const data = new Date(hoje);
-                data.setDate(data.getDate() - Math.floor(Math.random() * 60));
-                
-                const motorista = MOCK_MOTORISTAS[Math.floor(Math.random() * MOCK_MOTORISTAS.length)];
-                const valorDiaria = [450, 550, 600, 650, 700, 800, 900, 950, 1050][Math.floor(Math.random() * 9)];
-                const pedagio = Math.random() > 0.6 ? Math.round((Math.random() * 60 + 5) * 100) / 100 : 0;
-                const almoco = Math.random() > 0.5 ? 30 : 0;
-                const chapa = Math.random() > 0.7 ? 90 : 0;
-                const desconto = Math.random() > 0.8 ? Math.round((Math.random() * 200 + 50) * 100) / 100 : 0;
-                
-                lanc.push({
-                    id: `mock_lanc_${i}`,
-                    agregado_id: motorista.id,
-                    agregados: { nome: motorista.nome, veiculo: motorista.veiculo, placa: motorista.placa },
-                    data: data.toISOString().split('T')[0],
-                    rota: rotas[Math.floor(Math.random() * rotas.length)],
-                    valor_diaria: valorDiaria,
-                    pedagio: pedagio,
-                    almoco: almoco,
-                    chapa: chapa,
-                    desconto: desconto,
-                    veiculo_utilizado: motorista.veiculo,
-                    observacao: Math.random() > 0.8 ? 'Observação de teste' : ''
-                });
-            }
-            lanc.sort((a, b) => new Date(b.data) - new Date(a.data));
-            return lanc;
-        }
+        // ===== CARREGAR DADOS =====
+        async function carregarDados() {
+            try {
+                // Carregar motoristas
+                const { data: motoristasData } = await supabaseClient
+                    .from('motoristas')
+                    .select('*')
+                    .eq('ativo', true);
+                motoristas = motoristasData || [];
 
-        function gerarEscalasMock() {
-            const esc = [];
-            const hoje = new Date();
-            const dias = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
-            const rotas = ['ZONA SUL', 'CENTRO', 'NORTE/ILHA', 'OESTE 2', 'SAQUAREMA', 'CABO FRIO', 'NITEROI', 'SÃO GONÇALO', 'BARRA', 'MARICÁ', 'PETRÓPOLIS', 'TERESÓPOLIS', 'BAIXADA'];
-            const status = ['OK', 'OK', 'OK', 'OFICINA', 'INDISPONÍVEL'];
-            
-            for (let i = 0; i < 50; i++) {
-                const data = new Date(hoje);
-                data.setDate(data.getDate() - Math.floor(Math.random() * 30));
-                
-                const diaSemana = dias[data.getDay() === 0 ? 6 : data.getDay() - 1];
-                const motorista = MOCK_MOTORISTAS[Math.floor(Math.random() * MOCK_MOTORISTAS.length)];
-                
-                esc.push({
-                    id: `mock_esc_${i}`,
-                    data: data.toISOString().split('T')[0],
-                    dia_semana: diaSemana,
-                    motorista: motorista.nome,
-                    rota: rotas[Math.floor(Math.random() * rotas.length)],
-                    status: status[Math.floor(Math.random() * status.length)]
-                });
-            }
-            esc.sort((a, b) => new Date(b.data) - new Date(a.data));
-            return esc;
-        }
+                // Carregar veículos
+                const { data: veiculosData } = await supabaseClient
+                    .from('veiculos')
+                    .select('*');
+                veiculos = veiculosData || [];
 
-        // ================= ATUALIZAR DADOS =================
-        function atualizarDados() {
-            lancamentos = gerarLancamentosMock();
-            escalas = gerarEscalasMock();
-            atualizarStats();
-            atualizarResumoSemana();
-            setTimeout(atualizarGraficos, 300);
-            mostrarToast('Dados atualizados com sucesso!');
+                // Carregar lançamentos
+                const { data: lancamentosData } = await supabaseClient
+                    .from('view_lancamentos_completos')
+                    .select('*')
+                    .order('data', { ascending: false });
+                lancamentos = lancamentosData || [];
+
+                // Carregar escalas
+                const { data: escalasData } = await supabaseClient
+                    .from('view_escalas_completas')
+                    .select('*')
+                    .order('data', { ascending: false });
+                escalas = escalasData || [];
+
+                atualizarStats();
+                atualizarResumoSemana();
+                setTimeout(atualizarGraficos, 300);
+                mostrarToast('Dados carregados com sucesso!');
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                mostrarToast('Erro ao carregar dados', 'error');
+            }
         }
 
         // ================= ESTATÍSTICAS =================
         function atualizarStats() {
+            // Motoristas ativos
+            const totalMotoristas = motoristas.filter(m => m.ativo === true).length;
+            
+            // Agregados (veículos do tipo Agregado)
+            const totalAgregados = veiculos.filter(v => v.tipo === 'Agregado').length;
+            
+            // Totais financeiros
             const totalDiarias = lancamentos.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
             const totalDescontos = lancamentos.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
             const totalPedagios = lancamentos.reduce((s, l) => s + (Number(l.pedagio) || 0), 0);
@@ -329,16 +255,15 @@
             const totalChapa = lancamentos.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
             const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
             
+            // Escalas de hoje
+            const hoje = new Date().toISOString().split('T')[0];
+            const escalasHoje = escalas.filter(e => e.data === hoje).length;
+
+            document.getElementById('totalMotoristas').textContent = totalMotoristas;
+            document.getElementById('totalAgregados').textContent = totalAgregados;
             document.getElementById('totalDiarias').textContent = formatarMoeda(totalDiarias);
             document.getElementById('totalDescontos').textContent = formatarMoeda(totalDescontos);
             document.getElementById('totalLiquido').textContent = formatarMoeda(totalLiquido);
-            document.getElementById('totalMotoristas').textContent = MOCK_MOTORISTAS.length;
-            
-            const agregados = MOCK_VEICULOS.filter(v => v.tipo === 'AG').length;
-            document.getElementById('totalAgregados').textContent = agregados;
-            
-            const hoje = new Date().toISOString().split('T')[0];
-            const escalasHoje = escalas.filter(e => e.data === hoje).length;
             document.getElementById('totalEscalas').textContent = escalasHoje;
         }
 
@@ -379,7 +304,7 @@
             // ===== 1. Gráfico de Agregados =====
             const aggData = {};
             lancamentos.forEach(l => {
-                const nome = l.agregados?.nome || 'N/A';
+                const nome = l.motorista_nome || l.agregados?.nome || 'N/A';
                 const total = calcularTotal(l);
                 aggData[nome] = (aggData[nome] || 0) + total;
             });
@@ -560,11 +485,7 @@
 
         // ================= INICIALIZAÇÃO =================
         function inicializar() {
-            lancamentos = gerarLancamentosMock();
-            escalas = gerarEscalasMock();
-            atualizarStats();
-            atualizarResumoSemana();
-            setTimeout(atualizarGraficos, 500);
+            carregarDados();
         }
 
         document.addEventListener('DOMContentLoaded', inicializar);

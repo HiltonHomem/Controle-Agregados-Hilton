@@ -6,6 +6,8 @@
     <title>Controle de Agregados</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="scripts/export_pdf.js"></script>
@@ -87,7 +89,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista *</label>
-                        <select id="agregadoId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <select id="motoristaId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
@@ -121,7 +123,9 @@
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo Utilizado</label>
-                        <input type="text" id="veiculo" placeholder="Ex: IVECO/KOB 7G23" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <select id="veiculoId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Selecione...</option>
+                        </select>
                     </div>
                     <div class="flex flex-col sm:col-span-2">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
@@ -216,7 +220,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista *</label>
-                        <select id="modalAgregadoId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <select id="modalMotoristaId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
@@ -250,7 +254,9 @@
                     </div>
                     <div class="flex flex-col sm:col-span-2">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo Utilizado</label>
-                        <input type="text" id="modalVeiculo" placeholder="Ex: IVECO/KOB 7G23" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <select id="modalVeiculoId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Selecione...</option>
+                        </select>
                     </div>
                     <div class="flex flex-col sm:col-span-2">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
@@ -313,31 +319,20 @@
     </div>
 
     <script>
+        // =====================================================
+        // USAR CLIENTE SUPABASE (já configurado no supabase.js)
+        // =====================================================
+        // A variável 'supabaseClient' já está disponível
+
         // ================= CONFIGURAR TOAST PARA O PDF =================
         if (typeof configurarToastPDF === 'function') {
             configurarToastPDF(mostrarToast);
         }
 
-        // ================= DADOS MOCKADOS =================
-        const MOCK_MOTORISTAS = [
-            { id: 'mock_1', nome: 'GERMANO', veiculo: 'MASTER', placa: 'KOB7G23' },
-            { id: 'mock_2', nome: 'HELIO', veiculo: 'MASTER', placa: 'LPO7E41' },
-            { id: 'mock_3', nome: 'ANGELO', veiculo: 'KIA BONGO', placa: 'LTK9254' },
-            { id: 'mock_4', nome: 'FRANCISCO', veiculo: 'SPRINTER 310', placa: 'LSE0J82' },
-            { id: 'mock_5', nome: 'JOÃO JOSÉ', veiculo: 'SPRINTER 310', placa: 'LBV7763' },
-            { id: 'mock_6', nome: 'CARLOS', veiculo: 'HR', placa: 'LPD6082' },
-            { id: 'mock_7', nome: 'ALEXANDRE', veiculo: 'HR', placa: 'KZN1B31' },
-            { id: 'mock_8', nome: 'ESTEVÃO', veiculo: 'IVECO', placa: 'LUY3337' },
-            { id: 'mock_9', nome: 'MARCELO', veiculo: 'FIORINO', placa: 'LRM8D78' },
-            { id: 'mock_10', nome: 'DAMASCENO', veiculo: 'FIORINO', placa: 'QNS2G64' },
-            { id: 'mock_11', nome: 'NAILTON', veiculo: 'IVECO', placa: 'KOB7G23' },
-            { id: 'mock_12', nome: 'DAVID', veiculo: 'DUCATO', placa: 'CXR1D52' },
-            { id: 'mock_13', nome: 'GUSTAVO', veiculo: 'BONGO', placa: 'KYE2I24' },
-            { id: 'mock_14', nome: 'LUCIANO', veiculo: 'BONGO', placa: 'KRR7348' },
-        ];
-
         // ================= VARIÁVEIS GLOBAIS =================
         let lancamentos = [];
+        let motoristas = [];
+        let veiculos = [];
         let editandoId = null;
         let itemParaExcluir = null;
         let origemExclusao = null;
@@ -371,115 +366,113 @@
         }
 
         function getNomeMotorista(id) {
-            const motorista = MOCK_MOTORISTAS.find(m => m.id === id);
+            const motorista = motoristas.find(m => m.id === id);
             return motorista ? motorista.nome : 'N/A';
         }
 
-        // ================= GERAR DADOS MOCK =================
-        function gerarLancamentosMock() {
-            const lanc = [];
-            const hoje = new Date();
-            const rotas = ['ZONA SUL', 'CENTRO', 'NORTE/ILHA', 'OESTE 2', 'SAQUAREMA', 'CABO FRIO', 'NITEROI', 'SÃO GONÇALO', 'BARRA', 'MARICÁ'];
-            
-            for (let i = 0; i < 60; i++) {
-                const data = new Date(hoje);
-                data.setDate(data.getDate() - Math.floor(Math.random() * 60));
-                
-                const motorista = MOCK_MOTORISTAS[Math.floor(Math.random() * MOCK_MOTORISTAS.length)];
-                const valorDiaria = [450, 550, 600, 650, 700, 800, 900, 950, 1050][Math.floor(Math.random() * 9)];
-                const pedagio = Math.random() > 0.6 ? Math.round((Math.random() * 60 + 5) * 100) / 100 : 0;
-                const almoco = Math.random() > 0.5 ? 30 : 0;
-                const chapa = Math.random() > 0.7 ? 90 : 0;
-                const desconto = Math.random() > 0.8 ? Math.round((Math.random() * 200 + 50) * 100) / 100 : 0;
-                
-                lanc.push({
-                    id: `mock_lanc_${i}`,
-                    agregado_id: motorista.id,
-                    agregados: { nome: motorista.nome, veiculo: motorista.veiculo, placa: motorista.placa },
-                    data: data.toISOString().split('T')[0],
-                    rota: rotas[Math.floor(Math.random() * rotas.length)],
-                    valor_diaria: valorDiaria,
-                    pedagio: pedagio,
-                    almoco: almoco,
-                    chapa: chapa,
-                    desconto: desconto,
-                    veiculo_utilizado: motorista.veiculo,
-                    observacao: Math.random() > 0.8 ? 'Observação de teste' : '',
-                    origem: 'manual'
-                });
-            }
-            lanc.sort((a, b) => new Date(b.data) - new Date(a.data));
-            return lanc;
-        }
+        // ===== CARREGAR DADOS =====
+        async function carregarDados() {
+            try {
+                // Carregar motoristas
+                const { data: motoristasData } = await supabaseClient
+                    .from('motoristas')
+                    .select('*')
+                    .eq('ativo', true)
+                    .order('nome');
+                motoristas = motoristasData || [];
 
-        // ================= RECEBER LANÇAMENTOS DA ESCALA =================
-        function carregarLancamentosDaEscala() {
-            const salvos = JSON.parse(localStorage.getItem('lancamentos_agregados') || '[]');
-            if (salvos.length > 0) {
-                let novos = 0;
-                salvos.forEach(item => {
-                    // Verificar se já existe para evitar duplicação
-                    const existe = lancamentos.some(l => l.escala_id === item.escala_id);
-                    if (!existe) {
-                        lancamentos.push(item);
-                        novos++;
-                    }
-                });
-                if (novos > 0) {
-                    lancamentos.sort((a, b) => new Date(b.data) - new Date(a.data));
-                    renderizarLancamentos();
-                    atualizarStats();
-                    document.getElementById('totalLancamentosBadge').textContent = lancamentos.length;
-                    mostrarToast(`${novos} lançamento(s) importado(s) da escala!`);
-                }
-            }
-        }
+                // Carregar veículos
+                const { data: veiculosData } = await supabaseClient
+                    .from('veiculos')
+                    .select('id, nome, placa')
+                    .order('nome');
+                veiculos = veiculosData || [];
 
-        // ================= CRUD =================
-        function carregarDados() {
-            lancamentos = gerarLancamentosMock();
-            // Carregar lançamentos da escala
-            carregarLancamentosDaEscala();
-            atualizarSelects();
-            atualizarSelectsModal();
-            renderizarLancamentos();
-            atualizarStats();
-            document.getElementById('totalLancamentosBadge').textContent = lancamentos.length;
-            mostrarToast('Dados carregados com sucesso!');
+                // Carregar lançamentos
+                const { data: lancamentosData } = await supabaseClient
+                    .from('view_lancamentos_completos')
+                    .select('*')
+                    .order('data', { ascending: false });
+                
+                    // FILTRO: Mostrar apenas lançamentos de agregados OU com proprietário definido
+                    lancamentos = (lancamentosData || []).filter(l => {
+                    // Se tem proprietario_id, mostra (é agregado ou terceirizado)
+                    if (l.proprietario_id) return true;
+                    
+                    // Se não tem proprietario_id, verifica se o motorista é agregado
+                    const motorista = motoristas.find(m => m.id === l.motorista_id);
+                    return motorista?.tipo === 'agregado';
+                });
+
+                atualizarSelects();
+                atualizarSelectsModal();
+                renderizarLancamentos();
+                atualizarStats();
+                document.getElementById('totalLancamentosBadge').textContent = lancamentos.length;
+                mostrarToast('Dados carregados com sucesso!');
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                mostrarToast('Erro ao carregar dados', 'error');
+            }
         }
 
         function atualizarSelects() {
-            const selects = ['agregadoId', 'filtroMotorista', 'quinzenalMotorista'];
+            const selects = ['motoristaId', 'filtroMotorista', 'quinzenalMotorista'];
             selects.forEach(id => {
                 const select = document.getElementById(id);
                 if (!select) return;
                 const value = select.value;
                 select.innerHTML = '<option value="">Selecione...</option>';
-                MOCK_MOTORISTAS.forEach(m => {
+                motoristas.forEach(m => {
                     select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
                 });
                 if (value) select.value = value;
             });
+
+            // Select de veículos
+            const veiculoSelect = document.getElementById('veiculoId');
+            if (veiculoSelect) {
+                const value = veiculoSelect.value;
+                veiculoSelect.innerHTML = '<option value="">Selecione...</option>';
+                veiculos.forEach(v => {
+                    veiculoSelect.innerHTML += `<option value="${v.id}">${v.nome} (${v.placa})</option>`;
+                });
+                if (value) veiculoSelect.value = value;
+            }
         }
 
         function atualizarSelectsModal() {
-            const select = document.getElementById('modalAgregadoId');
+            const select = document.getElementById('modalMotoristaId');
             if (!select) return;
             const value = select.value;
             select.innerHTML = '<option value="">Selecione...</option>';
-            MOCK_MOTORISTAS.forEach(m => {
+            motoristas.forEach(m => {
                 select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
             });
             if (value) select.value = value;
+
+            // Select de veículos no modal
+            const veiculoSelect = document.getElementById('modalVeiculoId');
+            if (veiculoSelect) {
+                const value = veiculoSelect.value;
+                veiculoSelect.innerHTML = '<option value="">Selecione...</option>';
+                veiculos.forEach(v => {
+                    veiculoSelect.innerHTML += `<option value="${v.id}">${v.nome} (${v.placa})</option>`;
+                });
+                if (value) veiculoSelect.value = value;
+            }
         }
 
-        function salvarLancamento(event) {
+        // ===== SALVAR LANÇAMENTO =====
+        async function salvarLancamento(event) {
             event.preventDefault();
-            const motoristaId = document.getElementById('agregadoId').value;
-            const motorista = MOCK_MOTORISTAS.find(m => m.id === motoristaId);
+            const id = document.getElementById('editId').value;
+            const motoristaId = document.getElementById('motoristaId').value;
+            const veiculoId = document.getElementById('veiculoId').value;
             
             const dados = {
-                agregado_id: motoristaId,
+                motorista_id: parseInt(motoristaId),
+                veiculo_id: veiculoId ? parseInt(veiculoId) : null,
                 data: document.getElementById('data').value,
                 rota: document.getElementById('rota').value.trim(),
                 valor_diaria: parseFloat(document.getElementById('valorDiaria').value) || 0,
@@ -487,32 +480,41 @@
                 almoco: parseFloat(document.getElementById('almoco').value) || 0,
                 chapa: parseFloat(document.getElementById('chapa').value) || 0,
                 desconto: parseFloat(document.getElementById('desconto').value) || 0,
-                veiculo_utilizado: document.getElementById('veiculo').value.trim(),
                 observacao: document.getElementById('observacao').value.trim(),
-                agregados: motorista ? { nome: motorista.nome, veiculo: motorista.veiculo, placa: motorista.placa } : null,
                 origem: 'manual'
             };
 
-            if (!dados.agregado_id || !dados.data || !dados.rota) {
+            if (!dados.motorista_id || !dados.data || !dados.rota) {
                 mostrarToast('Preencha os campos obrigatórios', 'error');
                 return;
             }
 
-            const novo = {
-                id: `mock_lanc_${Date.now()}`,
-                ...dados
-            };
-            lancamentos.unshift(novo);
-            lancamentos.sort((a, b) => new Date(b.data) - new Date(a.data));
-            
-            limparForm();
-            renderizarLancamentos();
-            atualizarStats();
-            document.getElementById('totalLancamentosBadge').textContent = lancamentos.length;
-            mostrarToast('Lançamento salvo com sucesso!');
+            try {
+                let result;
+                if (id) {
+                    result = await supabaseClient
+                        .from('lancamentos')
+                        .update(dados)
+                        .eq('id', parseInt(id));
+                } else {
+                    result = await supabaseClient
+                        .from('lancamentos')
+                        .insert([dados])
+                        .select();
+                }
+
+                if (result.error) throw result.error;
+
+                mostrarToast(id ? 'Lançamento atualizado!' : 'Lançamento salvo!');
+                limparForm();
+                await carregarDados();
+            } catch (error) {
+                console.error('Erro ao salvar lançamento:', error);
+                mostrarToast('Erro ao salvar lançamento', 'error');
+            }
         }
 
-        // ================= MODAL DE CONFIRMAÇÃO =================
+        // ===== MODAL DE CONFIRMAÇÃO =====
         function abrirConfirmacao(id, origem) {
             const item = lancamentos.find(l => l.id === id);
             if (!item) {
@@ -523,7 +525,7 @@
             itemParaExcluir = id;
             origemExclusao = origem;
 
-            const nomeMotorista = getNomeMotorista(item.agregado_id);
+            const nomeMotorista = getNomeMotorista(item.motorista_id);
             const dataFormatada = formatarData(item.data);
             const valorFormatado = formatarMoeda(item.valor_diaria);
 
@@ -547,30 +549,39 @@
             origemExclusao = null;
         }
 
-        function executarExclusao() {
+        async function executarExclusao() {
             if (!itemParaExcluir) return;
 
-            lancamentos = lancamentos.filter(l => l.id !== itemParaExcluir);
-            itemParaExcluir = null;
-            origemExclusao = null;
-            
-            fecharConfirmacao();
-            
-            if (document.getElementById('modalEdicao').style.display === 'flex') {
-                fecharModal();
+            try {
+                const { error } = await supabaseClient
+                    .from('lancamentos')
+                    .delete()
+                    .eq('id', parseInt(itemParaExcluir));
+                
+                if (error) throw error;
+
+                itemParaExcluir = null;
+                origemExclusao = null;
+                
+                fecharConfirmacao();
+                
+                if (document.getElementById('modalEdicao').style.display === 'flex') {
+                    fecharModal();
+                }
+                
+                await carregarDados();
+                mostrarToast('Lançamento excluído com sucesso!');
+            } catch (error) {
+                console.error('Erro ao excluir lançamento:', error);
+                mostrarToast('Erro ao excluir lançamento', 'error');
             }
-            
-            renderizarLancamentos();
-            atualizarStats();
-            document.getElementById('totalLancamentosBadge').textContent = lancamentos.length;
-            mostrarToast('Lançamento excluído com sucesso!');
         }
 
         document.getElementById('modalConfirmacao').addEventListener('click', function(e) {
             if (e.target === this) fecharConfirmacao();
         });
 
-        // ================= MODAL DE EDIÇÃO =================
+        // ===== MODAL DE EDIÇÃO =====
         function abrirModal(id) {
             const item = lancamentos.find(l => l.id === id);
             if (!item) {
@@ -581,7 +592,7 @@
             editandoId = id;
             
             document.getElementById('modalEditId').value = item.id;
-            document.getElementById('modalAgregadoId').value = item.agregado_id;
+            document.getElementById('modalMotoristaId').value = item.motorista_id;
             document.getElementById('modalData').value = item.data;
             document.getElementById('modalRota').value = item.rota;
             document.getElementById('modalValorDiaria').value = item.valor_diaria;
@@ -589,10 +600,10 @@
             document.getElementById('modalAlmoco').value = item.almoco || 0;
             document.getElementById('modalChapa').value = item.chapa || 0;
             document.getElementById('modalDesconto').value = item.desconto || 0;
-            document.getElementById('modalVeiculo').value = item.veiculo_utilizado || '';
+            document.getElementById('modalVeiculoId').value = item.veiculo_id || '';
             document.getElementById('modalObservacao').value = item.observacao || '';
 
-            document.getElementById('modalTitle').textContent = `✏️ Editar Lançamento - ${item.agregados?.nome || 'N/A'}`;
+            document.getElementById('modalTitle').textContent = `✏️ Editar Lançamento - ${item.motorista_nome || 'N/A'}`;
 
             document.getElementById('modalEdicao').classList.remove('hidden');
             document.getElementById('modalEdicao').style.display = 'flex';
@@ -606,15 +617,16 @@
             editandoId = null;
         }
 
-        function salvarEdicaoModal(event) {
+        async function salvarEdicaoModal(event) {
             event.preventDefault();
             
             const id = document.getElementById('modalEditId').value;
-            const motoristaId = document.getElementById('modalAgregadoId').value;
-            const motorista = MOCK_MOTORISTAS.find(m => m.id === motoristaId);
+            const motoristaId = document.getElementById('modalMotoristaId').value;
+            const veiculoId = document.getElementById('modalVeiculoId').value;
             
             const dados = {
-                agregado_id: motoristaId,
+                motorista_id: parseInt(motoristaId),
+                veiculo_id: veiculoId ? parseInt(veiculoId) : null,
                 data: document.getElementById('modalData').value,
                 rota: document.getElementById('modalRota').value.trim(),
                 valor_diaria: parseFloat(document.getElementById('modalValorDiaria').value) || 0,
@@ -622,28 +634,29 @@
                 almoco: parseFloat(document.getElementById('modalAlmoco').value) || 0,
                 chapa: parseFloat(document.getElementById('modalChapa').value) || 0,
                 desconto: parseFloat(document.getElementById('modalDesconto').value) || 0,
-                veiculo_utilizado: document.getElementById('modalVeiculo').value.trim(),
-                observacao: document.getElementById('modalObservacao').value.trim(),
-                agregados: motorista ? { nome: motorista.nome, veiculo: motorista.veiculo, placa: motorista.placa } : null
+                observacao: document.getElementById('modalObservacao').value.trim()
             };
 
-            if (!dados.agregado_id || !dados.data || !dados.rota) {
+            if (!dados.motorista_id || !dados.data || !dados.rota) {
                 mostrarToast('Preencha os campos obrigatórios', 'error');
                 return;
             }
 
-            const index = lancamentos.findIndex(l => l.id === id);
-            if (index !== -1) {
-                lancamentos[index] = { ...lancamentos[index], ...dados };
-            }
+            try {
+                const { error } = await supabaseClient
+                    .from('lancamentos')
+                    .update(dados)
+                    .eq('id', parseInt(id));
 
-            lancamentos.sort((a, b) => new Date(b.data) - new Date(a.data));
-            
-            fecharModal();
-            renderizarLancamentos();
-            atualizarStats();
-            document.getElementById('totalLancamentosBadge').textContent = lancamentos.length;
-            mostrarToast('Lançamento atualizado com sucesso!');
+                if (error) throw error;
+
+                fecharModal();
+                await carregarDados();
+                mostrarToast('Lançamento atualizado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao atualizar lançamento:', error);
+                mostrarToast('Erro ao atualizar lançamento', 'error');
+            }
         }
 
         function confirmarExclusao() {
@@ -667,7 +680,7 @@
 
         function limparForm() {
             document.getElementById('editId').value = '';
-            document.getElementById('agregadoId').value = '';
+            document.getElementById('motoristaId').value = '';
             document.getElementById('data').value = new Date().toISOString().split('T')[0];
             document.getElementById('rota').value = '';
             document.getElementById('valorDiaria').value = '';
@@ -675,7 +688,7 @@
             document.getElementById('almoco').value = '0';
             document.getElementById('chapa').value = '0';
             document.getElementById('desconto').value = '0';
-            document.getElementById('veiculo').value = '';
+            document.getElementById('veiculoId').value = '';
             document.getElementById('observacao').value = '';
             document.getElementById('formMode').textContent = 'Inserção';
             document.getElementById('btnSalvar').textContent = '💾 Salvar';
@@ -693,7 +706,7 @@
             const filtroRota = document.getElementById('filtroRota').value.toLowerCase();
             const filtroOrigem = document.getElementById('filtroOrigem').value;
 
-            if (filtroMotorista) dados = dados.filter(l => l.agregado_id === filtroMotorista);
+            if (filtroMotorista) dados = dados.filter(l => l.motorista_id === parseInt(filtroMotorista));
             if (filtroDataInicio) dados = dados.filter(l => l.data >= filtroDataInicio);
             if (filtroDataFim) dados = dados.filter(l => l.data <= filtroDataFim);
             if (filtroRota) dados = dados.filter(l => l.rota.toLowerCase().includes(filtroRota));
@@ -714,8 +727,8 @@
             let html = '';
             dados.forEach(item => {
                 const total = calcularTotal(item);
-                const nome = item.agregados?.nome || 'N/A';
-                const veiculo = item.veiculo_utilizado || item.agregados?.veiculo || '-';
+                const nome = item.motorista_nome || 'N/A';
+                const veiculo = item.veiculo_nome || item.veiculo_placa || '-';
                 const origem = item.origem || 'manual';
                 const origemBadge = origem === 'escala' 
                     ? '<span class="inline-block px-2 py-0.5 rounded-full text-white text-xs font-medium bg-purple-500">📋 Escala</span>'
@@ -762,7 +775,7 @@
         function abrirModalQuinzenal() {
             const select = document.getElementById('quinzenalMotorista');
             select.innerHTML = '<option value="">Selecione...</option>';
-            MOCK_MOTORISTAS.forEach(m => {
+            motoristas.forEach(m => {
                 select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
             });
             document.getElementById('modalQuinzenal').classList.remove('hidden');
@@ -790,7 +803,7 @@
             fecharModalQuinzenal();
             
             if (typeof exportarQuinzenalMotorista === 'function') {
-                exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFim);
+                exportarQuinzenalMotorista(lancamentos, parseInt(motoristaId), dataInicio, dataFim);
             } else {
                 mostrarToast('Função de exportação não disponível', 'error');
             }
@@ -817,21 +830,7 @@
         // ================= INICIALIZAÇÃO =================
         function inicializar() {
             document.getElementById('data').value = new Date().toISOString().split('T')[0];
-            
-            // Primeiro carrega os dados mockados
-            lancamentos = gerarLancamentosMock();
-            
-            // Depois carrega os lançamentos da escala
-            carregarLancamentosDaEscala();
-            
-            // Atualiza os selects e renderiza
-            atualizarSelects();
-            atualizarSelectsModal();
-            renderizarLancamentos();
-            atualizarStats();
-            document.getElementById('totalLancamentosBadge').textContent = lancamentos.length;
-            
-            mostrarToast('Dados carregados com sucesso!');
+            carregarDados();
         }
 
         document.addEventListener('DOMContentLoaded', inicializar);
