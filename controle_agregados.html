@@ -516,13 +516,17 @@
 
         // ===== MODAL DE CONFIRMAÇÃO =====
         function abrirConfirmacao(id, origem) {
-            const item = lancamentos.find(l => l.id === id);
+            // Busca flexível para encontrar o lançamento
+            const idNum = parseInt(id);
+            const idStr = String(id);
+            let item = lancamentos.find(l => l.id === idNum || l.id === idStr || String(l.id) === idStr);
+            
             if (!item) {
                 mostrarToast('Item não encontrado', 'error');
                 return;
             }
 
-            itemParaExcluir = id;
+            itemParaExcluir = idNum; // Usar o ID numérico
             origemExclusao = origem;
 
             const nomeMotorista = getNomeMotorista(item.motorista_id);
@@ -583,8 +587,13 @@
 
         // ===== MODAL DE EDIÇÃO =====
         function abrirModal(id) {
-            const item = lancamentos.find(l => l.id === id);
+            // Busca flexível para encontrar o lançamento
+            const idNum = parseInt(id);
+            const idStr = String(id);
+            let item = lancamentos.find(l => l.id === idNum || l.id === idStr || String(l.id) === idStr);
+            
             if (!item) {
+                // Tentar buscar diretamente no banco
                 mostrarToast('Lançamento não encontrado', 'error');
                 return;
             }

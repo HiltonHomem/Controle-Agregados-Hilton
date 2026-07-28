@@ -7,12 +7,8 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 1. IMPORTAÇÃO OFICIAL DO SUPABASE PRIMEIRO -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- 2. DEPOIS O SEU SCRIPT DE CONFIGURAÇÃO -->
     <script src="scripts/supabase.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     
     <style>
@@ -94,20 +90,6 @@
             font-size: 14px;
             color: #777;
         }
-
-        .chapa-warning {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            color: #92400e;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-top: 8px;
-            display: none;
-        }
-        .chapa-warning.show { display: block; }
-        .chapa-warning .icon { font-size: 16px; margin-right: 6px; }
-        .chapa-warning strong { color: #78350f; }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-5">
@@ -178,7 +160,6 @@
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
                         <select id="escalaAjudante" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" multiple>
-                            <!-- Options carregados dinamicamente -->
                         </select>
                         <span class="text-xs text-gray-400 mt-1">Segure Ctrl para selecionar múltiplos</span>
                     </div>
@@ -214,15 +195,6 @@
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
                         <input type="text" id="escalaObs" placeholder="Observações" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
-                </div>
-
-                <!-- ===== AVISO DE CHAPA ===== -->
-                <div id="chapaWarning" class="chapa-warning">
-                    <span class="icon">⚠️</span>
-                    <strong>Atenção:</strong> O motorista selecionado <span id="chapaMotoristaNome"></span> 
-                    é <strong>terceirizado</strong> do proprietário <span id="chapaProprietarioNome"></span>.
-                    <br>O pagamento da diária será feito ao <strong>proprietário</strong>,
-                    e o motorista receberá apenas o valor da <strong>chapa</strong>.
                 </div>
 
                 <div class="flex flex-wrap gap-2 mt-4">
@@ -272,7 +244,6 @@
                 </div>
             </div>
 
-            <!-- Cards em Lista Única -->
             <div id="escalaCards" class="space-y-6">
                 <div class="text-center py-10 text-gray-400">
                     <div class="text-5xl mb-2">📋</div>
@@ -283,8 +254,8 @@
     </div>
 
     <!-- ===== MODAL DE CONFIRMAÇÃO DE VIAGEM ===== -->
-    <div id="modalConfirmarViagem" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 animate-slide-up">
+    <div id="modalConfirmarViagem" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full max-h-[95vh] overflow-y-auto p-6 animate-slide-up">
             <div class="text-center">
                 <div class="text-5xl mb-2">✅</div>
                 <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmar Viagem</h3>
@@ -303,21 +274,6 @@
                     <span class="font-medium" id="modalConfVeiculo">-</span>
                     <span class="text-gray-500">Proprietário:</span>
                     <span class="font-medium" id="modalConfProprietario">-</span>
-                </div>
-
-                <!-- ===== AVISO DE CHAPA NO MODAL ===== -->
-                <div id="modalChapaWarning" class="mt-3 p-3 bg-yellow-50 border border-yellow-400 rounded-lg text-sm text-yellow-800 hidden">
-                    <div class="flex items-start gap-2">
-                        <span class="text-yellow-600 text-lg">⚠️</span>
-                        <div>
-                            <strong>Pagamento com Chapa!</strong>
-                            <p id="modalChapaMensagem" class="text-xs mt-1">
-                                O motorista <strong id="modalChapaMotorista">-</strong> é terceirizado do proprietário <strong id="modalChapaProprietario">-</strong>.
-                                O proprietário receberá o valor da diária,
-                                e o motorista receberá o valor da <strong>chapa</strong>.
-                            </p>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -338,7 +294,7 @@
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa (R$)</label>
                         <input type="number" id="confChapa" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <p class="text-xs text-gray-500 mt-1">Preencha se o motorista for terceirizado</p>
+                        <p class="text-xs text-gray-500 mt-1">Preencha se for funcionário da empresa dirigindo veículo de agregado</p>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto (R$)</label>
@@ -356,6 +312,7 @@
                 <input type="hidden" id="confEscalaId" value="">
                 <input type="hidden" id="confMotoristaId" value="">
                 <input type="hidden" id="confProprietarioId" value="">
+                <input type="hidden" id="confIsFuncionario" value="false">
                 <input type="hidden" id="confIsTerceirizado" value="false">
             </form>
         </div>
@@ -407,7 +364,6 @@
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
                         <select id="modalAjudante" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" multiple>
-                            <!-- Options carregados dinamicamente -->
                         </select>
                     </div>
                     <div class="flex flex-col">
@@ -467,15 +423,12 @@
     </div>
 
     <script>
-        // ================= VARIÁVEIS GLOBAIS =================
         let escalas = [];
         let veiculos = [];
         let motoristas = [];
         let ajudantes = [];
-        let editandoId = null;
         let itemParaExcluir = null;
 
-        // ================= FUNÇÕES DE FORMATAÇÃO =================
         function formatarData(data) {
             if (!data) return '-';
             const partes = data.split('-');
@@ -528,63 +481,11 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        // ===== VERIFICAR TERCEIRIZADO (JSONB) =====
-        async function verificarTerceirizado(veiculoId, motoristaId) {
-            if (!veiculoId || !motoristaId) return { isTerceirizado: false, proprietario: null };
-            
-            try {
-                const { data: veiculo } = await supabaseClient
-                    .from('veiculos')
-                    .select('proprietario_id')
-                    .eq('id', veiculoId)
-                    .single();
-                
-                if (!veiculo || !veiculo.proprietario_id) {
-                    return { isTerceirizado: false, proprietario: null };
-                }
-
-                const { data: proprietario } = await supabaseClient
-                    .from('motoristas')
-                    .select('id, nome, motoristas_terceiros')
-                    .eq('id', veiculo.proprietario_id)
-                    .single();
-
-                if (!proprietario || !proprietario.motoristas_terceiros) {
-                    return { isTerceirizado: false, proprietario: null };
-                }
-
-                const { data: motorista } = await supabaseClient
-                    .from('motoristas')
-                    .select('nome')
-                    .eq('id', motoristaId)
-                    .single();
-
-                if (!motorista) return { isTerceirizado: false, proprietario: null };
-
-                let terceiros = proprietario.motoristas_terceiros;
-                if (typeof terceiros === 'string') {
-                    try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
-                }
-                if (!Array.isArray(terceiros)) terceiros = [];
-
-                const isTerceirizado = terceiros.includes(motorista.nome);
-                
-                return {
-                    isTerceirizado: isTerceirizado,
-                    proprietario: isTerceirizado ? proprietario : null
-                };
-            } catch (error) {
-                console.error('Erro ao verificar terceirizado:', error);
-                return { isTerceirizado: false, proprietario: null };
-            }
-        }
-
-        // ===== CARREGAR DADOS =====
         async function carregarDados() {
             try {
                 const { data: veiculosData } = await supabaseClient
                     .from('veiculos')
-                    .select('*, motoristas!proprietario_id(nome, motoristas_terceiros)')
+                    .select('*, motoristas!proprietario_id(id, nome, motoristas_terceiros)')
                     .order('nome');
                 veiculos = veiculosData || [];
 
@@ -610,11 +511,14 @@
 
                 atualizarSelects();
                 
-                // Preencher motoristas após carregar os dados
-                const veiculoSelecionado = document.getElementById('escalaVeiculo').value;
-                if (veiculoSelecionado) {
-                    atualizarMotoristasPorVeiculo(veiculoSelecionado);
-                }
+                // 🔧 FORÇAR ATUALIZAÇÃO DOS CAMPOS APÓS CARREGAR
+                setTimeout(() => {
+                    const veiculoSelecionado = document.getElementById('escalaVeiculo').value;
+                    if (veiculoSelecionado) {
+                        atualizarCamposVeiculo();
+                        atualizarMotoristasPorVeiculo(veiculoSelecionado);
+                    }
+                }, 200);
                 
                 renderizarEscalas();
                 document.getElementById('totalEscalasBadge').textContent = escalas.length;
@@ -625,113 +529,93 @@
             }
         }
 
-        // ===== PREENCHER MOTORISTAS DISPONÍVEIS =====
+        // ===== PREENCHER MOTORISTAS =====
         function preencherMotoristas(selectElement, veiculoId) {
             if (!selectElement) return;
             
             const value = selectElement.value;
             let motoristasDisponiveis = [];
-            let opcoes = [];
             
             if (veiculoId) {
                 const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
                 
                 if (veiculo?.proprietario_id) {
-                    // Veículo tem proprietário (agregado)
                     const proprietario = motoristas.find(m => m.id === veiculo.proprietario_id);
                     
-                    if (proprietario?.motoristas_terceiros) {
-                        // Tem motoristas terceirizados
-                        let terceiros = proprietario.motoristas_terceiros;
-                        if (typeof terceiros === 'string') {
-                            try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
-                        }
-                        if (!Array.isArray(terceiros)) terceiros = [];
-                        
-                        // Adicionar o proprietário como opção
+                    if (proprietario) {
                         motoristasDisponiveis.push({
                             id: proprietario.id,
                             nome: proprietario.nome,
                             tipo: proprietario.tipo,
-                            isTerceirizado: false
+                            isTerceirizado: false,
+                            nomeTerceiro: ''
                         });
                         
-                        // Adicionar os terceirizados como opções (mesmo id do proprietário)
-                        terceiros.forEach(nomeTerceiro => {
-                            // Verifica se o terceirizado já existe como motorista
-                            const motoristaExistente = motoristas.find(m => m.nome === nomeTerceiro);
-                            if (motoristaExistente) {
+                        if (proprietario.motoristas_terceiros) {
+                            let terceiros = proprietario.motoristas_terceiros;
+                            if (typeof terceiros === 'string') {
+                                try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
+                            }
+                            if (!Array.isArray(terceiros)) terceiros = [];
+                            
+                            terceiros.forEach(nomeTerceiro => {
                                 motoristasDisponiveis.push({
-                                    id: motoristaExistente.id,
-                                    nome: motoristaExistente.nome,
-                                    tipo: motoristaExistente.tipo,
-                                    isTerceirizado: true,
-                                    proprietarioId: proprietario.id
-                                });
-                            } else {
-                                // Terceirizado não cadastrado como motorista (apenas nome no array)
-                                motoristasDisponiveis.push({
-                                    id: `terceiro_${proprietario.id}_${nomeTerceiro}`,
-                                    nome: nomeTerceiro,
+                                    id: proprietario.id,
+                                    nome: proprietario.nome,
                                     tipo: 'terceirizado',
                                     isTerceirizado: true,
-                                    proprietarioId: proprietario.id,
-                                    isNomeApenas: true
+                                    nomeTerceiro: nomeTerceiro,
+                                    nomeExibicao: `${proprietario.nome} (${nomeTerceiro})`
                                 });
-                            }
-                        });
-                    } else {
-                        // Proprietário sem terceirizados, só ele mesmo
-                        motoristasDisponiveis.push({
-                            id: proprietario.id,
-                            nome: proprietario.nome,
-                            tipo: proprietario.tipo,
-                            isTerceirizado: false
-                        });
+                            });
+                        }
                     }
                 } else {
-                    // Veículo da Frota Própria: todos os motoristas disponíveis
                     motoristasDisponiveis = motoristas
                         .filter(m => m.ativo === true)
                         .map(m => ({
                             id: m.id,
                             nome: m.nome,
                             tipo: m.tipo,
-                            isTerceirizado: false
+                            isTerceirizado: false,
+                            nomeTerceiro: ''
                         }));
                 }
             } else {
-                // Nenhum veículo selecionado: mostra todos
                 motoristasDisponiveis = motoristas
                     .filter(m => m.ativo === true)
                     .map(m => ({
                         id: m.id,
                         nome: m.nome,
                         tipo: m.tipo,
-                        isTerceirizado: false
+                        isTerceirizado: false,
+                        nomeTerceiro: ''
                     }));
             }
             
-            // Preencher o select
             selectElement.innerHTML = '<option value="">Selecione...</option>';
             motoristasDisponiveis.forEach(m => {
-                let label = m.nome;
+                let label = '';
                 let suffix = '';
+                let dataTerceirizado = 'false';
+                let dataNomeTerceiro = '';
                 
                 if (m.isTerceirizado) {
-                    suffix = '🔶 (Terceirizado)';
+                    label = m.nomeExibicao || `${m.nome} (${m.nomeTerceiro})`;
+                    suffix = ' 🔶';
+                    dataTerceirizado = 'true';
+                    dataNomeTerceiro = m.nomeTerceiro || '';
                 } else if (m.tipo === 'agregado') {
-                    suffix = '(Proprietário)';
+                    label = m.nome;
                 } else if (m.tipo === 'funcionario') {
-                    suffix = '(Funcionário)';
+                    label = m.nome;
+                } else {
+                    label = m.nome;
                 }
                 
-                // Usar o id real ou o id temporário
-                const optionValue = m.isNomeApenas ? m.id : m.id;
-                selectElement.innerHTML += `<option value="${optionValue}" data-terceirizado="${m.isTerceirizado}" data-proprietario-id="${m.proprietarioId || ''}">${label} ${suffix}</option>`;
+                selectElement.innerHTML += `<option value="${m.id}" data-terceirizado="${dataTerceirizado}" data-nome-terceiro="${dataNomeTerceiro}">${label}${suffix}</option>`;
             });
             
-            // Tentar restaurar o valor selecionado
             if (value) {
                 const optionExists = Array.from(selectElement.options).some(opt => opt.value === value);
                 if (optionExists) {
@@ -740,13 +624,103 @@
             }
         }
 
-        // ===== ATUALIZAR MOTORISTAS QUANDO O VEÍCULO MUDAR =====
+        function preencherMotoristasModal(selectElement, veiculoId) {
+            if (!selectElement) return;
+            
+            const value = selectElement.value;
+            let motoristasDisponiveis = [];
+            
+            if (veiculoId) {
+                const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
+                
+                if (veiculo?.proprietario_id) {
+                    const proprietario = motoristas.find(m => m.id === veiculo.proprietario_id);
+                    
+                    if (proprietario) {
+                        motoristasDisponiveis.push({
+                            id: proprietario.id,
+                            nome: proprietario.nome,
+                            tipo: proprietario.tipo,
+                            isTerceirizado: false,
+                            nomeTerceiro: ''
+                        });
+                        
+                        if (proprietario.motoristas_terceiros) {
+                            let terceiros = proprietario.motoristas_terceiros;
+                            if (typeof terceiros === 'string') {
+                                try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
+                            }
+                            if (!Array.isArray(terceiros)) terceiros = [];
+                            
+                            terceiros.forEach(nomeTerceiro => {
+                                motoristasDisponiveis.push({
+                                    id: proprietario.id,
+                                    nome: proprietario.nome,
+                                    tipo: 'terceirizado',
+                                    isTerceirizado: true,
+                                    nomeTerceiro: nomeTerceiro,
+                                    nomeExibicao: `${proprietario.nome} (${nomeTerceiro})`
+                                });
+                            });
+                        }
+                    }
+                } else {
+                    motoristasDisponiveis = motoristas
+                        .filter(m => m.ativo === true)
+                        .map(m => ({
+                            id: m.id,
+                            nome: m.nome,
+                            tipo: m.tipo,
+                            isTerceirizado: false,
+                            nomeTerceiro: ''
+                        }));
+                }
+            } else {
+                motoristasDisponiveis = motoristas
+                    .filter(m => m.ativo === true)
+                    .map(m => ({
+                        id: m.id,
+                        nome: m.nome,
+                        tipo: m.tipo,
+                        isTerceirizado: false,
+                        nomeTerceiro: ''
+                    }));
+            }
+            
+            selectElement.innerHTML = '<option value="">Selecione...</option>';
+            motoristasDisponiveis.forEach(m => {
+                let label = '';
+                let suffix = '';
+                let dataTerceirizado = 'false';
+                let dataNomeTerceiro = '';
+                
+                if (m.isTerceirizado) {
+                    label = m.nomeExibicao || `${m.nome} (${m.nomeTerceiro})`;
+                    suffix = ' 🔶';
+                    dataTerceirizado = 'true';
+                    dataNomeTerceiro = m.nomeTerceiro || '';
+                } else if (m.tipo === 'agregado') {
+                    label = m.nome;
+                } else if (m.tipo === 'funcionario') {
+                    label = m.nome;
+                } else {
+                    label = m.nome;
+                }
+                
+                selectElement.innerHTML += `<option value="${m.id}" data-terceirizado="${dataTerceirizado}" data-nome-terceiro="${dataNomeTerceiro}">${label}${suffix}</option>`;
+            });
+            
+            if (value) {
+                const optionExists = Array.from(selectElement.options).some(opt => opt.value === value);
+                if (optionExists) {
+                    selectElement.value = value;
+                }
+            }
+        }
+
         function atualizarMotoristasPorVeiculo(veiculoId) {
             const selectMotorista = document.getElementById('escalaMotorista');
             preencherMotoristas(selectMotorista, veiculoId);
-            
-            // Verificar terceirizado com o novo veículo
-            verificarTerceirizadoEShowWarning();
         }
 
         function atualizarSelects() {
@@ -756,19 +730,24 @@
                 selectVeiculo.innerHTML = '<option value="">Selecione...</option>';
                 veiculos.forEach(v => {
                     const proprietario = v.motoristas?.nome || 'Frota Própria';
-                    selectVeiculo.innerHTML += `<option value="${v.id}" data-placa="${v.placa}" data-peso="${v.peso_max}" data-proprietario="${v.proprietario_id || ''}">${v.nome} (${v.placa}) - Dono: ${proprietario}</option>`;
+                    selectVeiculo.innerHTML += `<option value="${v.id}" data-placa="${v.placa || ''}" data-peso="${v.peso_max || 0}" data-proprietario="${v.proprietario_id || ''}">${v.nome} (${v.placa || 'SEM PLACA'}) - Dono: ${proprietario}</option>`;
                 });
-                if (value) selectVeiculo.value = value;
-                atualizarCamposVeiculo();
+                if (value) {
+                    selectVeiculo.value = value;
+                    // 🔧 FORÇAR ATUALIZAÇÃO DOS CAMPOS
+                    setTimeout(() => atualizarCamposVeiculo(), 100);
+                } else {
+                    // 🔧 LIMPAR CAMPOS SE NÃO HOUVER VEÍCULO SELECIONADO
+                    document.getElementById('escalaPlaca').value = '';
+                    document.getElementById('escalaPeso').value = '';
+                    document.getElementById('escalaProprietario').value = '';
+                }
                 
-                // Quando o veículo mudar, atualizar motoristas disponíveis
-                selectVeiculo.onchange = function() {
-                    atualizarMotoristasPorVeiculo(this.value);
-                };
+                // 🔧 CORREÇÃO: Usar addEventListener em vez de onchange
+                selectVeiculo.removeEventListener('change', handleVeiculoChange);
+                selectVeiculo.addEventListener('change', handleVeiculoChange);
             }
 
-            // O select de motorista será preenchido pelo atualizarMotoristasPorVeiculo
-            // Inicialmente com todos os motoristas
             const selectMotorista = document.getElementById('escalaMotorista');
             if (selectMotorista) {
                 preencherMotoristas(selectMotorista, null);
@@ -787,19 +766,20 @@
                 const value = modalVeiculo.value;
                 modalVeiculo.innerHTML = '<option value="">Selecione...</option>';
                 veiculos.forEach(v => {
-                    modalVeiculo.innerHTML += `<option value="${v.id}" data-placa="${v.placa}" data-peso="${v.peso_max}">${v.nome} (${v.placa})</option>`;
+                    modalVeiculo.innerHTML += `<option value="${v.id}" data-placa="${v.placa || ''}" data-peso="${v.peso_max || 0}">${v.nome} (${v.placa || 'SEM PLACA'})</option>`;
                 });
-                if (value) modalVeiculo.value = value;
+                if (value) {
+                    modalVeiculo.value = value;
+                    setTimeout(() => atualizarCamposVeiculoModal(), 100);
+                }
+                
+                modalVeiculo.removeEventListener('change', handleModalVeiculoChange);
+                modalVeiculo.addEventListener('change', handleModalVeiculoChange);
             }
 
             const modalMotorista = document.getElementById('modalMotorista');
             if (modalMotorista) {
-                const value = modalMotorista.value;
-                modalMotorista.innerHTML = '<option value="">Selecione...</option>';
-                motoristas.forEach(m => {
-                    modalMotorista.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
-                });
-                if (value) modalMotorista.value = value;
+                preencherMotoristasModal(modalMotorista, null);
             }
 
             const modalAjudante = document.getElementById('modalAjudante');
@@ -811,13 +791,47 @@
             }
         }
 
+        // 🔧 FUNÇÃO PARA MANIPULAR MUDANÇA DO VEÍCULO
+        function handleVeiculoChange() {
+            atualizarCamposVeiculo();
+            const veiculoId = this.value;
+            if (veiculoId) {
+                atualizarMotoristasPorVeiculo(veiculoId);
+            } else {
+                document.getElementById('escalaPlaca').value = '';
+                document.getElementById('escalaPeso').value = '';
+                document.getElementById('escalaProprietario').value = '';
+                const selectMotorista = document.getElementById('escalaMotorista');
+                preencherMotoristas(selectMotorista, null);
+            }
+        }
+
+        // 🔧 FUNÇÃO PARA MANIPULAR MUDANÇA DO VEÍCULO NO MODAL
+        function handleModalVeiculoChange() {
+            atualizarCamposVeiculoModal();
+            const veiculoId = this.value;
+            const modalMotorista = document.getElementById('modalMotorista');
+            if (veiculoId) {
+                preencherMotoristasModal(modalMotorista, veiculoId);
+            } else {
+                preencherMotoristasModal(modalMotorista, null);
+            }
+        }
+
         function atualizarCamposVeiculo() {
             const select = document.getElementById('escalaVeiculo');
             const selected = select.options[select.selectedIndex];
-            document.getElementById('escalaPlaca').value = selected?.dataset?.placa || '';
-            document.getElementById('escalaPeso').value = selected?.dataset?.peso || '';
             
+            console.log('Veículo selecionado:', selected?.value, selected?.dataset);
+            
+            // 🔧 CORREÇÃO: Usar dataset diretamente
+            const placa = selected?.dataset?.placa || '';
+            const peso = selected?.dataset?.peso || '';
             const proprietarioId = selected?.dataset?.proprietario || '';
+            
+            document.getElementById('escalaPlaca').value = placa;
+            document.getElementById('escalaPeso').value = peso;
+            
             if (proprietarioId) {
                 const proprietario = motoristas.find(m => m.id === parseInt(proprietarioId));
                 document.getElementById('escalaProprietario').value = proprietario?.nome || 'Frota Própria';
@@ -825,47 +839,22 @@
                 document.getElementById('escalaProprietario').value = 'Frota Própria';
             }
             
-            // Atualizar motoristas disponíveis
             if (select.value) {
                 atualizarMotoristasPorVeiculo(select.value);
             }
-            
-            verificarTerceirizadoEShowWarning();
         }
 
-        async function verificarTerceirizadoEShowWarning() {
-            const veiculoId = document.getElementById('escalaVeiculo').value;
-            const motoristaSelect = document.getElementById('escalaMotorista');
-            const motoristaId = motoristaSelect.value;
-            const warning = document.getElementById('chapaWarning');
+        // 🔧 FUNÇÃO PARA ATUALIZAR CAMPOS DO MODAL
+        function atualizarCamposVeiculoModal() {
+            const select = document.getElementById('modalVeiculo');
+            const selected = select.options[select.selectedIndex];
             
-            if (!veiculoId || !motoristaId) {
-                warning.classList.remove('show');
-                return;
-            }
-
-            // Verificar se o motorista selecionado é terceirizado
-            const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
-            const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
-            const proprietarioId = selectedOption?.dataset?.proprietarioId;
+            const placa = selected?.dataset?.placa || '';
+            const peso = selected?.dataset?.peso || '';
             
-            if (isTerceirizado && proprietarioId) {
-                const proprietario = motoristas.find(m => m.id === parseInt(proprietarioId));
-                const motoristaNome = selectedOption.textContent.trim();
-                
-                document.getElementById('chapaMotoristaNome').textContent = motoristaNome;
-                document.getElementById('chapaProprietarioNome').textContent = proprietario?.nome || 'Proprietário';
-                warning.classList.add('show');
-            } else {
-                warning.classList.remove('show');
-            }
+            document.getElementById('modalPlaca').value = placa;
+            document.getElementById('modalPeso').value = peso;
         }
-
-        document.getElementById('escalaVeiculo')?.addEventListener('change', () => {
-            atualizarCamposVeiculo();
-            verificarTerceirizadoEShowWarning();
-        });
-        document.getElementById('escalaMotorista')?.addEventListener('change', verificarTerceirizadoEShowWarning);
 
         // ===== SALVAR ESCALA =====
         async function salvarEscala(event) {
@@ -878,29 +867,24 @@
             const ajudanteSelect = document.getElementById('escalaAjudante');
             const ajudantesIds = Array.from(ajudanteSelect.selectedOptions).map(opt => opt.value).filter(v => v);
             
-            // Verificar se é um motorista terceirizado (não cadastrado)
-            let motoristaIdReal = null;
+            const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
+            const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
+            const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
             let motoristaNome = '';
             
-            if (motoristaId) {
-                if (motoristaId.toString().startsWith('terceiro_')) {
-                    // É um terceirizado não cadastrado
-                    const parts = motoristaId.split('_');
-                    const proprietarioId = parts[1];
-                    motoristaNome = parts.slice(2).join('_');
-                    motoristaIdReal = null; // Não tem ID no banco
-                } else {
-                    motoristaIdReal = parseInt(motoristaId);
-                    const motorista = motoristas.find(m => m.id === motoristaIdReal);
-                    motoristaNome = motorista?.nome || '';
-                }
+            if (isTerceirizado && nomeTerceiro) {
+                const proprietario = motoristas.find(m => m.id === parseInt(motoristaId));
+                motoristaNome = `${proprietario?.nome || 'Desconhecido'} (${nomeTerceiro})`;
+            } else if (motoristaId) {
+                const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
+                motoristaNome = motorista?.nome || '';
             }
             
             const dados = {
                 data: document.getElementById('escalaData').value,
                 veiculo_id: parseInt(veiculoId),
-                motorista_id: motoristaIdReal,
-                motorista_nome: motoristaNome || '',
+                motorista_id: motoristaId ? parseInt(motoristaId) : null,
+                motorista_nome: motoristaNome,
                 rota: document.getElementById('escalaRota').value.trim(),
                 status: document.getElementById('escalaStatus').value || 'ESCALADO',
                 celular: document.getElementById('escalaCelular').value.trim(),
@@ -1004,22 +988,27 @@
             const veiculo = veiculos.find(v => v.id === item.veiculo_id);
             const proprietario = veiculo?.proprietario_id ? motoristas.find(m => m.id === veiculo.proprietario_id) : null;
             
-            let isTerceirizado = false;
-            let proprietarioInfo = null;
+            const isFuncionario = motorista?.tipo === 'funcionario';
+            const isProprietario = motorista?.id === veiculo?.proprietario_id;
             
-            if (veiculo?.proprietario_id && motorista) {
-                try {
-                    const resultado = await verificarTerceirizado(item.veiculo_id, item.motorista_id);
-                    isTerceirizado = resultado.isTerceirizado;
-                    proprietarioInfo = resultado.proprietario;
-                } catch (error) {
-                    console.error('Erro ao verificar terceirizado:', error);
+            // Verifica se é terceirizado do proprietário
+            let isTerceirizado = false;
+            if (veiculo?.proprietario_id && motorista && !isProprietario) {
+                const proprietarioVeiculo = motoristas.find(m => m.id === veiculo.proprietario_id);
+                if (proprietarioVeiculo?.motoristas_terceiros) {
+                    let terceiros = proprietarioVeiculo.motoristas_terceiros;
+                    if (typeof terceiros === 'string') {
+                        try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
+                    }
+                    if (!Array.isArray(terceiros)) terceiros = [];
+                    isTerceirizado = terceiros.includes(motorista?.nome || '');
                 }
             }
 
             document.getElementById('confEscalaId').value = item.id;
             document.getElementById('confMotoristaId').value = item.motorista_id || '';
             document.getElementById('confProprietarioId').value = proprietario?.id || '';
+            document.getElementById('confIsFuncionario').value = isFuncionario ? 'true' : 'false';
             document.getElementById('confIsTerceirizado').value = isTerceirizado ? 'true' : 'false';
             
             document.getElementById('modalConfMotorista').textContent = motorista?.nome || item.motorista_nome_completo || 'N/A';
@@ -1028,17 +1017,13 @@
             document.getElementById('modalConfVeiculo').textContent = veiculo?.nome || 'N/A';
             document.getElementById('modalConfProprietario').textContent = proprietario?.nome || 'Frota Própria (Empresa)';
             
-            const chapaWarning = document.getElementById('modalChapaWarning');
-            if (isTerceirizado && proprietarioInfo) {
-                document.getElementById('modalChapaMotorista').textContent = motorista?.nome || 'N/A';
-                document.getElementById('modalChapaProprietario').textContent = proprietarioInfo.nome;
-                chapaWarning.classList.remove('hidden');
-                document.getElementById('confChapa').required = true;
-                document.getElementById('confChapa').placeholder = 'Valor da chapa (obrigatório)';
-            } else {
-                chapaWarning.classList.add('hidden');
-                document.getElementById('confChapa').required = false;
-                document.getElementById('confChapa').placeholder = '0.00';
+            // Só cobra chapa se for funcionário da empresa dirigindo veículo de agregado
+            const deveCobrarChapa = isFuncionario && veiculo?.proprietario_id && !isProprietario;
+            
+            document.getElementById('confChapa').required = deveCobrarChapa;
+            document.getElementById('confChapa').placeholder = deveCobrarChapa ? 'Valor da chapa (obrigatório)' : '0.00';
+            if (!deveCobrarChapa) {
+                document.getElementById('confChapa').value = 0;
             }
             
             const valorSugerido = item.rota.includes('ZONA SUL') ? 550 : 
@@ -1054,7 +1039,6 @@
             document.getElementById('confDesconto').value = 0;
             document.getElementById('confObservacao').value = `Viagem confirmada - ${item.rota}`;
 
-            // ABRIR MODAL
             const modalConfirmar = document.getElementById('modalConfirmarViagem');
             modalConfirmar.classList.remove('hidden');
             modalConfirmar.style.display = 'flex';
@@ -1074,6 +1058,7 @@
             const escalaId = document.getElementById('confEscalaId').value;
             const motoristaId = document.getElementById('confMotoristaId').value;
             const proprietarioId = document.getElementById('confProprietarioId').value;
+            const isFuncionario = document.getElementById('confIsFuncionario').value === 'true';
             const isTerceirizado = document.getElementById('confIsTerceirizado').value === 'true';
             
             const valorDiaria = parseFloat(document.getElementById('confValorDiaria').value) || 0;
@@ -1088,33 +1073,34 @@
                 return;
             }
 
-            if (isTerceirizado && chapa <= 0) {
-                mostrarToast('Informe o valor da chapa (obrigatório para motorista terceirizado)', 'error');
-                return;
-            }
-
             try {
                 const escala = escalas.find(e => e.id === parseInt(escalaId));
                 if (!escala) return;
 
                 const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
-                const isFuncionario = motorista?.tipo === 'funcionario';
+                const veiculo = veiculos.find(v => v.id === escala.veiculo_id);
+                const motoristaNome = escala?.motorista_nome || motorista?.nome || '';
 
-                // Definir proprietario_id corretamente
-                let proprietario_id = null; // Padrão: empresa (NULL)
 
-                if (!isFuncionario) {
-                    // Se for agregado, ele é o proprietário
-                    proprietario_id = parseInt(motoristaId);
-                } else if (proprietarioId) {
-                    // Se for funcionário com proprietário definido
-                    proprietario_id = parseInt(proprietarioId);
-                }
-                // Se for funcionário sem proprietário, fica NULL (empresa)
-
-                // Se for terceirizado, o proprietário é o dono do veículo
-                if (isTerceirizado && proprietarioId) {
-                    proprietario_id = parseInt(proprietarioId);
+                let proprietario_id = null;
+                let chapaValor = 0;
+                
+                if (veiculo?.proprietario_id) {
+                    proprietario_id = veiculo.proprietario_id;
+                    
+                    // Só cobra chapa se for funcionário da empresa dirigindo veículo de agregado
+                    if (isFuncionario && !isTerceirizado) {
+                        chapaValor = chapa;
+                        if (chapaValor <= 0) {
+                            mostrarToast('Informe o valor da chapa (funcionário dirigindo veículo de agregado)', 'error');
+                            return;
+                        }
+                    } else {
+                        chapaValor = 0;
+                    }
+                } else {
+                    proprietario_id = null;
+                    chapaValor = 0;
                 }
 
                 const novoLancamento = {
@@ -1127,10 +1113,11 @@
                     valor_diaria: valorDiaria,
                     pedagio: pedagio,
                     almoco: almoco,
-                    chapa: chapa,
+                    chapa: chapaValor,
                     desconto: desconto,
                     observacao: observacao || `Viagem confirmada - ${escala.rota}`,
-                    origem: 'escala'
+                    origem: 'escala',
+                    motorista_nome: motoristaNome
                 };
 
                 const { error } = await supabaseClient.from('lancamentos').insert([novoLancamento]);
@@ -1148,9 +1135,22 @@
                 fecharModalConfirmar();
                 await carregarDados();
                 
-                const mensagem = isTerceirizado 
-                    ? `Viagem confirmada! Pagamento para ${proprietario?.nome || 'proprietário'} (diária) e ${motorista?.nome || 'motorista'} (chapa de R$ ${chapa.toFixed(2)})`
-                    : `Viagem confirmada! Lançamento gerado para ${motorista?.nome || 'motorista'}`;
+                let mensagem = 'Viagem confirmada! ';
+                if (proprietario_id) {
+                    const proprietario = motoristas.find(m => m.id === proprietario_id);
+                    mensagem += `Pagamento para ${proprietario?.nome || 'agregado'}`;
+                    if (chapaValor > 0) {
+                        mensagem += ` (diária: R$ ${valorDiaria.toFixed(2)} - chapa: R$ ${chapaValor.toFixed(2)})`;
+                        mensagem += ` e chapa para ${motorista?.nome || 'funcionário'} (R$ ${chapaValor.toFixed(2)})`;
+                    } else {
+                        mensagem += ` (R$ ${valorDiaria.toFixed(2)})`;
+                        if (motorista && parseInt(motoristaId) !== proprietario_id) {
+                            mensagem += ' - Motorista terceirizado pago pelo agregado';
+                        }
+                    }
+                } else {
+                    mensagem += `Pagamento para ${motorista?.nome || 'motorista'} (R$ ${valorDiaria.toFixed(2)})`;
+                }
                 
                 mostrarToast(mensagem);
             } catch (error) {
@@ -1161,7 +1161,10 @@
 
         // ===== MODAL EDIÇÃO =====
         function editarEscala(id) {
-            const item = escalas.find(e => e.id === id);
+            const idNum = parseInt(id);
+            const idStr = String(id);
+            let item = escalas.find(e => e.id === idNum || e.id === idStr || String(e.id) === idStr);
+            
             if (!item) {
                 mostrarToast('Escala não encontrada', 'error');
                 return;
@@ -1171,7 +1174,6 @@
             document.getElementById('modalData').value = item.data;
             document.getElementById('modalVeiculo').value = item.veiculo_id || '';
             document.getElementById('modalStatus').value = item.status || 'ESCALADO';
-            document.getElementById('modalMotorista').value = item.motorista_id || '';
             document.getElementById('modalRota').value = item.rota || '';
             document.getElementById('modalCelular').value = item.celular || '';
             document.getElementById('modalMaquina').value = item.maquina_cartao || 0;
@@ -1181,6 +1183,36 @@
             document.getElementById('modalCarregamento').value = item.carregamento || '';
             document.getElementById('modalObs').value = item.observacao || '';
             document.getElementById('modalTitle').textContent = `✏️ Editar Escala - ${item.veiculo_nome || 'N/A'}`;
+            
+            const veiculoSelecionado = document.getElementById('modalVeiculo');
+            const selectedOption = veiculoSelecionado.options[veiculoSelecionado.selectedIndex];
+            if (selectedOption) {
+                document.getElementById('modalPlaca').value = selectedOption?.dataset?.placa || '';
+                document.getElementById('modalPeso').value = selectedOption?.dataset?.peso || '';
+            }
+            
+            const modalMotorista = document.getElementById('modalMotorista');
+            if (item.veiculo_id) {
+                preencherMotoristasModal(modalMotorista, item.veiculo_id);
+                if (item.motorista_id) {
+                    modalMotorista.value = item.motorista_id;
+                }
+            } else {
+                preencherMotoristasModal(modalMotorista, null);
+                if (item.motorista_id) {
+                    modalMotorista.value = item.motorista_id;
+                }
+            }
+            
+            const modalAjudante = document.getElementById('modalAjudante');
+            if (item.nomes_ajudantes) {
+                const nomesAjudantes = item.nomes_ajudantes.split(',').map(n => n.trim());
+                Array.from(modalAjudante.options).forEach(opt => {
+                    if (nomesAjudantes.includes(opt.textContent.trim())) {
+                        opt.selected = true;
+                    }
+                });
+            }
             
             const modalEdicao = document.getElementById('modalEdicao');
             modalEdicao.classList.remove('hidden');
@@ -1200,15 +1232,29 @@
             const id = document.getElementById('modalEditId').value;
             
             const veiculoId = document.getElementById('modalVeiculo').value;
-            const motoristaId = document.getElementById('modalMotorista').value;
+            const motoristaSelect = document.getElementById('modalMotorista');
+            const motoristaId = motoristaSelect.value;
             const ajudanteSelect = document.getElementById('modalAjudante');
             const ajudantesIds = Array.from(ajudanteSelect.selectedOptions).map(opt => opt.value).filter(v => v);
+            
+            const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
+            const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
+            const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
+            let motoristaNome = '';
+            
+            if (isTerceirizado && nomeTerceiro) {
+                const proprietario = motoristas.find(m => m.id === parseInt(motoristaId));
+                motoristaNome = `${proprietario?.nome || 'Desconhecido'} (${nomeTerceiro})`;
+            } else if (motoristaId) {
+                const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
+                motoristaNome = motorista?.nome || '';
+            }
             
             const dados = {
                 data: document.getElementById('modalData').value,
                 veiculo_id: parseInt(veiculoId),
                 motorista_id: motoristaId ? parseInt(motoristaId) : null,
-                motorista_nome: motoristaId ? motoristas.find(m => m.id === parseInt(motoristaId))?.nome || '' : '',
+                motorista_nome: motoristaNome,
                 rota: document.getElementById('modalRota').value.trim(),
                 status: document.getElementById('modalStatus').value || 'ESCALADO',
                 celular: document.getElementById('modalCelular').value.trim(),
@@ -1220,6 +1266,11 @@
                 observacao: document.getElementById('modalObs').value.trim()
             };
 
+            if (!dados.data || !dados.veiculo_id || !dados.rota) {
+                mostrarToast('Preencha Data, Veículo e Rota', 'error');
+                return;
+            }
+
             try {
                 const { error } = await supabaseClient
                     .from('escalas')
@@ -1228,7 +1279,6 @@
 
                 if (error) throw error;
 
-                // Deletar ajudantes antigos e inserir novos
                 await supabaseClient.from('escala_ajudantes').delete().eq('escala_id', parseInt(id));
                 
                 if (ajudantesIds.length > 0) {
@@ -1256,7 +1306,6 @@
             }
         }
 
-        // ===== MODAL EXCLUSÃO =====
         function excluirEscala(id) {
             itemParaExcluir = id;
             const item = escalas.find(e => e.id === id);
@@ -1298,7 +1347,6 @@
             }
         }
 
-        // ================= LIMPEZA & RENDERIZAÇÃO =================
         function limparFormEscala() {
             const hoje = new Date().toISOString().split('T')[0];
             document.getElementById('editEscalaId').value = '';
@@ -1309,7 +1357,6 @@
             document.getElementById('escalaMotorista').value = '';
             document.getElementById('escalaProprietario').value = '';
             
-            // Limpar select múltiplo
             const ajudanteSelect = document.getElementById('escalaAjudante');
             if (ajudanteSelect) {
                 Array.from(ajudanteSelect.options).forEach(opt => opt.selected = false);
@@ -1327,7 +1374,6 @@
             document.getElementById('escalaFormMode').textContent = 'Inserção';
             document.getElementById('btnSalvarEscala').textContent = '💾 Salvar Escala';
             document.getElementById('btnCancelarEscala').classList.add('hidden');
-            document.getElementById('chapaWarning').classList.remove('show');
         }
 
         function cancelarEdicaoEscala() { limparFormEscala(); }
@@ -1366,7 +1412,6 @@
             });
 
             const datasOrdenadas = Object.keys(grupos).sort((a, b) => new Date(b) - new Date(a));
-            const nomesDias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
             let html = '';
             datasOrdenadas.forEach(data => {
@@ -1389,7 +1434,6 @@
                     const veiculoNome = e.veiculo_nome || 'Sem veículo';
                     const placa = e.veiculo_placa || '';
                     const peso = e.veiculo_peso || '';
-                    const isTerceirizado = e.is_motorista_terceirizado || false;
                     
                     let borderColor = 'border-blue-600';
                     if (e.status === 'OK') borderColor = 'border-green-500';
@@ -1397,6 +1441,9 @@
                     else if (e.status === 'INDISPONÍVEL') borderColor = 'border-red-500';
                     else if (e.status === 'DISPONÍVEL') borderColor = 'border-purple-500';
                     else if (e.status === 'ESCALADO') borderColor = 'border-blue-600';
+                    
+                    // Verifica se o motorista_nome contém parênteses (terceirizado)
+                    const isTerceirizado = e.motorista_nome_completo && e.motorista_nome_completo.includes('(');
                     
                     html += `
                         <div class="bg-white rounded-xl shadow-sm p-4 escala-card border-l-4 ${borderColor}">
@@ -1445,7 +1492,7 @@
         }
 
         // =====================================================
-        // ESCUTADORES DE EVENTO (Centralizados)
+        // ESCUTADORES DE EVENTO
         // =====================================================
         window.onclick = function(event) {
             const modalEdicao = document.getElementById('modalEdicao');

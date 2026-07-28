@@ -1,0 +1,25 @@
+Veículo: FRANCISCO (proprietario_id = 1)
+Motorista: FRANCISCO
+proprietario_id = 1 (FRANCISCO)
+chapa = 0
+Pagamento: FRANCISCO recebe valor_diaria completo
+
+Veículo: FRANCISCO (proprietario_id = 1)
+Motorista: JOSE CARLOS (terceirizado do FRANCISCO)
+proprietario_id = 1 (FRANCISCO)
+chapa = 0
+Pagamento: FRANCISCO recebe valor_diaria completo
+JOSE CARLOS é pago por FRANCISCO (fora do sistema)
+
+Veículo: FRANCISCO (proprietario_id = 1)
+Motorista: JOAO (funcionário da empresa)
+proprietario_id = 1 (FRANCISCO)
+chapa = valor da chapa (ex: 300)
+Pagamento: FRANCISCO recebe valor_diaria - chapa
+JOAO recebe chapa (pago pela empresa)
+
+Veículo: Frota Própria (proprietario_id = NULL)
+Motorista: JOAO (funcionário da empresa)
+proprietario_id = NULL (empresa)
+chapa = 0
+Pagamento: JOAO recebe valor_diaria completo
