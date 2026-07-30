@@ -9,6 +9,9 @@ const SUPABASE_KEY = 'sb_publishable_sPY5wO67_Vc5BLOscqLn_A_XL--7dq_';
 // Criar cliente Supabase
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Exportar para uso global
+window.supabaseClient = supabaseClient;
+
 // =====================================================
 // FUNÇÕES AUXILIARES
 // =====================================================

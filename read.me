@@ -1,0 +1,220 @@
+🚛 Sistema de Gestão Logística - Controle de Agregados
+📋 Sobre o Sistema
+Sistema completo de gestão logística desenvolvido para gerenciar escalas diárias, controle financeiro de agregados, veículos e motoristas. 
+O sistema foi projetado para substituir planilhas Excel, oferecendo uma interface web moderna com integração ao Supabase (PostgreSQL).
+
+🎯 Funcionalidades
+📋 Escala Logística Diária
+Criação e gerenciamento de escalas diárias
+
+Associação de veículos, motoristas e ajudantes
+
+Suporte para motoristas terceirizados (vinculados a agregados)
+
+Status: Escalado, OK, Oficina, Indisponível, Disponível
+
+Confirmação de viagem com geração automática de lançamento financeiro
+
+Filtros por data, motorista, veículo, rota e status
+
+💰 Controle de Agregados (Financeiro)
+Lançamentos financeiros manuais e automáticos (via escala)
+
+Cálculo automático de diárias, pedágios, almoço, chapa e descontos
+
+Relatórios PDF gerais e quinzenais por motorista
+
+Filtros por motorista, data, rota e origem (manual/escala)
+
+🚗 Gestão de Veículos
+Cadastro de veículos (Frota Própria, Agregado, Alugado)
+
+Controle de status (OK, Oficina, Indisponível)
+
+Associação de proprietários (agregados)
+
+Filtros por tipo, status, proprietário
+
+📊 Dashboard
+Indicadores em tempo real (total de motoristas, agregados, escalas)
+
+Gráficos interativos (Chart.js):
+
+Total por agregado
+
+Evolução diária de lançamentos
+
+Rotas mais frequentes
+
+Escalas por dia da semana
+
+Resumo da semana
+
+🗄️ Estrutura do Banco de Dados
+Tabelas Principais
+Tabela	Descrição
+motoristas	Cadastro de motoristas (funcionários e agregados)
+veiculos	Veículos com proprietario_id (dono do veículo)
+escalas	Escala diária com veiculo_id e motorista_id
+lancamentos	Lançamentos financeiros (diárias, chapas, descontos)
+ajudantes	Cadastro de ajudantes
+escala_ajudantes	Relacionamento N:N entre escalas e ajudantes
+Views
+View	Descrição
+view_escalas_completas	Escalas com dados completos de veículos, motoristas e ajudantes
+view_lancamentos_completos	Lançamentos com dados completos de motoristas, veículos e proprietários
+🔗 Relacionamentos Principais
+text
+motoristas (proprietário) ─── veiculos (proprietario_id)
+                              │
+                              ▼
+motoristas (motorista) ─── escalas (motorista_id)
+                              │
+                              ▼
+                         lancamentos (escala_id)
+💰 Lógica de Pagamento (Chapa)
+Cenário	proprietario_id	chapa	Quem Recebe
+Veículo Frota Própria + Funcionário	NULL	0	Funcionário
+Veículo Frota Própria + Agregado	NULL	0	Agregado
+Veículo Agregado + Proprietário	ID Agregado	0	Agregado
+Veículo Agregado + Terceirizado	ID Agregado	0	Agregado (paga terceirizado)
+Veículo Agregado + Funcionário	ID Agregado	Valor	Agregado recebe diária - chapa, Funcionário recebe chapa
+📝 Campo motoristas_terceiros (JSONB)
+Permite que um proprietário (agregado) tenha múltiplos motoristas terceirizados:
+
+json
+["JOSE CARLOS", "RENATO"]
+🚀 Tecnologias Utilizadas
+Frontend
+HTML5 - Estrutura das páginas
+
+Tailwind CSS - Estilização e responsividade
+
+JavaScript (Vanilla) - Lógica e interatividade
+
+Chart.js - Gráficos interativos
+
+jsPDF + autoTable - Geração de relatórios PDF
+
+Backend
+Supabase - Backend como serviço
+
+PostgreSQL - Banco de dados relacional
+
+Row Level Security (RLS) - Segurança em nível de linha
+
+📁 Estrutura de Arquivos
+text
+/
+├── escala.html                    # Escala Logística Diária
+├── controle_agregados.html        # Controle Financeiro de Agregados
+├── dashboard.html                 # Dashboard com gráficos
+├── veiculos.html                  # Gestão de Veículos
+├── scripts/
+│   ├── supabase.js               # Configuração do Supabase
+│   └── export_pdf.js             # Geração de relatórios PDF
+├── schema.sql                    # Estrutura do banco de dados
+└── seed.sql                      # Dados iniciais
+🔧 Configuração
+1. Configurar Supabase
+Crie uma conta no Supabase
+
+Crie um novo projeto
+
+Execute o script schema.sql no SQL Editor
+
+Execute o script seed.sql para dados iniciais (opcional)
+
+2. Configurar scripts/supabase.js
+javascript
+const supabaseUrl = 'https://seu-projeto.supabase.co';
+const supabaseAnonKey = 'sua-chave-anonima';
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+3. Abrir no Navegador
+Abra o arquivo escala.html diretamente no navegador ou via servidor local (recomendado).
+
+📄 Relatórios PDF
+Relatório Geral
+Exporta todos os lançamentos filtrados atualmente
+
+Disponível no Controle de Agregados
+
+Relatório Quinzenal
+Exporta lançamentos de um motorista específico
+
+Período personalizável (início e fim)
+
+Disponível no Controle de Agregados
+
+🛠️ Scripts SQL para Views
+View Escalas Completas
+sql
+CREATE VIEW view_escalas_completas AS
+SELECT 
+    e.*,
+    v.nome AS veiculo_nome,
+    v.placa AS veiculo_placa,
+    v.peso_max AS veiculo_peso,
+    COALESCE(e.motorista_nome, m.nome) AS motorista_nome_completo,
+    (SELECT string_agg(a.nome, ', ') 
+     FROM escala_ajudantes ea 
+     JOIN ajudantes a ON a.id = ea.ajudante_id 
+     WHERE ea.escala_id = e.id) AS nomes_ajudantes
+FROM escalas e
+LEFT JOIN veiculos v ON v.id = e.veiculo_id
+LEFT JOIN motoristas m ON m.id = e.motorista_id;
+View Lançamentos Completos
+sql
+CREATE VIEW view_lancamentos_completos AS
+SELECT 
+    l.*,
+    COALESCE(l.motorista_nome, m.nome) AS motorista_nome,
+    v.nome AS veiculo_nome,
+    v.placa AS veiculo_placa,
+    p.nome AS proprietario_nome
+FROM lancamentos l
+LEFT JOIN motoristas m ON m.id = l.motorista_id
+LEFT JOIN veiculos v ON v.id = l.veiculo_id
+LEFT JOIN motoristas p ON p.id = l.proprietario_id;
+🐛 Problemas Conhecidos e Soluções
+1. Modal não encontra o registro
+Problema: Comparação de IDs (string vs número)
+Solução: Busca flexível nas funções
+
+javascript
+const idNum = parseInt(id);
+const idStr = String(id);
+let item = items.find(i => i.id === idNum || i.id === idStr || String(i.id) === idStr);
+2. Terceirizados não aparecem no select
+Problema: motoristas_terceiros não está sendo processado
+Solução: Funções preencherMotoristas() e preencherMotoristasModal()
+
+3. Nome do terceirizado não aparece no card
+Problema: View está sobrescrevendo com o nome do JOIN
+Solução: Usar COALESCE(e.motorista_nome, m.nome) na view
+
+📱 Responsividade
+O sistema é totalmente responsivo e adaptável a:
+
+Desktop (1920x1080)
+
+Tablet (768x1024)
+
+Mobile (375x667)
+
+🔒 Segurança
+RLS (Row Level Security) configurado no Supabase
+
+Políticas de acesso por usuário autenticado
+
+Validação de dados no frontend
+
+📝 Licença
+Este projeto é de uso interno da empresa.
+
+👨‍💻 Suporte
+Para dúvidas ou suporte, entre em contato com o desenvolvedor.
+
+Versão: 1.0.0
+Última atualização: Julho 2026

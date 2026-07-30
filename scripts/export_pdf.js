@@ -493,27 +493,36 @@ function exportarPDF(dados, titulo = 'Relatório de Lançamentos', filename = 'r
 }
 
 // ================= EXPORTAR RELATÓRIO QUINZENAL =================
-function exportarQuinzenalMotorista(dados, motoristaId, dataInicio, dataFim) {
-    const dadosMotorista = dados.filter(item => item.agregado_id === motoristaId);
-    
-    if (dadosMotorista.length === 0) {
-        mostrarToastPDF('Nenhum dado encontrado para este motorista', 'error');
-        return;
-    }
+    function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFim) {
+        // 🔧 CORREÇÃO: Filtrar lançamentos do agregado
+        const dadosFiltrados = lancamentos.filter(l => {
+            // 1. Lançamentos onde o motorista é o agregado (ele mesmo)
+            if (l.motorista_id === motoristaId) return true;
+            
+            // 2. Lançamentos onde o agregado é o proprietário (terceirizados ou funcionários)
+            if (l.proprietario_id === motoristaId) return true;
+            
+            return false;
+        });
 
-    let dadosFiltrados = dadosMotorista;
-    if (dataInicio) {
-        dadosFiltrados = dadosFiltrados.filter(item => item.data >= dataInicio);
-    }
-    if (dataFim) {
-        dadosFiltrados = dadosFiltrados.filter(item => item.data <= dataFim);
-    }
+        // Aplicar filtro de data se informado
+        let dados = dadosFiltrados;
+        if (dataInicio) {
+            dados = dados.filter(l => l.data >= dataInicio);
+        }
+        if (dataFim) {
+            dados = dados.filter(l => l.data <= dataFim);
+        }
 
-    if (dadosFiltrados.length === 0) {
-        mostrarToastPDF('Nenhum dado encontrado para este motorista no período', 'error');
-        return;
-    }
+        if (dados.length === 0) {
+            mostrarToast('Nenhum lançamento encontrado para este motorista', 'error');
+            return;
+        }
 
-    const motorista = dadosMotorista[0]?.agregados?.nome || 'Motorista';
-    gerarPDFQuinzenalMensal(dadosFiltrados, motorista);
-}
+        // Buscar nome do motorista
+        const motorista = motoristas.find(m => m.id === motoristaId);
+        const nomeMotorista = motorista?.nome || 'Motorista';
+
+        // Gerar PDF com os dados filtrados
+        gerarPDFQuinzenalMensal(dados, nomeMotorista);
+    }

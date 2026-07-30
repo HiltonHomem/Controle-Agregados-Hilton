@@ -51,6 +51,8 @@
                     <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/30 font-medium text-sm">🚗 Veículos</a>
                 </nav>
                 <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
+                <button onclick="fazerLogout()" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition">🚪 Sair</button>
+
             </div>
         </header>
 
@@ -260,6 +262,27 @@
     </div>
 
     <script>
+        // Adicionar no início do <script> de cada página
+        async function verificarAuth() {
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+            }
+        }
+        verificarAuth();
+        // ===== FUNÇÃO DE LOGOUT =====
+        async function fazerLogout() {
+            try {
+                await window.supabaseClient.auth.signOut();
+                mostrarToast('Logout realizado com sucesso!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 500);
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+                mostrarToast('Erro ao fazer logout', 'error');
+            }
+        }
         // =====================================================
         // USAR CLIENTE SUPABASE (já configurado no supabase.js)
         // =====================================================
@@ -403,13 +426,18 @@
 
         // ===== EDIÇÃO =====
         function editarVeiculo(id) {
-            const item = veiculos.find(v => v.id === id);
+             // 🔧 BUSCA FLEXÍVEL PARA ENCONTRAR O VEÍCULO
+            const idNum = parseInt(id);
+            const idStr = String(id);
+            let item = veiculos.find(v => v.id === idNum || v.id === idStr || String(v.id) === idStr);
+            
             if (!item) {
                 mostrarToast('Veículo não encontrado', 'error');
                 return;
             }
 
             editandoId = id;
+    
             
             document.getElementById('modalEditId').value = item.id;
             document.getElementById('modalVeiculoNome').value = item.nome;
@@ -465,8 +493,15 @@
 
         // ===== EXCLUSÃO =====
         function excluirVeiculo(id) {
-            itemParaExcluir = id;
-            const item = veiculos.find(v => v.id === id);
+            // 🔧 BUSCA FLEXÍVEL PARA ENCONTRAR O VEÍCULO
+            const idNum = parseInt(id);
+            const idStr = String(id);
+            let item = veiculos.find(v => v.id === idNum || v.id === idStr || String(v.id) === idStr);
+            
+            if (!item) {
+                mostrarToast('Veículo não encontrado', 'error');
+                return;
+            }
             
             document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir este veículo?';
             document.getElementById('confirmSubmessage').textContent = `${item?.nome} (${item?.placa})`;
@@ -507,7 +542,16 @@
             const id = document.getElementById('modalEditId').value;
             if (id) {
                 fecharModal();
-                setTimeout(() => excluirVeiculo(id), 200);
+                setTimeout(() => {
+                    const idNum = parseInt(id);
+                    const idStr = String(id);
+                    let item = veiculos.find(v => v.id === idNum || v.id === idStr || String(v.id) === idStr);
+                    if (item) {
+                        excluirVeiculo(id);
+                    } else {
+                        mostrarToast('Veículo não encontrado', 'error');
+                    }
+                }, 200);
             }
         }
 

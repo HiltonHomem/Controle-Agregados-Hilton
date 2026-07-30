@@ -108,6 +108,7 @@
                     <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">🚗 Veículos</a>
                 </nav>
                 <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
+                <button onclick="fazerLogout()" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition">🚪 Sair</button>      
             </div>
         </header>
 
@@ -423,6 +424,27 @@
     </div>
 
     <script>
+        // Adicionar no início do <script> de cada página
+        async function verificarAuth() {
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+            }
+        }
+        // ===== FUNÇÃO DE LOGOUT =====
+        async function fazerLogout() {
+            try {
+                await window.supabaseClient.auth.signOut();
+                mostrarToast('Logout realizado com sucesso!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 500);
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+                mostrarToast('Erro ao fazer logout', 'error');
+            }
+        }
+        verificarAuth();
         let escalas = [];
         let veiculos = [];
         let motoristas = [];

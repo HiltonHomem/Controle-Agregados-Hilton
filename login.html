@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Gestão Logística</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js"></script>
+    
+    <!-- Correto (via cdnjs) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    
+    <style>
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.5s ease; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse { animation: pulse 2s ease-in-out infinite; }
+        
+        /* 🔧 CORREÇÃO: Garantir que o canvas das partículas ocupe toda a tela */
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        }
+        
+        /* 🔧 CORREÇÃO: Forçar o canvas a ter tamanho */
+        #particles-js canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .login-card {
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.92);
+        }
+        
+        .input-group {
+            transition: all 0.3s ease;
+        }
+        .input-group:focus-within {
+            transform: translateY(-2px);
+        }
+        .input-group input {
+            transition: all 0.3s ease;
+        }
+        .input-group input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-login {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+        }
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .toast {
+            animation: slideUp 0.3s ease;
+        }
+        
+        .error-shake {
+            animation: shake 0.5s ease;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+        
+        .password-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        .password-toggle:hover {
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
+
+    <!-- ===== PARTICLES.JS ===== -->
+    <div id="particles-js"></div>
+
+    <!-- ===== CONTAINER PRINCIPAL ===== -->
+    <div class="min-h-screen flex items-center justify-center p-4 relative z-10">
+        
+        <!-- ===== CARD DE LOGIN ===== -->
+        <div class="login-card rounded-2xl shadow-2xl max-w-md w-full p-8 animate-slide-up border border-white/20">
+            
+            <!-- Logo e Título -->
+            <div class="text-center mb-8">
+                <div class="text-5xl mb-3">🚛</div>
+                <h1 class="text-2xl font-bold text-gray-800">Sistema de Gestão</h1>
+                <p class="text-sm text-gray-500">Controle de Agregados e Escala Logística</p>
+            </div>
+
+            <!-- ===== FORMULÁRIO DE LOGIN ===== -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                <!-- Email -->
+                <div class="input-group">
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        📧 E-mail
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="email" 
+                            id="email" 
+                            placeholder="seu@email.com" 
+                            class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                </div>
+
+                <!-- Senha -->
+                <div class="input-group">
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                        🔒 Senha
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            placeholder="••••••••" 
+                            class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 pr-10"
+                            required
+                            autocomplete="current-password"
+                        >
+                        <button 
+                            type="button"
+                            id="togglePassword"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 transition"
+                        >
+                            <span id="eyeIcon">👁️</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mensagem de Erro -->
+                <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span id="errorText">Erro ao fazer login</span>
+                </div>
+
+                <!-- Botão Login -->
+                <button 
+                    type="submit" 
+                    id="btnLogin"
+                    class="btn-login w-full text-white font-medium py-3 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2"
+                >
+                    <span id="btnText">🔑 Entrar</span>
+                    <svg id="btnSpinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </form>
+
+            <!-- ===== DIVISOR (sem opção de cadastro) ===== -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-200"></div>
+                </div>
+                <div class="relative flex justify-center text-xs uppercase">
+                    <span class="bg-white/95 px-4 text-gray-400">acesso restrito</span>
+                </div>
+            </div>
+
+            <!-- ===== RODAPÉ ===== -->
+            <div class="mt-6 text-center text-xs text-gray-400">
+                <p>Sistema de Gestão Logística v1.0</p>
+                <p class="mt-1">© 2026 - Todos os direitos reservados</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+   <script>
+    // =====================================================
+    // CONFIGURAÇÃO DO PARTICLES.JS
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof particlesJS !== 'undefined') {
+            particlesJS('particles-js', {
+                particles: {
+                    number: {
+                        value: 160,
+                        density: {
+                            enable: true,
+                            value_area: 800
+                        }
+                    },
+                    color: {
+                        value: '#5E9AFF'
+                    },
+                    shape: {
+                        type: 'circle',
+                        stroke: {
+                            width: 0,
+                            color: '#000000'
+                        }
+                    },
+                    opacity: {
+                        value: 0.5,
+                        random: true,
+                        anim: {
+                            enable: true,
+                            speed: 1,
+                            opacity_min: 0.1,
+                            sync: false
+                        }
+                    },
+                    size: {
+                        value: 3,
+                        random: true,
+                        anim: {
+                            enable: true,
+                            speed: 2,
+                            size_min: 0.1,
+                            sync: false
+                        }
+                    },
+                    line_linked: {
+                        enable: true,
+                        distance: 150,
+                        color: '#3b82f6',
+                        opacity: 0.2,
+                        width: 1
+                    },
+                    move: {
+                        enable: true,
+                        speed: 2,
+                        direction: 'none',
+                        random: true,
+                        straight: false,
+                        out_mode: 'out',
+                        bounce: false,
+                        attract: {
+                            enable: true,
+                            rotateX: 600,
+                            rotateY: 1200
+                        }
+                    }
+                },
+                interactivity: {
+                    detect_on: 'canvas',
+                    events: {
+                        onhover: {
+                            enable: true,
+                            mode: 'grab'
+                        },
+                        onclick: {
+                            enable: true,
+                            mode: 'push'
+                        },
+                        resize: true
+                    },
+                    modes: {
+                        grab: {
+                            distance: 200,
+                            line_linked: {
+                                opacity: 0.5
+                            }
+                        },
+                        push: {
+                            particles_nb: 4
+                        }
+                    }
+                },
+                retina_detect: true
+            });
+        } else {
+            console.warn('particles.js não carregado');
+        }
+    });
+
+    // =====================================================
+    // VARIÁVEIS
+    // =====================================================
+    let isSubmitting = false;
+
+    // 🔧 CORREÇÃO: USAR A VARIÁVEL GLOBAL DO SUPABASE.JS
+    // NÃO DECLARAR UMA NOVA VARIÁVEL 'supabase' AQUI!
+    // O supabase.js já declara 'supabaseClient' e coloca em window
+
+    // Verificar se o supabase foi carregado
+    if (!window.supabaseClient) {
+        console.error('Supabase não foi carregado! Verifique o arquivo supabase.js');
+        document.getElementById('btnLogin').disabled = true;
+        document.getElementById('btnText').textContent = '❌ Erro de configuração';
+    }
+
+    // =====================================================
+    // TOGGLE SENHA
+    // =====================================================
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eyeIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.textContent = '🙈';
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.textContent = '👁️';
+        }
+    });
+
+    // =====================================================
+    // TOAST NOTIFICATIONS
+    // =====================================================
+    function mostrarToast(mensagem, tipo = 'success') {
+        const container = document.getElementById('toastContainer');
+        const cores = {
+            success: 'bg-green-500',
+            error: 'bg-red-500',
+            info: 'bg-blue-500'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${cores[tipo] || 'bg-blue-500'} text-white px-6 py-3 rounded-xl shadow-lg font-medium text-sm flex items-center gap-3 max-w-md`;
+        toast.innerHTML = `
+            <span>${tipo === 'success' ? '✅' : tipo === 'error' ? '❌' : 'ℹ️'}</span>
+            <span>${mensagem}</span>
+        `;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // =====================================================
+    // MOSTRAR ERRO NO FORM
+    // =====================================================
+    function mostrarErro(mensagem) {
+        const errorDiv = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        errorText.textContent = mensagem;
+        errorDiv.classList.remove('hidden');
+        errorDiv.classList.add('error-shake');
+        setTimeout(() => {
+            errorDiv.classList.remove('error-shake');
+        }, 500);
+    }
+
+    function esconderErro() {
+        document.getElementById('errorMessage').classList.add('hidden');
+    }
+
+    // =====================================================
+    // LOGIN
+    // =====================================================
+    async function handleLogin(event) {
+        event.preventDefault();
+        esconderErro();
+        
+        if (isSubmitting) return;
+        
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        
+        if (!email || !password) {
+            mostrarErro('Preencha todos os campos');
+            return;
+        }
+        
+        // 🔧 CORREÇÃO: USAR window.supabaseClient
+        if (!window.supabaseClient) {
+            mostrarErro('Erro de configuração. Contate o administrador.');
+            return;
+        }
+        
+        // Ativar estado de carregamento
+        isSubmitting = true;
+        document.getElementById('btnLogin').disabled = true;
+        document.getElementById('btnText').textContent = 'Entrando...';
+        document.getElementById('btnSpinner').classList.remove('hidden');
+        
+        try {
+            const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+            
+            if (error) throw error;
+            
+            if (data?.user) {
+                mostrarToast(`Bem-vindo, ${data.user.email}!`, 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 500);
+            }
+            
+        } catch (error) {
+            console.error('Erro no login:', error);
+            
+            let mensagem = 'Erro ao fazer login. Tente novamente.';
+            if (error.message.includes('Invalid login credentials')) {
+                mensagem = 'E-mail ou senha incorretos.';
+            } else if (error.message.includes('Email not confirmed')) {
+                mensagem = 'Por favor, confirme seu e-mail antes de fazer login.';
+            } else if (error.message.includes('Too many requests')) {
+                mensagem = 'Muitas tentativas. Aguarde alguns minutos.';
+            }
+            
+            mostrarErro(mensagem);
+            mostrarToast(mensagem, 'error');
+            
+        } finally {
+            isSubmitting = false;
+            document.getElementById('btnLogin').disabled = false;
+            document.getElementById('btnText').textContent = '🔑 Entrar';
+            document.getElementById('btnSpinner').classList.add('hidden');
+        }
+    }
+
+    // =====================================================
+    // ENTER PARA SUBMIT
+    // =====================================================
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const form = document.getElementById('loginForm');
+            if (form && document.activeElement?.closest('form') === form) {
+                e.preventDefault();
+                handleLogin(e);
+            }
+        }
+    });
+
+    // =====================================================
+    // VERIFICAR SE JÁ ESTÁ LOGADO
+    // =====================================================
+    async function verificarSessao() {
+        try {
+            if (!window.supabaseClient) {
+                console.warn('Supabase não disponível para verificar sessão');
+                return;
+            }
+            
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (session) {
+                window.location.href = 'dashboard.html';
+            }
+        } catch (error) {
+            console.error('Erro ao verificar sessão:', error);
+        }
+    }
+
+    // =====================================================
+    // INICIALIZAÇÃO
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        verificarSessao();
+        document.getElementById('email').focus();
+    });
+</script>
+</body>
+</html>
