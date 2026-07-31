@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/supabase.js"></script>
+    <script src="scripts/supabase.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     
     <style>
@@ -95,20 +95,32 @@
 <body class="bg-gray-100 p-4 md:p-5">
     <div class="max-w-7xl mx-auto">
         <!-- ===== HEADER ===== -->
-        <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap justify-between items-center gap-3">
-            <div>
-                <h1 class="text-2xl font-bold">📋 Escala Logística Diária</h1>
-                <p class="text-blue-100 text-sm">Gestão de rotas e motoristas</p>
+        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
+            <!-- Linha 1: Saudação (esquerda) e Botão Sair (direita) -->
+            <div class="flex flex-wrap justify-between items-center w-full">
+                <div id="saudacaoUsuario" class="text-white text-sm font-medium">
+                    👋 Bom dia, Usuário!
+                </div>
+                <button onclick="fazerLogout()" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition">
+                    🚪 Sair
+                </button>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <nav class="flex gap-1 flex-wrap">
-                    <a href="escala.html" class="px-4 py-2 rounded-lg bg-white/30 font-medium text-sm">📋 Escala</a>
-                    <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📊 Dashboard</a>
-                    <a href="controle_agregados.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">💰 Agregados</a>
-                    <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">🚗 Veículos</a>
-                </nav>
-                <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
-                <button onclick="fazerLogout()" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition">🚪 Sair</button>      
+            
+            <!-- Linha 2: Logo e Navegação -->
+            <div class="flex flex-wrap justify-between items-center w-full">
+                <div>
+                    <h1 class="text-2xl font-bold">📋 Escala Logística Diária</h1>
+                    <p class="text-blue-100 text-sm">Gestão de rotas e motoristas</p>
+                </div>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <nav class="flex gap-1 flex-wrap">
+                        <a href="escala.html" class="px-4 py-2 rounded-lg bg-white/30 font-medium text-sm">📋 Escala</a>
+                        <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📊 Dashboard</a>
+                        <a href="controle_agregados.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">💰 Agregados</a>
+                        <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">🚗 Veículos</a>
+                    </nav>
+                    <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
+                </div>
             </div>
         </header>
 
@@ -424,13 +436,76 @@
     </div>
 
     <script>
-        // Adicionar no início do <script> de cada página
+       // =====================================================
+        // VERIFICAÇÃO DE AUTENTICAÇÃO E SAUDAÇÃO
+        // =====================================================
+
+        let usuarioAtual = null;
+
         async function verificarAuth() {
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             if (!session) {
                 window.location.href = 'login.html';
+                return;
+            }
+            await carregarUsuario(session.user.id);
+        }
+
+        async function carregarUsuario(userId) {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('usuarios')
+                    .select('nome, email, role')
+                    .eq('id', userId)
+                    .single();
+                
+                if (error) throw error;
+                usuarioAtual = data;
+                atualizarSaudacao();
+            } catch (error) {
+                console.error('Erro ao carregar usuário:', error);
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                usuarioAtual = { 
+                    nome: session?.user?.email?.split('@')[0] || 'Usuário',
+                    email: session?.user?.email,
+                    role: 'user'
+                };
+                atualizarSaudacao();
             }
         }
+
+        function atualizarSaudacao() {
+            const saudacaoEl = document.getElementById('saudacaoUsuario');
+            if (!saudacaoEl) {
+                console.warn('Elemento saudacaoUsuario não encontrado');
+                return;
+            }
+            
+            const nome = usuarioAtual?.nome || 'Usuário';
+            const saudacao = getSaudacaoPorDia(nome);
+            saudacaoEl.innerHTML = saudacao;
+        }
+
+        function getSaudacaoPorDia(nome) {
+            const hoje = new Date();
+            const diaSemana = hoje.getDay();
+            const hora = hoje.getHours();
+            
+            let saudacaoHora = '';
+            if (hora < 12) saudacaoHora = 'Bom dia';
+            else if (hora < 18) saudacaoHora = 'Boa tarde';
+            else saudacaoHora = 'Boa noite';
+            
+            if (diaSemana === 5) {
+                return `🎉 ${saudacaoHora}, ${nome}! <span class="text-yellow-300">Sextou 🥳</span>`;
+            }
+            
+            return `👋 ${saudacaoHora}, ${nome}!`;
+        }
+
+        // Chamar verificação
+        verificarAuth();
+
         // ===== FUNÇÃO DE LOGOUT =====
         async function fazerLogout() {
             try {
@@ -975,98 +1050,101 @@
         }
 
         // ===== MODAL CONFIRMAR VIAGEM =====
-        async function abrirModalConfirmar(id) {
-            const item = escalas.find(e => e.id === id);
-            
-            if (!item) {
-                mostrarToast('Escala não encontrada', 'error');
-                return;
-            }
-
-            if (item.confirmado) {
-                mostrarToast('Esta viagem já foi confirmada!', 'error');
-                return;
-            }
-
-            if (!item.motorista_id) {
-                mostrarToast('Esta escala não tem um motorista vinculado!', 'error');
-                return;
-            }
-
-            let motorista = motoristas.find(m => m.id === item.motorista_id);
-            if (!motorista) {
-                try {
-                    const { data } = await supabaseClient
-                        .from('motoristas')
-                        .select('id, nome')
-                        .eq('id', item.motorista_id)
-                        .single();
-                    if (data) motorista = data;
-                } catch (error) {
-                    console.error('Erro ao buscar motorista:', error);
-                }
-            }
-
-            const veiculo = veiculos.find(v => v.id === item.veiculo_id);
-            const proprietario = veiculo?.proprietario_id ? motoristas.find(m => m.id === veiculo.proprietario_id) : null;
-            
-            const isFuncionario = motorista?.tipo === 'funcionario';
-            const isProprietario = motorista?.id === veiculo?.proprietario_id;
-            
-            // Verifica se é terceirizado do proprietário
-            let isTerceirizado = false;
-            if (veiculo?.proprietario_id && motorista && !isProprietario) {
-                const proprietarioVeiculo = motoristas.find(m => m.id === veiculo.proprietario_id);
-                if (proprietarioVeiculo?.motoristas_terceiros) {
-                    let terceiros = proprietarioVeiculo.motoristas_terceiros;
-                    if (typeof terceiros === 'string') {
-                        try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
-                    }
-                    if (!Array.isArray(terceiros)) terceiros = [];
-                    isTerceirizado = terceiros.includes(motorista?.nome || '');
-                }
-            }
-
-            document.getElementById('confEscalaId').value = item.id;
-            document.getElementById('confMotoristaId').value = item.motorista_id || '';
-            document.getElementById('confProprietarioId').value = proprietario?.id || '';
-            document.getElementById('confIsFuncionario').value = isFuncionario ? 'true' : 'false';
-            document.getElementById('confIsTerceirizado').value = isTerceirizado ? 'true' : 'false';
-            
-            document.getElementById('modalConfMotorista').textContent = motorista?.nome || item.motorista_nome_completo || 'N/A';
-            document.getElementById('modalConfData').textContent = formatarData(item.data);
-            document.getElementById('modalConfRota').textContent = item.rota;
-            document.getElementById('modalConfVeiculo').textContent = veiculo?.nome || 'N/A';
-            document.getElementById('modalConfProprietario').textContent = proprietario?.nome || 'Frota Própria (Empresa)';
-            
-            // Só cobra chapa se for funcionário da empresa dirigindo veículo de agregado
-            const deveCobrarChapa = isFuncionario && veiculo?.proprietario_id && !isProprietario;
-            
-            document.getElementById('confChapa').required = deveCobrarChapa;
-            document.getElementById('confChapa').placeholder = deveCobrarChapa ? 'Valor da chapa (obrigatório)' : '0.00';
-            if (!deveCobrarChapa) {
-                document.getElementById('confChapa').value = 0;
-            }
-            
-            const valorSugerido = item.rota.includes('ZONA SUL') ? 550 : 
-                                  item.rota.includes('CENTRO') ? 600 :
-                                  item.rota.includes('NORTE') ? 650 :
-                                  item.rota.includes('OESTE') ? 650 :
-                                  item.rota.includes('SAQUAREMA') ? 900 :
-                                  item.rota.includes('CABO FRIO') ? 950 : 550;
-            
-            document.getElementById('confValorDiaria').value = valorSugerido;
-            document.getElementById('confPedagio').value = 0;
-            document.getElementById('confAlmoco').value = 0;
-            document.getElementById('confDesconto').value = 0;
-            document.getElementById('confObservacao').value = `Viagem confirmada - ${item.rota}`;
-
-            const modalConfirmar = document.getElementById('modalConfirmarViagem');
-            modalConfirmar.classList.remove('hidden');
-            modalConfirmar.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+     async function abrirModalConfirmar(id) {
+        const item = escalas.find(e => e.id === id);
+        
+        if (!item) {
+            mostrarToast('Escala não encontrada', 'error');
+            return;
         }
 
+        if (item.confirmado) {
+            mostrarToast('Esta viagem já foi confirmada!', 'error');
+            return;
+        }
+
+        if (!item.motorista_id) {
+            mostrarToast('Esta escala não tem um motorista vinculado!', 'error');
+            return;
+        }
+
+        let motorista = motoristas.find(m => m.id === item.motorista_id);
+        if (!motorista) {
+            try {
+                const { data } = await supabaseClient
+                    .from('motoristas')
+                    .select('id, nome')
+                    .eq('id', item.motorista_id)
+                    .single();
+                if (data) motorista = data;
+            } catch (error) {
+                console.error('Erro ao buscar motorista:', error);
+            }
+        }
+
+        const veiculo = veiculos.find(v => v.id === item.veiculo_id);
+        const proprietario = veiculo?.proprietario_id ? motoristas.find(m => m.id === veiculo.proprietario_id) : null;
+        
+        const isFuncionario = motorista?.tipo === 'funcionario';
+        const isProprietario = motorista?.id === veiculo?.proprietario_id;
+        
+        // Verifica se é terceirizado do proprietário
+        let isTerceirizado = false;
+        if (veiculo?.proprietario_id && motorista && !isProprietario) {
+            const proprietarioVeiculo = motoristas.find(m => m.id === veiculo.proprietario_id);
+            if (proprietarioVeiculo?.motoristas_terceiros) {
+                let terceiros = proprietarioVeiculo.motoristas_terceiros;
+                if (typeof terceiros === 'string') {
+                    try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
+                }
+                if (!Array.isArray(terceiros)) terceiros = [];
+                isTerceirizado = terceiros.includes(motorista?.nome || '');
+            }
+        }
+
+        document.getElementById('confEscalaId').value = item.id;
+        document.getElementById('confMotoristaId').value = item.motorista_id || '';
+        
+        // 🔧 CORREÇÃO: proprietario_id é o DONO DO VEÍCULO, não o motorista
+        // Se veículo é Frota Própria (proprietario_id = null), não tem proprietário
+        document.getElementById('confProprietarioId').value = veiculo?.proprietario_id || '';
+        
+        document.getElementById('confIsFuncionario').value = isFuncionario ? 'true' : 'false';
+        document.getElementById('confIsTerceirizado').value = isTerceirizado ? 'true' : 'false';
+        
+        document.getElementById('modalConfMotorista').textContent = motorista?.nome || item.motorista_nome_completo || 'N/A';
+        document.getElementById('modalConfData').textContent = formatarData(item.data);
+        document.getElementById('modalConfRota').textContent = item.rota;
+        document.getElementById('modalConfVeiculo').textContent = veiculo?.nome || 'N/A';
+        document.getElementById('modalConfProprietario').textContent = proprietario?.nome || 'Frota Própria (Empresa)';
+        
+        // Só cobra chapa se for funcionário da empresa dirigindo veículo de agregado
+        const deveCobrarChapa = isFuncionario && veiculo?.proprietario_id && !isProprietario;
+        
+        document.getElementById('confChapa').required = deveCobrarChapa;
+        document.getElementById('confChapa').placeholder = deveCobrarChapa ? 'Valor da chapa (obrigatório)' : '0.00';
+        if (!deveCobrarChapa) {
+            document.getElementById('confChapa').value = 0;
+        }
+        
+        const valorSugerido = item.rota.includes('ZONA SUL') ? 550 : 
+                            item.rota.includes('CENTRO') ? 600 :
+                            item.rota.includes('NORTE') ? 650 :
+                            item.rota.includes('OESTE') ? 650 :
+                            item.rota.includes('SAQUAREMA') ? 900 :
+                            item.rota.includes('CABO FRIO') ? 950 : 550;
+        
+        document.getElementById('confValorDiaria').value = valorSugerido;
+        document.getElementById('confPedagio').value = 0;
+        document.getElementById('confAlmoco').value = 0;
+        document.getElementById('confDesconto').value = 0;
+        document.getElementById('confObservacao').value = `Viagem confirmada - ${item.rota}`;
+
+        const modalConfirmar = document.getElementById('modalConfirmarViagem');
+        modalConfirmar.classList.remove('hidden');
+        modalConfirmar.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
         function fecharModalConfirmar() {
             const modalConfirmar = document.getElementById('modalConfirmarViagem');
             modalConfirmar.style.display = 'none';
@@ -1082,6 +1160,9 @@
             const proprietarioId = document.getElementById('confProprietarioId').value;
             const isFuncionario = document.getElementById('confIsFuncionario').value === 'true';
             const isTerceirizado = document.getElementById('confIsTerceirizado').value === 'true';
+            
+            console.log('🔍 DEBUG confirmarViagem:');
+            console.log('  proprietarioId do input:', proprietarioId);
             
             const valorDiaria = parseFloat(document.getElementById('confValorDiaria').value) || 0;
             const pedagio = parseFloat(document.getElementById('confPedagio').value) || 0;
@@ -1103,14 +1184,16 @@
                 const veiculo = veiculos.find(v => v.id === escala.veiculo_id);
                 const motoristaNome = escala?.motorista_nome || motorista?.nome || '';
 
+                console.log('  veiculo?.proprietario_id:', veiculo?.proprietario_id);
 
                 let proprietario_id = null;
                 let chapaValor = 0;
                 
-                if (veiculo?.proprietario_id) {
+                // 🔧 CORREÇÃO: Verificar se veiculo existe e se tem proprietario_id
+                if (veiculo && veiculo.proprietario_id) {
                     proprietario_id = veiculo.proprietario_id;
+                    console.log('  Veículo tem proprietário:', proprietario_id);
                     
-                    // Só cobra chapa se for funcionário da empresa dirigindo veículo de agregado
                     if (isFuncionario && !isTerceirizado) {
                         chapaValor = chapa;
                         if (chapaValor <= 0) {
@@ -1123,11 +1206,14 @@
                 } else {
                     proprietario_id = null;
                     chapaValor = 0;
+                    console.log('  Veículo NÃO tem proprietário → proprietario_id = null');
                 }
+
+                console.log('  proprietario_id FINAL:', proprietario_id);
 
                 const novoLancamento = {
                     motorista_id: parseInt(motoristaId),
-                    proprietario_id: proprietario_id,
+                    proprietario_id: proprietario_id,  // 🔧 DEVE SER null para Frota Própria
                     veiculo_id: escala.veiculo_id,
                     escala_id: parseInt(escalaId),
                     data: escala.data,
@@ -1141,6 +1227,8 @@
                     origem: 'escala',
                     motorista_nome: motoristaNome
                 };
+
+                console.log('  ✅ novoLancamento:', novoLancamento);
 
                 const { error } = await supabaseClient.from('lancamentos').insert([novoLancamento]);
                 if (error) throw error;

@@ -7,10 +7,10 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/supabase.js"></script>
+    <script src="scripts/supabase.js?v=1.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="scripts/export_pdf.js"></script>
+    <script src="scripts/export_pdf.js?v=1.0"></script>
     
     <style>
         @keyframes slideUp {
@@ -367,6 +367,16 @@
 
         function formatarData(data) {
             if (!data) return '-';
+            
+            // 🔧 CORREÇÃO: Tratar data como string sem fuso horário
+            const partes = data.split('-');
+            if (partes.length === 3) {
+                // Formato: 'YYYY-MM-DD' → criar data sem fuso
+                const d = new Date(partes[0], partes[1] - 1, partes[2]);
+                return d.toLocaleDateString('pt-BR');
+            }
+            
+            // Fallback
             const d = new Date(data);
             return d.toLocaleDateString('pt-BR');
         }

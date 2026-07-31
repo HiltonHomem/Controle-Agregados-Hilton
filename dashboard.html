@@ -7,7 +7,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/supabase.js"></script>
+    <script src="scripts/supabase.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     
     <style>
@@ -270,12 +270,18 @@
             // Agregados (veículos do tipo Agregado)
             const totalAgregados = veiculos.filter(v => v.tipo === 'Agregado').length;
             
-            // Totais financeiros
-            const totalDiarias = lancamentos.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
-            const totalDescontos = lancamentos.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
-            const totalPedagios = lancamentos.reduce((s, l) => s + (Number(l.pedagio) || 0), 0);
-            const totalAlmoco = lancamentos.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
-            const totalChapa = lancamentos.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
+            // 🔧 CORREÇÃO: Filtrar apenas lançamentos de agregados
+            const lancamentosAgregados = lancamentos.filter(l => {
+                const motorista = motoristas.find(m => m.id === l.motorista_id);
+                return motorista && motorista.tipo === 'agregado';
+            });
+            
+            // Totais financeiros (APENAS agregados)
+            const totalDiarias = lancamentosAgregados.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
+            const totalDescontos = lancamentosAgregados.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
+            const totalPedagios = lancamentosAgregados.reduce((s, l) => s + (Number(l.pedagio) || 0), 0);
+            const totalAlmoco = lancamentosAgregados.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
+            const totalChapa = lancamentosAgregados.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
             const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
             
             // Escalas de hoje
@@ -289,7 +295,6 @@
             document.getElementById('totalLiquido').textContent = formatarMoeda(totalLiquido);
             document.getElementById('totalEscalas').textContent = escalasHoje;
         }
-
         function atualizarResumoSemana() {
             const dias = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
             const ids = ['segTotal', 'terTotal', 'quaTotal', 'quiTotal', 'sexTotal', 'sabTotal'];
@@ -388,13 +393,22 @@
                 }
             });
 
-            // ===== 2. Gráfico de Evolução =====
+            // ===== 2. Gráfico de Evolução (APENAS agregados) =====
             const evolData = {};
+
+            // 🔧 CORREÇÃO: Filtrar apenas lançamentos de agregados
             lancamentos.forEach(l => {
-                const data = formatarData(l.data);
-                const total = calcularTotal(l);
-                evolData[data] = (evolData[data] || 0) + total;
+                // Buscar o motorista correspondente
+                const motorista = motoristas.find(m => m.id === l.motorista_id);
+                
+                // Só incluir se o motorista for agregado
+                if (motorista && motorista.tipo === 'agregado') {
+                    const data = formatarData(l.data);
+                    const total = calcularTotal(l);
+                    evolData[data] = (evolData[data] || 0) + total;
+                }
             });
+
             const sortedEvol = Object.entries(evolData)
                 .sort((a, b) => new Date(a[0]) - new Date(b[0]))
                 .slice(-30);
