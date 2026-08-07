@@ -7,9 +7,19 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="scripts/supabase.js?v=1.0"></script>
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    
+    <!-- ===== BIBLIOTECAS PARA PDF ===== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- ===== SCRIPTS DO SISTEMA ===== -->
+    <script src="scripts/planilha_escala.js?v=1.0"></script>
     
     <style>
         @keyframes slideUp {
@@ -90,35 +100,53 @@
             font-size: 14px;
             color: #777;
         }
-       /* ===== LINHAS MAIS FINAS ===== */
-.agregado-row {
-    background-color: #eff6ff !important;
-}
-.agregado-row td {
-    background-color: #eff6ff !important;
-}
+        /* ===== CORES DAS LINHAS ===== */
+        /* 🔧 ANTES - azul muito claro */
+        .agregado-row {
+            background-color: #eff6ff !important;
+        }
+        .agregado-row td {
+            background-color: #eff6ff !important;
+        }
 
-.frota-row {
-    background-color: white !important;
-}
-.frota-row td {
-    background-color: white !important;
-}
+        /* 🔧 DEPOIS - azul mais escuro e visível */
+        .agregado-row {
+            background-color: #dbeafe !important;  /* Azul mais escuro */
+        }
+        .agregado-row td {
+            background-color: #dbeafe !important;
+        }
 
-/* ===== HOVER UNIFICADO ===== */
-.agregado-row:hover,
-.agregado-row:hover td,
-.agregado-row:hover + .detalhes-row td,
-.agregado-row:hover + .detalhes-row {
-    background-color: #dbeafe !important;
-}
+        .frota-row {
+            background-color: white !important;
+        }
+        .frota-row td {
+            background-color: white !important;
+        }
 
-.frota-row:hover,
-.frota-row:hover td,
-.frota-row:hover + .detalhes-row td,
-.frota-row:hover + .detalhes-row {
-    background-color: #f3f4f6 !important;
-}
+        /* ===== HOVER UNIFICADO ===== */
+        /* 🔧 ANTES */
+        .agregado-row:hover,
+        .agregado-row:hover td,
+        .agregado-row:hover + .detalhes-row td,
+        .agregado-row:hover + .detalhes-row {
+            background-color: #bfdbfe !important;  /* Azul ainda mais escuro no hover */
+        }
+
+        /* 🔧 DEPOIS - hover mais escuro */
+        .agregado-row:hover,
+        .agregado-row:hover td,
+        .agregado-row:hover + .detalhes-row td,
+        .agregado-row:hover + .detalhes-row {
+            background-color: #93c5fd !important;  /* Azul bem escuro no hover */
+        }
+
+        .frota-row:hover,
+        .frota-row:hover td,
+        .frota-row:hover + .detalhes-row td,
+        .frota-row:hover + .detalhes-row {
+            background-color: #f3f4f6 !important;
+        }
 
 /* ===== BORDAS ===== */
 .agregado-row {
@@ -267,8 +295,8 @@
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
                         <select id="escalaStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="ESCALADO">📌 Escalado</option>
                             <option value="OK">✅ OK</option>
+                            <option value="ESCALADO">📌 Escalado</option>
                             <option value="OFICINA">🔧 Oficina</option>
                             <option value="INDISPONÍVEL">❌ Indisponível</option>
                             <option value="DISPONÍVEL">🟣 Disponível</option>
@@ -304,8 +332,7 @@
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NF</label>
-                        <input type="number" id="escalaNF" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+                        <input type="text" id="escalaNF" placeholder="Ex: 27 ou DISTR" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">                    </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga (kg)</label>
                         <input type="number" id="escalaPesoCarga" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -362,8 +389,8 @@
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
                     <select id="filtroEscalaStatus" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
-                        <option value="ESCALADO">📌 Escalado</option>
                         <option value="OK">✅ OK</option>
+                        <option value="ESCALADO">📌 Escalado</option>                       
                         <option value="OFICINA">🔧 Oficina</option>
                         <option value="INDISPONÍVEL">❌ Indisponível</option>
                         <option value="DISPONÍVEL">🟣 Disponível</option>
@@ -377,6 +404,12 @@
                         <option value="agregado">🔵 Agregados</option>
                         <option value="frota">🏢 Frota Própria</option>
                     </select>
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button onclick="exportarEscalaPDF(escalas, document.getElementById('filtroEscalaData').value)" 
+                            class="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition h-[42px]">
+                        📄 PDF Escala
+                    </button>
                 </div>
             </div>
 
@@ -478,17 +511,17 @@
                         <input type="text" id="modalPlaca" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx.</label>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx.</label>S
                         <input type="number" id="modalPeso" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
                         <select id="modalStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="ESCALADO">📌 Escalado</option>
                             <option value="OK">✅ OK</option>
+                            <option value="ESCALADO">📌 Escalado</option>
                             <option value="OFICINA">🔧 Oficina</option>
                             <option value="INDISPONÍVEL">❌ Indisponível</option>
-                            <option value="DISPONÍVEL">🟣 Disponível</option>
+                            <option value="DISPONÍVEL">🟣 Disponível</option>S
                         </select>
                     </div>
                     <div class="flex flex-col">
@@ -516,8 +549,7 @@
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NF</label>
-                        <input type="number" id="modalNF" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+                        <input type="text" id="modalNF" placeholder="Ex: 27 ou DISTR" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">                    </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga (kg)</label>
                         <input type="number" id="modalPesoCarga" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -750,7 +782,7 @@
         }
 
         // ===== PREENCHER MOTORISTAS =====
-        function preencherMotoristas(selectElement, veiculoId) {
+       function preencherMotoristas(selectElement, veiculoId) {
             if (!selectElement) return;
             
             const value = selectElement.value;
@@ -763,14 +795,18 @@
                     const proprietario = motoristas.find(m => m.id === veiculo.proprietario_id);
                     
                     if (proprietario) {
+                        // 1. Proprietário
                         motoristasDisponiveis.push({
                             id: proprietario.id,
                             nome: proprietario.nome,
                             tipo: proprietario.tipo,
                             isTerceirizado: false,
-                            nomeTerceiro: ''
+                            nomeTerceiro: '',
+                            grupo: 'proprietario',
+                            nomeExibicao: proprietario.nome
                         });
                         
+                        // 2. Terceirizados
                         if (proprietario.motoristas_terceiros) {
                             let terceiros = proprietario.motoristas_terceiros;
                             if (typeof terceiros === 'string') {
@@ -779,16 +815,51 @@
                             if (!Array.isArray(terceiros)) terceiros = [];
                             
                             terceiros.forEach(nomeTerceiro => {
-                                motoristasDisponiveis.push({
-                                    id: proprietario.id,
-                                    nome: proprietario.nome,
-                                    tipo: 'terceirizado',
-                                    isTerceirizado: true,
-                                    nomeTerceiro: nomeTerceiro,
-                                    nomeExibicao: `${proprietario.nome} (${nomeTerceiro})`
-                                });
+                                // 🔧 Nome exibido: FRANCISCO (JOSE CARLOS)
+                                const nomeExibicao = `${proprietario.nome} (${nomeTerceiro})`;
+                                
+                                const motoristaExistente = motoristas.find(m => m.nome === nomeTerceiro);
+                                if (motoristaExistente) {
+                                    motoristasDisponiveis.push({
+                                        id: motoristaExistente.id,
+                                        nome: motoristaExistente.nome,
+                                        tipo: motoristaExistente.tipo,
+                                        isTerceirizado: true,
+                                        nomeTerceiro: nomeTerceiro,
+                                        proprietarioId: proprietario.id,
+                                        grupo: 'terceirizado',
+                                        nomeExibicao: nomeExibicao
+                                    });
+                                } else {
+                                    motoristasDisponiveis.push({
+                                        id: `terceiro_${proprietario.id}_${nomeTerceiro}`,
+                                        nome: nomeTerceiro,
+                                        tipo: 'terceirizado',
+                                        isTerceirizado: true,
+                                        nomeTerceiro: nomeTerceiro,
+                                        proprietarioId: proprietario.id,
+                                        isNomeApenas: true,
+                                        grupo: 'terceirizado',
+                                        nomeExibicao: nomeExibicao
+                                    });
+                                }
                             });
                         }
+                        
+                        // 3. Funcionários da empresa
+                        const funcionarios = motoristas
+                            .filter(m => m.tipo === 'funcionario' && m.ativo === true)
+                            .map(m => ({
+                                id: m.id,
+                                nome: m.nome,
+                                tipo: m.tipo,
+                                isTerceirizado: false,
+                                nomeTerceiro: '',
+                                grupo: 'funcionario',
+                                nomeExibicao: m.nome
+                            }));
+                        
+                        motoristasDisponiveis = [...motoristasDisponiveis, ...funcionarios];
                     }
                 } else {
                     motoristasDisponiveis = motoristas
@@ -798,7 +869,9 @@
                             nome: m.nome,
                             tipo: m.tipo,
                             isTerceirizado: false,
-                            nomeTerceiro: ''
+                            nomeTerceiro: '',
+                            grupo: m.tipo === 'agregado' ? 'agregado' : 'funcionario',
+                            nomeExibicao: m.nome
                         }));
                 }
             } else {
@@ -809,32 +882,82 @@
                         nome: m.nome,
                         tipo: m.tipo,
                         isTerceirizado: false,
-                        nomeTerceiro: ''
+                        nomeTerceiro: '',
+                        grupo: m.tipo === 'agregado' ? 'agregado' : 'funcionario',
+                        nomeExibicao: m.nome
                     }));
             }
             
             selectElement.innerHTML = '<option value="">Selecione...</option>';
+            
+            const grupos = {
+                proprietario: [],
+                terceirizado: [],
+                funcionario: [],
+                agregado: []
+            };
+            
             motoristasDisponiveis.forEach(m => {
-                let label = '';
-                let suffix = '';
-                let dataTerceirizado = 'false';
-                let dataNomeTerceiro = '';
-                
-                if (m.isTerceirizado) {
-                    label = m.nomeExibicao || `${m.nome} (${m.nomeTerceiro})`;
-                    suffix = ' 🔶';
-                    dataTerceirizado = 'true';
-                    dataNomeTerceiro = m.nomeTerceiro || '';
-                } else if (m.tipo === 'agregado') {
-                    label = m.nome;
-                } else if (m.tipo === 'funcionario') {
-                    label = m.nome;
-                } else {
-                    label = m.nome;
+                if (m.grupo) {
+                    grupos[m.grupo].push(m);
                 }
-                
-                selectElement.innerHTML += `<option value="${m.id}" data-terceirizado="${dataTerceirizado}" data-nome-terceiro="${dataNomeTerceiro}">${label}${suffix}</option>`;
             });
+            
+            if (grupos.proprietario.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '👨‍💼 Proprietário';
+                grupos.proprietario.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;
+                    option.dataset.terceirizado = 'false';
+                    option.dataset.nomeTerceiro = '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
+            
+            if (grupos.terceirizado.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '🔶 Terceirizados';
+                grupos.terceirizado.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;  // 🔧 FRANCISCO (JOSE CARLOS)
+                    option.dataset.terceirizado = 'true';
+                    option.dataset.nomeTerceiro = m.nomeTerceiro || '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
+            
+            if (grupos.funcionario.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '👷 Funcionários';
+                grupos.funcionario.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;
+                    option.dataset.terceirizado = 'false';
+                    option.dataset.nomeTerceiro = '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
+            
+            if (grupos.agregado.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '👨‍💼 Agregados';
+                grupos.agregado.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;
+                    option.dataset.terceirizado = 'false';
+                    option.dataset.nomeTerceiro = '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
             
             if (value) {
                 const optionExists = Array.from(selectElement.options).some(opt => opt.value === value);
@@ -862,7 +985,9 @@
                             nome: proprietario.nome,
                             tipo: proprietario.tipo,
                             isTerceirizado: false,
-                            nomeTerceiro: ''
+                            nomeTerceiro: '',
+                            grupo: 'proprietario',
+                            nomeExibicao: proprietario.nome
                         });
                         
                         if (proprietario.motoristas_terceiros) {
@@ -873,16 +998,49 @@
                             if (!Array.isArray(terceiros)) terceiros = [];
                             
                             terceiros.forEach(nomeTerceiro => {
-                                motoristasDisponiveis.push({
-                                    id: proprietario.id,
-                                    nome: proprietario.nome,
-                                    tipo: 'terceirizado',
-                                    isTerceirizado: true,
-                                    nomeTerceiro: nomeTerceiro,
-                                    nomeExibicao: `${proprietario.nome} (${nomeTerceiro})`
-                                });
+                                const nomeExibicao = `${proprietario.nome} (${nomeTerceiro})`;
+                                
+                                const motoristaExistente = motoristas.find(m => m.nome === nomeTerceiro);
+                                if (motoristaExistente) {
+                                    motoristasDisponiveis.push({
+                                        id: motoristaExistente.id,
+                                        nome: motoristaExistente.nome,
+                                        tipo: motoristaExistente.tipo,
+                                        isTerceirizado: true,
+                                        nomeTerceiro: nomeTerceiro,
+                                        proprietarioId: proprietario.id,
+                                        grupo: 'terceirizado',
+                                        nomeExibicao: nomeExibicao
+                                    });
+                                } else {
+                                    motoristasDisponiveis.push({
+                                        id: `terceiro_${proprietario.id}_${nomeTerceiro}`,
+                                        nome: nomeTerceiro,
+                                        tipo: 'terceirizado',
+                                        isTerceirizado: true,
+                                        nomeTerceiro: nomeTerceiro,
+                                        proprietarioId: proprietario.id,
+                                        isNomeApenas: true,
+                                        grupo: 'terceirizado',
+                                        nomeExibicao: nomeExibicao
+                                    });
+                                }
                             });
                         }
+                        
+                        const funcionarios = motoristas
+                            .filter(m => m.tipo === 'funcionario' && m.ativo === true)
+                            .map(m => ({
+                                id: m.id,
+                                nome: m.nome,
+                                tipo: m.tipo,
+                                isTerceirizado: false,
+                                nomeTerceiro: '',
+                                grupo: 'funcionario',
+                                nomeExibicao: m.nome
+                            }));
+                        
+                        motoristasDisponiveis = [...motoristasDisponiveis, ...funcionarios];
                     }
                 } else {
                     motoristasDisponiveis = motoristas
@@ -892,7 +1050,9 @@
                             nome: m.nome,
                             tipo: m.tipo,
                             isTerceirizado: false,
-                            nomeTerceiro: ''
+                            nomeTerceiro: '',
+                            grupo: m.tipo === 'agregado' ? 'agregado' : 'funcionario',
+                            nomeExibicao: m.nome
                         }));
                 }
             } else {
@@ -903,32 +1063,82 @@
                         nome: m.nome,
                         tipo: m.tipo,
                         isTerceirizado: false,
-                        nomeTerceiro: ''
+                        nomeTerceiro: '',
+                        grupo: m.tipo === 'agregado' ? 'agregado' : 'funcionario',
+                        nomeExibicao: m.nome
                     }));
             }
             
             selectElement.innerHTML = '<option value="">Selecione...</option>';
+            
+            const grupos = {
+                proprietario: [],
+                terceirizado: [],
+                funcionario: [],
+                agregado: []
+            };
+            
             motoristasDisponiveis.forEach(m => {
-                let label = '';
-                let suffix = '';
-                let dataTerceirizado = 'false';
-                let dataNomeTerceiro = '';
-                
-                if (m.isTerceirizado) {
-                    label = m.nomeExibicao || `${m.nome} (${m.nomeTerceiro})`;
-                    suffix = ' 🔶';
-                    dataTerceirizado = 'true';
-                    dataNomeTerceiro = m.nomeTerceiro || '';
-                } else if (m.tipo === 'agregado') {
-                    label = m.nome;
-                } else if (m.tipo === 'funcionario') {
-                    label = m.nome;
-                } else {
-                    label = m.nome;
+                if (m.grupo) {
+                    grupos[m.grupo].push(m);
                 }
-                
-                selectElement.innerHTML += `<option value="${m.id}" data-terceirizado="${dataTerceirizado}" data-nome-terceiro="${dataNomeTerceiro}">${label}${suffix}</option>`;
             });
+            
+            if (grupos.proprietario.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '👨‍💼 Proprietário';
+                grupos.proprietario.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;
+                    option.dataset.terceirizado = 'false';
+                    option.dataset.nomeTerceiro = '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
+            
+            if (grupos.terceirizado.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '🔶 Terceirizados';
+                grupos.terceirizado.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;
+                    option.dataset.terceirizado = 'true';
+                    option.dataset.nomeTerceiro = m.nomeTerceiro || '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
+            
+            if (grupos.funcionario.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '👷 Funcionários';
+                grupos.funcionario.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;
+                    option.dataset.terceirizado = 'false';
+                    option.dataset.nomeTerceiro = '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
+            
+            if (grupos.agregado.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '👨‍💼 Agregados';
+                grupos.agregado.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nomeExibicao;
+                    option.dataset.terceirizado = 'false';
+                    option.dataset.nomeTerceiro = '';
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            }
             
             if (value) {
                 const optionExists = Array.from(selectElement.options).some(opt => opt.value === value);
@@ -1109,7 +1319,7 @@
                 status: document.getElementById('escalaStatus').value || 'ESCALADO',
                 celular: document.getElementById('escalaCelular').value.trim(),
                 maquina_cartao: parseFloat(document.getElementById('escalaMaquina').value) || 0,
-                nf: parseFloat(document.getElementById('escalaNF').value) || 0,
+                nf: document.getElementById('escalaNF').value.trim() || '',
                 peso_carga: parseFloat(document.getElementById('escalaPesoCarga').value) || 0,
                 retornos: document.getElementById('escalaRetornos').value.trim(),
                 carregamento: document.getElementById('escalaCarregamento').value.trim(),
@@ -1410,7 +1620,7 @@
             document.getElementById('modalRota').value = item.rota || '';
             document.getElementById('modalCelular').value = item.celular || '';
             document.getElementById('modalMaquina').value = item.maquina_cartao || 0;
-            document.getElementById('modalNF').value = item.nf || 0;
+            document.getElementById('modalNF').value = item.nf || '';
             document.getElementById('modalPesoCarga').value = item.peso_carga || 0;
             document.getElementById('modalRetornos').value = item.retornos || '';
             document.getElementById('modalCarregamento').value = item.carregamento || '';
@@ -1474,29 +1684,44 @@
             const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
             const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
             let motoristaNome = '';
+            let motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
             
+            // 🔧 CORREÇÃO: Se for terceirizado, buscar o proprietário do veículo
             if (isTerceirizado && nomeTerceiro) {
-                const proprietario = motoristas.find(m => m.id === parseInt(motoristaId));
-                motoristaNome = `${proprietario?.nome || 'Desconhecido'} (${nomeTerceiro})`;
+                // Buscar o veículo para encontrar o proprietário
+                const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
+                if (veiculo?.proprietario_id) {
+                    const proprietario = motoristas.find(m => m.id === veiculo.proprietario_id);
+                    if (proprietario) {
+                        motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
+                        // 🔧 Mantém o ID do proprietário
+                        motoristaIdReal = proprietario.id;
+                    } else {
+                        motoristaNome = `Desconhecido (${nomeTerceiro})`;
+                    }
+                } else {
+                    motoristaNome = `Desconhecido (${nomeTerceiro})`;
+                }
             } else if (motoristaId) {
                 const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
                 motoristaNome = motorista?.nome || '';
+                motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
             }
             
             const dados = {
                 data: document.getElementById('modalData').value,
                 veiculo_id: parseInt(veiculoId),
-                motorista_id: motoristaId ? parseInt(motoristaId) : null,
+                motorista_id: motoristaIdReal,
                 motorista_nome: motoristaNome,
                 rota: document.getElementById('modalRota').value.trim(),
                 status: document.getElementById('modalStatus').value || 'ESCALADO',
                 celular: document.getElementById('modalCelular').value.trim(),
                 maquina_cartao: parseFloat(document.getElementById('modalMaquina').value) || 0,
-                nf: parseFloat(document.getElementById('modalNF').value) || 0,
+                nf: document.getElementById('modalNF').value.trim() || '',
                 peso_carga: parseFloat(document.getElementById('modalPesoCarga').value) || 0,
-                retornos: document.getElementById('modalRetornos').value.trim(),
-                carregamento: document.getElementById('modalCarregamento').value.trim(),
-                observacao: document.getElementById('modalObs').value.trim()
+                retornos: document.getElementById('modalRetornos').value.trim() || '',
+                carregamento: document.getElementById('modalCarregamento').value.trim() || '',
+                observacao: document.getElementById('modalObs').value.trim() || ''
             };
 
             if (!dados.data || !dados.veiculo_id || !dados.rota) {
@@ -1599,7 +1824,7 @@
             document.getElementById('escalaStatus').value = 'ESCALADO';
             document.getElementById('escalaCelular').value = '';
             document.getElementById('escalaMaquina').value = '0';
-            document.getElementById('escalaNF').value = '0';
+    document.getElementById('escalaNF').value = '';
             document.getElementById('escalaPesoCarga').value = '0';
             document.getElementById('escalaRetornos').value = '';
             document.getElementById('escalaCarregamento').value = '';
