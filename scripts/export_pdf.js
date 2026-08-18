@@ -22,6 +22,15 @@ function formatarMoedaPDF(valor) {
 
 function formatarDataPDF(data) {
     if (!data) return '-';
+    
+    // Verifica se a data vem no formato ISO (YYYY-MM-DD)
+    if (typeof data === 'string' && data.includes('-')) {
+        const partes = data.split('T')[0].split('-'); // Pega a parte antes do T e divide
+        // Retorna manualmente no formato DD/MM/AAAA sem passar pelo new Date() e fuso horário
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    
+    // Se for um objeto Date ou outro formato, mantém a lógica antiga de fallback
     const d = new Date(data);
     return d.toLocaleDateString('pt-BR');
 }
@@ -29,7 +38,7 @@ function formatarDataPDF(data) {
 function calcularTotalPDF(item) {
     return (Number(item.valor_diaria) || 0) + 
            (Number(item.pedagio) || 0) + 
-           (Number(item.almoco) || 0) + 
+           (Number(item.almoco) || 0) - 
            (Number(item.chapa) || 0) - 
            (Number(item.desconto) || 0);
 }
@@ -163,7 +172,7 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             const totalAlmoco = quizenData.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
             const totalChapa = quizenData.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
             const totalDescontos = quizenData.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
-            const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
+            const totalLiquido = totalDiarias + totalPedagios + totalAlmoco - totalChapa - totalDescontos;
 
             doc.setFontSize(9);
             doc.setTextColor(60, 60, 60);
@@ -287,7 +296,7 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             const totalMesAlmoco = itensMes.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
             const totalMesChapa = itensMes.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
             const totalMesDescontos = itensMes.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
-            const totalMesLiquido = totalMesDiarias + totalMesPedagios + totalMesAlmoco + totalMesChapa - totalMesDescontos;
+            const totalMesLiquido = totalMesDiarias + totalMesPedagios + totalMesAlmoco - totalMesChapa - totalMesDescontos;
 
             const veiculosMes = [];
             itensMes.forEach(item => {
@@ -366,7 +375,7 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos', filen
     const totalAlmoco = dados.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
     const totalChapa = dados.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
     const totalDescontos = dados.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
-    const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
+    const totalLiquido = totalDiarias + totalPedagios + totalAlmoco - totalChapa - totalDescontos;
 
     doc.setDrawColor(200, 200, 200);
     doc.line(14, 54, 196, 54);
@@ -492,37 +501,56 @@ function exportarPDF(dados, titulo = 'Relatório de Lançamentos', filename = 'r
     gerarPDFGeral(dados, titulo, filename);
 }
 
-// ================= EXPORTAR RELATÓRIO QUINZENAL =================
-    function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFim) {
-        // 🔧 CORREÇÃO: Filtrar lançamentos do agregado
-        const dadosFiltrados = lancamentos.filter(l => {
-            // 1. Lançamentos onde o motorista é o agregado (ele mesmo)
-            if (l.motorista_id === motoristaId) return true;
-            
-            // 2. Lançamentos onde o agregado é o proprietário (terceirizados ou funcionários)
-            if (l.proprietario_id === motoristaId) return true;
-            
-            return false;
-        });
+// ===== EXPORTAR RELATÓRIO QUINZENAL DO MOTORISTA =====
+function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFim) {
+    // 🔧 CORREÇÃO: Filtrar lançamentos onde o motorista é o PROPRIETÁRIO
+    // Ou seja: lançamentos onde proprietario_id = motoristaId
+    const dadosFiltrados = lancamentos.filter(l => {
+        // 1. O agregado é o proprietário do veículo (proprietario_id)
+        if (l.proprietario_id === motoristaId) return true;
+        
+        // 2. O agregado é o motorista (caso ele mesmo dirija)
+        if (l.motorista_id === motoristaId) return true;
+        
+        return false;
+    });
 
-        // Aplicar filtro de data se informado
-        let dados = dadosFiltrados;
-        if (dataInicio) {
-            dados = dados.filter(l => l.data >= dataInicio);
-        }
-        if (dataFim) {
-            dados = dados.filter(l => l.data <= dataFim);
-        }
-
-        if (dados.length === 0) {
-            mostrarToast('Nenhum lançamento encontrado para este motorista', 'error');
-            return;
-        }
-
-        // Buscar nome do motorista
-        const motorista = motoristas.find(m => m.id === motoristaId);
-        const nomeMotorista = motorista?.nome || 'Motorista';
-
-        // Gerar PDF com os dados filtrados
-        gerarPDFQuinzenalMensal(dados, nomeMotorista);
+    // Aplicar filtro de data se informado
+    let dados = dadosFiltrados;
+    if (dataInicio) {
+        dados = dados.filter(l => l.data >= dataInicio);
     }
+    if (dataFim) {
+        dados = dados.filter(l => l.data <= dataFim);
+    }
+
+    if (dados.length === 0) {
+        mostrarToast('Nenhum lançamento encontrado para este motorista', 'error');
+        return;
+    }
+
+    // Buscar nome do motorista (proprietário)
+    const motorista = motoristas.find(m => m.id === motoristaId);
+    const nomeMotorista = motorista?.nome || 'Motorista';
+
+    // 🔧 CORREÇÃO: Ajustar os nomes para mostrar Proprietário (Motorista)
+    // quando o motorista for diferente do proprietário
+    const dadosFormatados = dados.map(l => {
+        // Se o proprietário é diferente do motorista, mostra "PROPRIETÁRIO (MOTORISTA)"
+        if (l.proprietario_id === motoristaId && l.motorista_id !== motoristaId) {
+            const motoristaNome = motoristas.find(m => m.id === l.motorista_id)?.nome || 'Desconhecido';
+            return {
+                ...l,
+                motorista_nome: `${nomeMotorista} (${motoristaNome})`
+            };
+        }
+        return l;
+    });
+
+    // Gerar PDF com os dados formatados
+    if (typeof gerarPDFQuinzenalMensal === 'function') {
+        gerarPDFQuinzenalMensal(dadosFormatados, nomeMotorista);
+    } else {
+        mostrarToast('Função de PDF não disponível', 'error');
+    }
+}

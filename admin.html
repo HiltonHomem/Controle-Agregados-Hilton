@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Logs do Sistema</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js?v=1.0"></script>
+    
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slide-in { animation: slideIn 0.3s ease; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        .acao-insert { color: #22c55e; }
+        .acao-update { color: #3b82f6; }
+        .acao-delete { color: #ef4444; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-5">
+    <div class="max-w-7xl mx-auto">
+        <!-- ===== HEADER ===== -->
+        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
+            <div class="flex flex-wrap justify-between items-center w-full">
+                <div id="saudacaoUsuario" class="text-white text-sm font-medium">
+                    👋 Bom dia, Usuário!
+                </div>
+                <button onclick="fazerLogout()" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition">
+                    🚪 Sair
+                </button>
+            </div>
+            <div class="flex flex-wrap justify-between items-center w-full">
+                <div>
+                    <h1 class="text-2xl font-bold">⚙️ Administração</h1>
+                    <p class="text-blue-100 text-sm">Logs de auditoria do sistema</p>
+                </div>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <nav class="flex gap-1 flex-wrap">
+                        <a href="escala.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📋 Escala</a>
+                        <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📊 Dashboard</a>
+                        <a href="controle_agregados.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">💰 Agregados</a>
+                        <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">🚗 Veículos</a>
+                        <a href="admin.html" class="px-4 py-2 rounded-lg bg-white/30 font-medium text-sm">⚙️ Admin</a>
+                    </nav>
+                    <button onclick="carregarLogs()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===== FILTROS ===== -->
+        <div class="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-wrap gap-3 items-end">
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ação</label>
+                <select id="filtroAcao" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">Todas</option>
+                    <option value="INSERT">➕ Inserção</option>
+                    <option value="UPDATE">✏️ Edição</option>
+                    <option value="DELETE">🗑️ Exclusão</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tabela</label>
+                <select id="filtroTabela" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">Todas</option>
+                    <option value="lancamentos">💰 Lançamentos</option>
+                    <option value="escalas">📋 Escalas</option>
+                    <option value="veiculos">🚗 Veículos</option>
+                    <option value="motoristas">👤 Motoristas</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Usuário</label>
+                <input type="text" id="filtroUsuario" placeholder="Email..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">          
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo Usuário</label>
+                <select id="filtroTipoUsuario" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="excluir_na">Ocultar N/A (Padrão)</option>
+                    <option value="todos">Mostrar Todos</option>
+                    <option value="apenas_na">Apenas N/A (Supabase)</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Início</label>
+                <input type="date" id="filtroDataInicio" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Fim</label>
+                <input type="date" id="filtroDataFim" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <button onclick="limparFiltros()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar</button>
+        </div>
+
+        <!-- ===== TABELA DE LOGS ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📋 Logs de Auditoria</h2>
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="totalLogsBadge">0</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b-2 border-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Data/Hora</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Usuário</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Ação</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Tabela</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Registro</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Alterações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <tr>
+                            <td colspan="6" class="text-center py-10 text-gray-400">
+                                <div class="text-5xl mb-2">📭</div>
+                                <p>Carregando logs...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+    <script>
+        // =====================================================
+        // VERIFICAÇÃO DE AUTENTICAÇÃO E ROLE
+        // =====================================================
+        let usuarioAtual = null;
+        let logs = [];
+        let todosLogs = [];
+
+        async function verificarAuth() {
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            await carregarUsuario(session.user.id);
+        }
+
+        async function carregarUsuario(userId) {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('usuarios')
+                    .select('nome, email, role')
+                    .eq('id', userId)
+                    .single();
+                
+                if (error) throw error;
+                usuarioAtual = data;
+                
+                // 🔧 VERIFICAR SE É ADMIN
+                if (usuarioAtual.role !== 'admin') {
+                    mostrarToast('Acesso negado! Apenas administradores.', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    return;
+                }
+                
+                atualizarSaudacao();
+                carregarLogs();
+            } catch (error) {
+                console.error('Erro ao carregar usuário:', error);
+                mostrarToast('Erro ao verificar permissões', 'error');
+            }
+        }
+
+        function atualizarSaudacao() {
+            const saudacaoEl = document.getElementById('saudacaoUsuario');
+            if (!saudacaoEl) return;
+            const nome = usuarioAtual?.nome || 'Usuário';
+            const hoje = new Date();
+            const hora = hoje.getHours();
+            let saudacaoHora = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+            saudacaoEl.innerHTML = `👋 ${saudacaoHora}, ${nome}! <span class="text-yellow-300">(Admin)</span>`;
+        }
+
+        async function fazerLogout() {
+            try {
+                await window.supabaseClient.auth.signOut();
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        }
+
+        // =====================================================
+        // CARREGAR LOGS
+        // =====================================================
+        async function carregarLogs() {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('logs_auditoria')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(500);
+                
+                if (error) throw error;
+                
+                todosLogs = data || [];
+                aplicarFiltros();
+                document.getElementById('totalLogsBadge').textContent = todosLogs.length;
+                mostrarToast('Logs carregados com sucesso!');
+            } catch (error) {
+                console.error('Erro ao carregar logs:', error);
+                mostrarToast('Erro ao carregar logs', 'error');
+            }
+        }
+
+        // =====================================================
+        // FILTROS
+        // =====================================================
+        function aplicarFiltros() {
+            const filtroAcao = document.getElementById('filtroAcao').value;
+            const filtroTabela = document.getElementById('filtroTabela').value;
+            const filtroUsuario = document.getElementById('filtroUsuario').value.toLowerCase();
+            const filtroDataInicio = document.getElementById('filtroDataInicio').value;
+            const filtroDataFim = document.getElementById('filtroDataFim').value;
+            const filtroTipoUsuario = document.getElementById('filtroTipoUsuario').value; // NOVO
+
+            logs = [...todosLogs];
+
+            // 1. Lógica para esconder N/A por padrão
+            if (filtroTipoUsuario === 'excluir_na') {
+                logs = logs.filter(l => (l.usuario_nome || 'N/A') !== 'N/A');
+            } else if (filtroTipoUsuario === 'apenas_na') {
+                logs = logs.filter(l => (l.usuario_nome || 'N/A') === 'N/A');
+            }
+            // Se for 'todos', não faz nada, mostra tudo
+
+            // 2. Aplicar os outros filtros normalmente
+            if (filtroAcao) logs = logs.filter(l => l.acao === filtroAcao);
+            if (filtroTabela) logs = logs.filter(l => l.tabela === filtroTabela);
+            if (filtroUsuario) logs = logs.filter(l => (l.usuario_email || '').toLowerCase().includes(filtroUsuario));
+            if (filtroDataInicio) logs = logs.filter(l => l.created_at >= filtroDataInicio);
+            if (filtroDataFim) logs = logs.filter(l => l.created_at <= filtroDataFim);
+
+            renderizarLogs();
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroAcao').value = '';
+            document.getElementById('filtroTabela').value = '';
+            document.getElementById('filtroUsuario').value = '';
+            document.getElementById('filtroDataInicio').value = '';
+            document.getElementById('filtroDataFim').value = '';
+            
+            // 🔧 Resetar o novo filtro para o padrão (Ocultar N/A)
+            document.getElementById('filtroTipoUsuario').value = 'excluir_na';
+            
+            aplicarFiltros();
+        }
+
+        // =====================================================
+        // RENDERIZAR LOGS
+        // =====================================================
+        function renderizarLogs() {
+            const tbody = document.getElementById('logsBody');
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-10 text-gray-400">
+                            <div class="text-5xl mb-2">📭</div>
+                            <p>Nenhum log encontrado</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            logs.forEach(log => {
+                const data = new Date(log.created_at);
+                const dataFormatada = data.toLocaleDateString('pt-BR');
+                const horaFormatada = data.toLocaleTimeString('pt-BR');
+                
+                const acaoClass = log.acao === 'INSERT' ? 'acao-insert' : 
+                                 log.acao === 'UPDATE' ? 'acao-update' : 'acao-delete';
+                const acaoLabel = log.acao === 'INSERT' ? '➕ Inserção' :
+                                 log.acao === 'UPDATE' ? '✏️ Edição' : '🗑️ Exclusão';
+
+                let alteracoes = '-';
+                if (log.acao === 'UPDATE' && log.dados_anteriores && log.dados_novos) {
+                    const diff = compararObjetos(log.dados_anteriores, log.dados_novos);
+                    alteracoes = diff.length > 0 ? diff.join('; ') : 'Nenhuma alteração visível';
+                } else if (log.acao === 'INSERT' && log.dados_novos) {
+                    alteracoes = 'Novo registro criado';
+                } else if (log.acao === 'DELETE' && log.dados_anteriores) {
+                    alteracoes = 'Registro removido';
+                }
+
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 text-xs">${dataFormatada} ${horaFormatada}</td>
+                        <td class="px-3 py-2 text-sm">
+                            <span class="font-medium">${log.usuario_nome || 'N/A'}</span>
+                            <span class="text-gray-400 text-xs block">${log.usuario_email || ''}</span>
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <span class="${acaoClass} font-medium">${acaoLabel}</span>
+                        </td>
+                        <td class="px-3 py-2 text-sm">${log.tabela}</td>
+                        <td class="px-3 py-2 text-center text-sm">#${log.registro_id}</td>
+                        <td class="px-3 py-2 text-xs text-gray-600 max-w-xs truncate">${alteracoes}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // =====================================================
+        // UTILITÁRIOS
+        // =====================================================
+        function compararObjetos(antigo, novo) {
+            const diff = [];
+            if (!antigo || !novo) return diff;
+            
+            const todasChaves = new Set([...Object.keys(antigo), ...Object.keys(novo)]);
+            
+            todasChaves.forEach(key => {
+                // Ignorar campos de timestamp e ID
+                if (['id', 'created_at', 'updated_at'].includes(key)) return;
+                
+                const valAntigo = antigo[key];
+                const valNovo = novo[key];
+                
+                if (JSON.stringify(valAntigo) !== JSON.stringify(valNovo)) {
+                    diff.push(`${key}: "${valAntigo}" → "${valNovo}"`);
+                }
+            });
+            
+            return diff;
+        }
+
+        function mostrarToast(mensagem, tipo = 'success') {
+            const cores = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${cores[tipo] || 'bg-blue-500'} text-white px-6 py-3 rounded-xl shadow-lg font-medium text-sm flex items-center gap-3 max-w-md animate-slide-in`;
+            toast.innerHTML = `<span>${tipo === 'success' ? '✅' : tipo === 'error' ? '❌' : 'ℹ️'}</span><span>${mensagem}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // =====================================================
+        // INICIALIZAÇÃO
+        // =====================================================
+        document.addEventListener('DOMContentLoaded', verificarAuth);
+    </script>
+</body>
+</html>

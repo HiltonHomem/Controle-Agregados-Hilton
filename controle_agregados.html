@@ -10,7 +10,7 @@
     <script src="scripts/supabase.js?v=1.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="scripts/export_pdf.js?v=1.0"></script>
+    <script src="scripts/export_pdf.js?v=1.2"></script>
     
     <style>
         @keyframes slideUp {
@@ -384,7 +384,7 @@
         function calcularTotal(item) {
             return (Number(item.valor_diaria) || 0) + 
                    (Number(item.pedagio) || 0) + 
-                   (Number(item.almoco) || 0) + 
+                   (Number(item.almoco) || 0) - 
                    (Number(item.chapa) || 0) - 
                    (Number(item.desconto) || 0);
         }
@@ -769,7 +769,15 @@
             let html = '';
             dados.forEach(item => {
                 const total = calcularTotal(item);
-                const nome = item.motorista_nome || 'N/A';
+                // 🔧 CORREÇÃO: Mostrar Proprietário (Motorista) quando for chapa
+                    let nome = item.motorista_nome || 'N/A';
+                    if (item.proprietario_id && item.motorista_id !== item.proprietario_id) {
+                        const proprietario = motoristas.find(m => m.id === item.proprietario_id);
+                        const motoristaNome = motoristas.find(m => m.id === item.motorista_id)?.nome || 'Desconhecido';
+                        if (proprietario) {
+                            nome = `${proprietario.nome} (${motoristaNome})`;
+                        }
+                    }
                 const veiculo = item.veiculo_nome || item.veiculo_placa || '-';
                 const origem = item.origem || 'manual';
                 const origemBadge = origem === 'escala' 
@@ -805,7 +813,7 @@
             const totalPedagios = lancamentos.reduce((s, l) => s + (Number(l.pedagio) || 0), 0);
             const totalAlmoco = lancamentos.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
             const totalChapa = lancamentos.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
-            const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
+            const totalLiquido = totalDiarias + totalPedagios + totalAlmoco - totalChapa - totalDescontos;
             
             document.getElementById('totalRegistros').textContent = lancamentos.length;
             document.getElementById('totalDiarias').textContent = formatarMoeda(totalDiarias);
