@@ -200,12 +200,13 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                 return yPos;
             }
 
-            const headers = ['Data', 'Rota', 'Diária', 'Pedágio', 'Almoço', 'Chapa', 'Desconto', 'Total'];
+            const headers = ['Data','Placa', 'Rota', 'Diária', 'Pedágio', 'Almoço', 'Chapa', 'Desconto', 'Total'];
 
             const rows = quizenData.map(item => {
                 const total = calcularTotalPDF(item);
                 return [
                     formatarDataPDF(item.data),
+                    item.placa || '-',
                     removerEmojis(item.rota || '-'),
                     formatarMoedaPDF(item.valor_diaria),
                     formatarMoedaPDF(item.pedagio),
@@ -238,13 +239,14 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                 },
                 columnStyles: {
                     0: { cellWidth: 20, halign: 'center' },
-                    1: { cellWidth: 32 },
-                    2: { cellWidth: 20, halign: 'right' },
+                    1: { cellWidth: 16, halign: 'center' },
+                    2: { cellWidth: 32 },
                     3: { cellWidth: 20, halign: 'right' },
-                    4: { cellWidth: 18, halign: 'right' },
-                    5: { cellWidth: 16, halign: 'right' },
-                    6: { cellWidth: 20, halign: 'right' },
-                    7: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
+                    4: { cellWidth: 20, halign: 'right' },
+                    5: { cellWidth: 18, halign: 'right' },
+                    6: { cellWidth: 16, halign: 'right' },
+                    7: { cellWidth: 20, halign: 'right' },
+                    8: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
                 },
                 alternateRowStyles: {
                     fillColor: [248, 249, 250]
@@ -256,9 +258,30 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                             data.cell.styles.textColor = [234, 67, 53];
                         }
                     }
-                    if (data.column.index === 7) {
-                        data.cell.styles.textColor = [26, 115, 232];
+                    if (data.column.index === 7 && data.cell.raw) {
+                        const valor = parseFloat(data.cell.raw.replace('R$ ', '').replace('.', '').replace(',', '.'));
+                        if (valor > 0) {
+                            data.cell.styles.textColor = [234, 67, 53];
+                        }
                     }
+
+                    if (data.column.index === 6 || data.column.index === 7) {
+                        if (data.section === 'head') {
+                            
+                            data.cell.styles.textColor = [234, 67, 53];
+                        } 
+                    }
+
+                    if (data.column.index === 8 ) {
+                        if (data.section === 'head') {
+                            // Cabeçalho "TOTAL" em verde
+                            data.cell.styles.textColor = [0, 255, 0];
+                        } else {
+                            // Números do total em azul (como já estava no seu código original)
+                            data.cell.styles.textColor = [26, 115, 232];
+                        }
+                    }
+
                 },
                 margin: { left: 14, right: 14 }
             });
@@ -536,15 +559,22 @@ function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFi
     // 🔧 CORREÇÃO: Ajustar os nomes para mostrar Proprietário (Motorista)
     // quando o motorista for diferente do proprietário
     const dadosFormatados = dados.map(l => {
+
+         const veiculoInfo = veiculos.find(v => v.id === l.veiculo_id);
+        const placaVeiculo = veiculoInfo?.placa || '-';
+
         // Se o proprietário é diferente do motorista, mostra "PROPRIETÁRIO (MOTORISTA)"
         if (l.proprietario_id === motoristaId && l.motorista_id !== motoristaId) {
             const motoristaNome = motoristas.find(m => m.id === l.motorista_id)?.nome || 'Desconhecido';
             return {
                 ...l,
-                motorista_nome: `${nomeMotorista} (${motoristaNome})`
+                motorista_nome: `${nomeMotorista} (${motoristaNome})`,
+                placa: placaVeiculo
             };
         }
-        return l;
+        return {...l,
+            placa: placaVeiculo // A placa correta desse lançamento específico
+        };
     });
 
     // Gerar PDF com os dados formatados
