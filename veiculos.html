@@ -248,6 +248,59 @@
         </div>
     </div>
 
+    <!-- ===== MODAL DE PREÇOS ===== -->
+    <div id="modalPrecos" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto p-6 animate-slide-up">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b">
+                <h2 id="modalPrecosTitle" class="text-xl font-bold text-gray-800">💲 Preços por Rota</h2>
+                <button onclick="fecharModalPrecos()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+            </div>
+            
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-2">Adicionar/Editar Preço</h3>
+                <form id="precoForm" onsubmit="salvarPreco(event)">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex flex-col">
+                            <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota *</label>
+                            <input type="text" id="precoRota" placeholder="Ex: NITERÓI \ MARICÁ" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor Diária (R$) *</label>
+                            <input type="number" id="precoValor" step="0.01" placeholder="0.00" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
+                        </div>
+                        <div class="flex flex-col justify-end">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">➕ Adicionar</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="precoEditId" value="">
+                    <input type="hidden" id="precoVeiculoId" value="">
+                </form>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-semibold text-gray-600 mb-2">Preços Cadastrados</h3>
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b-2 border-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Rota</th>
+                            <th class="px-3 py-2 text-right font-semibold text-gray-600">Valor</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="precosBody">
+                        <tr>
+                            <td colspan="3" class="text-center py-6 text-gray-400">Carregando preços...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="flex justify-end mt-4">
+                <button onclick="fecharModalPrecos()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== MODAL DE CONFIRMAÇÃO ===== -->
     <div id="modalConfirmacao" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center animate-slide-up">
@@ -293,6 +346,8 @@
         let motoristas = [];
         let editandoId = null;
         let itemParaExcluir = null;
+        let precos = [];
+        let precoItemParaExcluir = null;
 
         // ================= FUNÇÕES DE UTILIDADE =================
         function getStatusClass(status) {
@@ -426,7 +481,6 @@
 
         // ===== EDIÇÃO =====
         function editarVeiculo(id) {
-             // 🔧 BUSCA FLEXÍVEL PARA ENCONTRAR O VEÍCULO
             const idNum = parseInt(id);
             const idStr = String(id);
             let item = veiculos.find(v => v.id === idNum || v.id === idStr || String(v.id) === idStr);
@@ -437,7 +491,6 @@
             }
 
             editandoId = id;
-    
             
             document.getElementById('modalEditId').value = item.id;
             document.getElementById('modalVeiculoNome').value = item.nome;
@@ -493,7 +546,6 @@
 
         // ===== EXCLUSÃO =====
         function excluirVeiculo(id) {
-            // 🔧 BUSCA FLEXÍVEL PARA ENCONTRAR O VEÍCULO
             const idNum = parseInt(id);
             const idStr = String(id);
             let item = veiculos.find(v => v.id === idNum || v.id === idStr || String(v.id) === idStr);
@@ -502,6 +554,8 @@
                 mostrarToast('Veículo não encontrado', 'error');
                 return;
             }
+
+            itemParaExcluir = idNum;
             
             document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir este veículo?';
             document.getElementById('confirmSubmessage').textContent = `${item?.nome} (${item?.placa})`;
@@ -584,9 +638,171 @@
             itemParaExcluir = null;
         }
 
+        // ===== MODAL DE PREÇOS =====
+        async function abrirModalPrecos(veiculoId) {
+            const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
+            if (!veiculo) {
+                mostrarToast('Veículo não encontrado', 'error');
+                return;
+            }
+
+            document.getElementById('precoVeiculoId').value = veiculo.id;
+            document.getElementById('precoEditId').value = '';
+            document.getElementById('precoRota').value = '';
+            document.getElementById('precoValor').value = '';
+            document.getElementById('modalPrecosTitle').textContent = `💲 Preços por Rota - ${veiculo.nome}`;
+
+            // Carregar preços do veículo
+            const { data, error } = await supabaseClient
+                .from('precos_rotas')
+                .select('*')
+                .eq('veiculo_id', veiculo.id)
+                .order('rota', { ascending: true });
+
+            if (error) {
+                console.error('Erro ao carregar preços:', error);
+                mostrarToast('Erro ao carregar preços', 'error');
+                return;
+            }
+
+            precos = data || [];
+
+            document.getElementById('modalPrecos').classList.remove('hidden');
+            document.getElementById('modalPrecos').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            renderizarPrecos();
+        }
+
+        function fecharModalPrecos() {
+            document.getElementById('modalPrecos').style.display = 'none';
+            document.getElementById('modalPrecos').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            precos = [];
+            precoItemParaExcluir = null;
+        }
+
+        function renderizarPrecos() {
+            const tbody = document.getElementById('precosBody');
+
+            if (precos.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center py-6 text-gray-400">Nenhum preço cadastrado</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            precos.forEach(item => {
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2">${item.rota}</td>
+                        <td class="px-3 py-2 text-right font-semibold">R$ ${Number(item.valor_diaria).toFixed(2).replace('.', ',')}</td>
+                        <td class="px-3 py-2 text-center">
+                            <button onclick="editarPreco(${item.id})" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition">✏️</button>
+                            <button onclick="excluirPreco(${item.id})" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function salvarPreco(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('precoEditId').value;
+            const veiculoId = document.getElementById('precoVeiculoId').value;
+            const rota = document.getElementById('precoRota').value.trim().toUpperCase();
+            const valor = parseFloat(document.getElementById('precoValor').value) || 0;
+
+            if (!rota || valor <= 0) {
+                mostrarToast('Preencha Rota e Valor', 'error');
+                return;
+            }
+
+            try {
+                let result;
+                if (id) {
+                    result = await supabaseClient
+                        .from('precos_rotas')
+                        .update({ rota, valor_diaria: valor })
+                        .eq('id', parseInt(id));
+                } else {
+                    result = await supabaseClient
+                        .from('precos_rotas')
+                        .insert([{ rota, veiculo_id: parseInt(veiculoId), valor_diaria: valor }])
+                        .select();
+                }
+
+                if (result.error) throw result.error;
+
+                mostrarToast(id ? 'Preço atualizado!' : 'Preço salvo!');
+                document.getElementById('precoRota').value = '';
+                document.getElementById('precoValor').value = '';
+                document.getElementById('precoEditId').value = '';
+                
+                // Recarregar preços
+                await abrirModalPrecos(veiculoId);
+            } catch (error) {
+                console.error('Erro ao salvar preço:', error);
+                mostrarToast('Erro ao salvar preço', 'error');
+            }
+        }
+
+        function editarPreco(id) {
+            const item = precos.find(p => p.id === id);
+            if (!item) return;
+
+            document.getElementById('precoEditId').value = item.id;
+            document.getElementById('precoRota').value = item.rota;
+            document.getElementById('precoValor').value = item.valor_diaria;
+        }
+
+        function excluirPreco(id) {
+            precoItemParaExcluir = id;
+            const item = precos.find(p => p.id === id);
+            
+            document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir este preço?';
+            document.getElementById('confirmSubmessage').textContent = `${item?.rota} (R$ ${item?.valor_diaria})`;
+            document.getElementById('btnConfirmarExclusao').onclick = executarExclusaoPreco;
+            
+            document.getElementById('modalConfirmacao').classList.remove('hidden');
+            document.getElementById('modalConfirmacao').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        async function executarExclusaoPreco() {
+            if (!precoItemParaExcluir) return;
+
+            try {
+                const veiculoId = document.getElementById('precoVeiculoId').value;
+                const { error } = await supabaseClient
+                    .from('precos_rotas')
+                    .delete()
+                    .eq('id', parseInt(precoItemParaExcluir));
+                
+                if (error) throw error;
+
+                precoItemParaExcluir = null;
+                fecharConfirmacao();
+                await abrirModalPrecos(veiculoId);
+                mostrarToast('Preço excluído com sucesso!');
+            } catch (error) {
+                console.error('Erro ao excluir preço:', error);
+                mostrarToast('Erro ao excluir preço', 'error');
+            }
+        }
+
         // Fechar modais ao clicar fora
         document.getElementById('modalEdicao').addEventListener('click', function(e) {
             if (e.target === this) fecharModal();
+        });
+
+        document.getElementById('modalPrecos').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalPrecos();
         });
 
         document.getElementById('modalConfirmacao').addEventListener('click', function(e) {
@@ -597,6 +813,7 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 if (document.getElementById('modalEdicao').style.display === 'flex') fecharModal();
+                if (document.getElementById('modalPrecos').style.display === 'flex') fecharModalPrecos();
                 if (document.getElementById('modalConfirmacao').style.display === 'flex') fecharConfirmacao();
             }
         });
@@ -655,6 +872,7 @@
                         <td class="px-3 py-2 text-center">
                             <button onclick="editarVeiculo('${item.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition">✏️</button>
                             <button onclick="excluirVeiculo('${item.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition">🗑️</button>
+                            <button onclick="abrirModalPrecos(${item.id})" class="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs transition">💲</button>
                         </td>
                     </tr>
                 `;

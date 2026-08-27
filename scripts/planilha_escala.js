@@ -59,7 +59,7 @@ function exportarEscalaPDF(escalas, dataFiltro) {
 
     let startY = 40;
 
-    function renderizarGrupo(titulo, items, cor, startY) {
+        function renderizarGrupo(titulo, items, cor, startY) {
         if (items.length === 0) return startY;
 
         doc.setFontSize(11);
@@ -74,7 +74,23 @@ function exportarEscalaPDF(escalas, dataFiltro) {
             'Carregamento', 'Status'
         ];
 
+        // 🔧 Calcular totais de NF e Peso
+        let totalNF = 0;
+        let totalPeso = 0;
+
         const rows = items.map(e => {
+            // 🔧 Somar NF (tenta converter para número, ignora texto)
+            const nfValue = parseFloat(e.nf);
+            if (!isNaN(nfValue)) {
+                totalNF += nfValue;
+            }
+
+            // 🔧 Somar Peso Carga
+            const pesoValue = parseFloat(e.peso_carga);
+            if (!isNaN(pesoValue)) {
+                totalPeso += pesoValue;
+            }
+
             const statusLabel = limparTexto(getStatusLabel(e.status));
             return [
                 limparTexto(e.veiculo_nome || '-'),
@@ -150,7 +166,29 @@ function exportarEscalaPDF(escalas, dataFiltro) {
             pageBreak: 'auto'
         });
 
-        return doc.lastAutoTable.finalY + 4;
+        const finalY = doc.lastAutoTable.finalY + 2;
+
+        // 🔧 DESENHAR RESUMO DOS TOTAIS (GRUDADO NA TABELA)
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, finalY, 280, finalY); // Linha separadora
+
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont(undefined, 'bold');
+
+        // Posição X para o resumo (alinhado com as colunas NF e Peso)
+        // Usando a soma das colunas anteriores para achar a posição exata no PDF
+        const xNF = 1 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5] + colWidths[6];
+        const xPeso = xNF + colWidths[7] + 10; // Soma + um pequeno espaço extra
+
+        // Caso você queira o resumo alinhado à direita, use:
+        // const xNF = 176; // Ajuste para onde ficar a coluna NF na página
+        // const xPeso = 196; // Ajuste para onde ficar a coluna Peso na página
+
+        doc.text(`Total NF: ${totalNF}`, xNF, finalY + 5);
+        doc.text(`Total Peso: ${totalPeso}kg`, xPeso, finalY + 5);
+
+        return doc.lastAutoTable.finalY + 8;
     }
 
     startY = renderizarGrupo('AGREGADOS', agregados, corAgregado, startY);

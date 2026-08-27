@@ -74,22 +74,24 @@
 
         <!-- ===== GRÁFICOS ===== -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <!-- Gráfico 1: Total por Agregado -->
+            <!-- Gráfico 1: Total por Agregado (com filtro de mês) -->
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-base font-semibold text-gray-800">💰 Total por Agregado</h3>
-                    <span class="text-xs text-gray-400">Top 10</span>
+                    <select id="filtroMesAgregado" onchange="atualizarGraficoAgregados()" class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <!-- Opções preenchidas via JS -->
+                    </select>
                 </div>
                 <div class="relative h-64">
                     <canvas id="chartAgregados"></canvas>
                 </div>
             </div>
 
-            <!-- Gráfico 2: Evolução Diária -->
+            <!-- Gráfico 2: Evolução Quinzenal -->
             <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-semibold text-gray-800">📈 Evolução Diária</h3>
-                    <span class="text-xs text-gray-400">Últimos 30 dias</span>
+                    <h3 class="text-base font-semibold text-gray-800">📈 Evolução Quinzenal</h3>
+                    <span class="text-xs text-gray-400">Últimas 12 quinzenas</span>
                 </div>
                 <div class="relative h-64">
                     <canvas id="chartEvolucao"></canvas>
@@ -115,6 +117,19 @@
                 </div>
                 <div class="relative h-64">
                     <canvas id="chartEscalas"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 5: Peso Carregado por Veículo (com filtro de mês) -->
+            <div class="bg-white rounded-xl shadow-md p-6 lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-semibold text-gray-800">⚖️ Peso Carregado por Veículo</h3>
+                    <select id="filtroMesPeso" onchange="atualizarGraficoPeso()" class="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <!-- Opções preenchidas via JS -->
+                    </select>
+                </div>
+                <div class="relative h-64">
+                    <canvas id="chartPeso"></canvas>
                 </div>
             </div>
         </div>
@@ -188,6 +203,7 @@
         let veiculos = [];
         let charts = {};
         let chartInitialized = false;
+        let mesesDisponiveis = [];
 
         // ================= FUNÇÕES DE UTILIDADE =================
         function formatarMoeda(valor) {
@@ -222,6 +238,19 @@
             return dias[new Date(data).getDay()];
         }
 
+        // 🔧 CORREÇÃO DEFINITIVA: Calcula o dia da semana sem depender do fuso horário
+        // 🔧 MOVIDA PARA O ESCOPO GLOBAL PARA SER ACESSADA POR TODAS AS FUNÇÕES
+        function getDiaSemanaPorData(dataISO) {
+            if (!dataISO) return '';
+            const partes = dataISO.split('-');
+            if (partes.length !== 3) return '';
+            
+            // Criar data manualmente no horário local (sem UTC)
+            const d = new Date(partes[0], partes[1] - 1, partes[2]);
+            const dias = ['DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
+            return dias[d.getDay()];
+        }
+
         // ===== CARREGAR DADOS =====
         async function carregarDados() {
             try {
@@ -252,14 +281,60 @@
                     .order('data', { ascending: false });
                 escalas = escalasData || [];
 
+                // 🔧 Preencher select de meses
+                preencherSelectMeses();
+
                 atualizarStats();
                 atualizarResumoSemana();
-                setTimeout(atualizarGraficos, 300);
+                setTimeout(() => {
+                    atualizarGraficos();
+                    atualizarGraficoAgregados();
+                    atualizarGraficoPeso();
+                }, 300);
                 mostrarToast('Dados carregados com sucesso!');
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
                 mostrarToast('Erro ao carregar dados', 'error');
             }
+        }
+
+        function preencherSelectMeses() {
+            const selectAgregado = document.getElementById('filtroMesAgregado');
+            const selectPeso = document.getElementById('filtroMesPeso');
+            const mesesSet = new Set();
+
+            lancamentos.forEach(l => {
+                if (l.data) {
+                    const mes = l.data.substring(0, 7); // Pega YYYY-MM
+                    mesesSet.add(mes);
+                }
+            });
+            
+            // Incluir meses das escalas também (para o gráfico de peso)
+            escalas.forEach(e => {
+                if (e.data) {
+                    const mes = e.data.substring(0, 7); // Pega YYYY-MM
+                    mesesSet.add(mes);
+                }
+            });
+
+            mesesDisponiveis = Array.from(mesesSet).sort().reverse();
+
+            const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+            const optionsHTML = '<option value="">Todos os meses</option>';
+            let optionsAgregado = optionsHTML;
+            let optionsPeso = optionsHTML;
+
+            mesesDisponiveis.forEach(mes => {
+                const [ano, mesNum] = mes.split('-');
+                const label = `${nomesMeses[parseInt(mesNum) - 1]} de ${ano}`;
+                optionsAgregado += `<option value="${mes}">${label}</option>`;
+                optionsPeso += `<option value="${mes}">${label}</option>`;
+            });
+
+            selectAgregado.innerHTML = optionsAgregado;
+            selectPeso.innerHTML = optionsPeso;
         }
 
         // ================= ESTATÍSTICAS =================
@@ -295,23 +370,40 @@
             document.getElementById('totalLiquido').textContent = formatarMoeda(totalLiquido);
             document.getElementById('totalEscalas').textContent = escalasHoje;
         }
+
         function atualizarResumoSemana() {
             const dias = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
             const ids = ['segTotal', 'terTotal', 'quaTotal', 'quiTotal', 'sexTotal', 'sabTotal'];
             
             const hoje = new Date();
+            // Criar a data de hoje manualmente (sem UTC) para pegar o dia da semana correto
+            const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+            const diaHoje = getDiaSemanaPorData(hojeISO);
+            
             const inicioSemana = new Date(hoje);
             inicioSemana.setDate(hoje.getDate() - hoje.getDay() + 1);
             const fimSemana = new Date(inicioSemana);
             fimSemana.setDate(inicioSemana.getDate() + 5);
 
+            const inicioISO = `${inicioSemana.getFullYear()}-${String(inicioSemana.getMonth() + 1).padStart(2, '0')}-${String(inicioSemana.getDate()).padStart(2, '0')}`;
+            const fimISO = `${fimSemana.getFullYear()}-${String(fimSemana.getMonth() + 1).padStart(2, '0')}-${String(fimSemana.getDate()).padStart(2, '0')}`;
+
+            const contagem = { SEGUNDA: 0, TERCA: 0, QUARTA: 0, QUINTA: 0, SEXTA: 0, SABADO: 0 };
+
+            escalas.forEach(e => {
+                if (!e.data) return;
+                
+                // Verificar se a data está dentro do intervalo da semana
+                if (e.data >= inicioISO && e.data <= fimISO) {
+                    const diaSemana = getDiaSemanaPorData(e.data);
+                    if (contagem[diaSemana] !== undefined) {
+                        contagem[diaSemana]++;
+                    }
+                }
+            });
+
             dias.forEach((dia, i) => {
-                const count = escalas.filter(e => 
-                    e.dia_semana === dia &&
-                    e.data >= inicioSemana.toISOString().split('T')[0] &&
-                    e.data <= fimSemana.toISOString().split('T')[0]
-                ).length;
-                document.getElementById(ids[i]).textContent = count;
+                document.getElementById(ids[i]).textContent = contagem[dia];
             });
         }
 
@@ -329,49 +421,42 @@
                 }
             });
 
-            // ===== 1. Gráfico de Agregados (apenas motoristas com tipo = 'agregado') =====
-            const aggData = {};
+            // ===== 1. Evolução Quinzenal (APENAS agregados) =====
+            const quinzenas = {};
+            const nomesQuinzenas = ['1ª Quinzena', '2ª Quinzena'];
 
-            // 🔧 CORREÇÃO: Filtrar apenas lançamentos de motoristas que são agregados
             lancamentos.forEach(l => {
-                // Buscar o motorista correspondente
                 const motorista = motoristas.find(m => m.id === l.motorista_id);
-                
-                // Só incluir se o motorista for agregado
                 if (motorista && motorista.tipo === 'agregado') {
-                    const nome = l.motorista_nome || motorista.nome || 'N/A';
+                    const data = new Date(l.data);
+                    const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+                    const quinzena = data.getDate() <= 15 ? '1' : '2';
+                    const chave = `${mesAno}-Q${quinzena}`;
+                    
                     const total = calcularTotal(l);
-                    aggData[nome] = (aggData[nome] || 0) + total;
+                    quinzenas[chave] = (quinzenas[chave] || 0) + total;
                 }
             });
 
-            const sortedAgg = Object.entries(aggData)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10);
+            const sortedEvol = Object.entries(quinzenas)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .slice(-12); // Últimas 12 quinzenas (6 meses)
 
-            const cores = [
-                'rgba(26,115,232,0.8)',
-                'rgba(52,168,83,0.8)',
-                'rgba(251,188,4,0.8)',
-                'rgba(234,67,53,0.8)',
-                'rgba(156,39,176,0.8)',
-                'rgba(0,188,212,0.8)',
-                'rgba(255,111,0,0.8)',
-                'rgba(121,85,72,0.8)',
-                'rgba(96,125,139,0.8)',
-                'rgba(233,30,99,0.8)'
-            ];
-
-            const ctx1 = document.getElementById('chartAgregados').getContext('2d');
-            charts.agregados = new Chart(ctx1, {
+            const ctx2 = document.getElementById('chartEvolucao').getContext('2d');
+            charts.evolucao = new Chart(ctx2, {
                 type: 'bar',
                 data: {
-                    labels: sortedAgg.map(item => item[0]),
+                    labels: sortedEvol.map(item => {
+                        const [mesAno, q] = item[0].split('-Q');
+                        const [ano, mesNum] = mesAno.split('-');
+                        const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                        return `${nomesMeses[parseInt(mesNum) - 1]}/${ano} - ${nomesQuinzenas[parseInt(q) - 1]}`;
+                    }),
                     datasets: [{
-                        label: 'Total (R$)',
-                        data: sortedAgg.map(item => item[1]),
-                        backgroundColor: cores.slice(0, sortedAgg.length),
-                        borderColor: cores.slice(0, sortedAgg.length).map(c => c.replace('0.8', '1')),
+                        label: 'Total Quinzenal (R$)',
+                        data: sortedEvol.map(item => item[1]),
+                        backgroundColor: 'rgba(52,168,83,0.7)',
+                        borderColor: 'rgba(52,168,83,1)',
                         borderWidth: 1,
                         borderRadius: 4
                     }]
@@ -393,60 +478,7 @@
                 }
             });
 
-            // ===== 2. Gráfico de Evolução (APENAS agregados) =====
-            const evolData = {};
-
-            // 🔧 CORREÇÃO: Filtrar apenas lançamentos de agregados
-            lancamentos.forEach(l => {
-                // Buscar o motorista correspondente
-                const motorista = motoristas.find(m => m.id === l.motorista_id);
-                
-                // Só incluir se o motorista for agregado
-                if (motorista && motorista.tipo === 'agregado') {
-                    const data = formatarData(l.data);
-                    const total = calcularTotal(l);
-                    evolData[data] = (evolData[data] || 0) + total;
-                }
-            });
-
-            const sortedEvol = Object.entries(evolData)
-                .sort((a, b) => new Date(a[0]) - new Date(b[0]))
-                .slice(-30);
-
-            const ctx2 = document.getElementById('chartEvolucao').getContext('2d');
-            charts.evolucao = new Chart(ctx2, {
-                type: 'line',
-                data: {
-                    labels: sortedEvol.map(item => item[0]),
-                    datasets: [{
-                        label: 'Total Diário (R$)',
-                        data: sortedEvol.map(item => item[1]),
-                        borderColor: '#34a853',
-                        backgroundColor: 'rgba(52,168,83,0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#34a853'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: value => 'R$ ' + value.toFixed(0)
-                            }
-                        }
-                    }
-                }
-            });
-
-            // ===== 3. Gráfico de Rotas =====
+            // ===== 2. Gráfico de Rotas =====
             const rotaData = {};
             lancamentos.forEach(l => {
                 const rota = l.rota || 'Sem rota';
@@ -489,11 +521,14 @@
                 }
             });
 
-            // ===== 4. Gráfico de Escalas =====
+            // ===== 3. Gráfico de Escalas =====
             const escalaDia = { SEGUNDA: 0, TERCA: 0, QUARTA: 0, QUINTA: 0, SEXTA: 0, SABADO: 0 };
             escalas.forEach(e => {
-                if (escalaDia[e.dia_semana] !== undefined) {
-                    escalaDia[e.dia_semana]++;
+                if (e.data) {
+                    const diaSemana = getDiaSemanaPorData(e.data);
+                    if (escalaDia[diaSemana] !== undefined) {
+                        escalaDia[diaSemana]++;
+                    }
                 }
             });
 
@@ -527,6 +562,137 @@
             });
 
             chartInitialized = true;
+        }
+
+        // ===== ATUALIZAR GRÁFICO DE AGREGADOS COM FILTRO DE MÊS =====
+        function atualizarGraficoAgregados() {
+            const mesSelecionado = document.getElementById('filtroMesAgregado').value;
+            const aggData = {};
+
+            lancamentos.forEach(l => {
+                // Filtrar por mês
+                if (mesSelecionado && l.data && !l.data.startsWith(mesSelecionado)) {
+                    return;
+                }
+
+                const motorista = motoristas.find(m => m.id === l.motorista_id);
+                if (motorista && motorista.tipo === 'agregado') {
+                    const nome = l.motorista_nome || motorista.nome || 'N/A';
+                    const total = calcularTotal(l);
+                    aggData[nome] = (aggData[nome] || 0) + total;
+                }
+            });
+
+            const sortedAgg = Object.entries(aggData)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const cores = [
+                'rgba(26,115,232,0.8)', 'rgba(52,168,83,0.8)', 'rgba(251,188,4,0.8)',
+                'rgba(234,67,53,0.8)', 'rgba(156,39,176,0.8)', 'rgba(0,188,212,0.8)',
+                'rgba(255,111,0,0.8)', 'rgba(121,85,72,0.8)', 'rgba(96,125,139,0.8)',
+                'rgba(233,30,99,0.8)'
+            ];
+
+            // Destruir o gráfico antigo
+            if (charts.agregados) {
+                charts.agregados.destroy();
+            }
+
+            const ctx1 = document.getElementById('chartAgregados').getContext('2d');
+            charts.agregados = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: sortedAgg.map(item => item[0]),
+                    datasets: [{
+                        label: 'Total (R$)',
+                        data: sortedAgg.map(item => item[1]),
+                        backgroundColor: cores.slice(0, sortedAgg.length),
+                        borderColor: cores.slice(0, sortedAgg.length).map(c => c.replace('0.8', '1')),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => 'R$ ' + value.toFixed(0)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ===== ATUALIZAR GRÁFICO DE PESO COM FILTRO DE MÊS =====
+        function atualizarGraficoPeso() {
+            const mesSelecionado = document.getElementById('filtroMesPeso').value;
+            const pesoData = {};
+
+            escalas.forEach(e => {
+                // Filtrar por mês
+                if (mesSelecionado && e.data && !e.data.startsWith(mesSelecionado)) {
+                    return;
+                }
+
+                if (e.peso_carga && e.peso_carga > 0) {
+                    // 🔧 CORREÇÃO: Agrupar por PLACA
+                    // Se não tiver placa, usa o nome do veículo como fallback
+                    const placa = e.veiculo_placa || 'SEM PLACA';
+                    const veiculo = `${e.veiculo_nome || ''} (${placa})`; 
+                    
+                    // Se a placa for a mesma, soma o peso
+                    pesoData[veiculo] = (pesoData[veiculo] || 0) + parseFloat(e.peso_carga);
+                }
+            });
+
+            const sortedPeso = Object.entries(pesoData)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            // Destruir o gráfico antigo
+            if (charts.peso) {
+                charts.peso.destroy();
+            }
+
+            const ctx5 = document.getElementById('chartPeso').getContext('2d');
+            charts.peso = new Chart(ctx5, {
+                type: 'bar',
+                data: {
+                    labels: sortedPeso.map(item => item[0]),
+                    datasets: [{
+                        label: 'Peso Carregado (kg)',
+                        data: sortedPeso.map(item => item[1]),
+                        backgroundColor: 'rgba(255,152,0,0.7)',
+                        borderColor: 'rgba(255,152,0,1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Gráfico de barras horizontais (melhor para nomes longos)
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => value + ' kg'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // ================= INICIALIZAÇÃO =================
