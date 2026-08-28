@@ -751,23 +751,34 @@ async function salvarEscala(event) {
     const ajudanteSelect = document.getElementById('escalaAjudante');
     const ajudantesIds = Array.from(ajudanteSelect.selectedOptions).map(opt => opt.value).filter(v => v);
     
-    const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
-    const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
-    const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
-    let motoristaNome = '';
-    
-    if (isTerceirizado && nomeTerceiro) {
-        const proprietario = motoristas.find(m => m.id === parseInt(motoristaId));
-        motoristaNome = `${proprietario?.nome || 'Desconhecido'} (${nomeTerceiro})`;
-    } else if (motoristaId) {
-        const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
-        motoristaNome = motorista?.nome || '';
-    }
-    
-    const dados = {
-        data: document.getElementById('escalaData').value,
-        veiculo_id: parseInt(veiculoId),
-        motorista_id: motoristaId ? parseInt(motoristaId) : null,
+           const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
+        const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
+        const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
+        let motoristaNome = '';
+        let motoristaIdReal = null; // 🔧 VARIÁVEL PARA O ID REAL
+
+        if (isTerceirizado && nomeTerceiro) {
+            // 🔧 CORREÇÃO CRÍTICA: Se for terceirizado, o motorista_id DEVE ser o ID do PROPRIETÁRIO
+            // Buscar o veículo para achar o proprietário
+            const veiculoSelecionado = veiculos.find(v => v.id === parseInt(veiculoId));
+            const proprietario = motoristas.find(m => m.id === veiculoSelecionado?.proprietario_id);
+            
+            if (proprietario) {
+                motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
+                motoristaIdReal = proprietario.id; // 🔧 Usa o ID do proprietário
+            } else {
+                motoristaNome = `Desconhecido (${nomeTerceiro})`;
+            }
+        } else if (motoristaId) {
+            const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
+            motoristaNome = motorista?.nome || '';
+            motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
+        }
+        
+        const dados = {
+            data: document.getElementById('escalaData').value,
+            veiculo_id: parseInt(veiculoId),
+            motorista_id: motoristaIdReal, // 🔧 Usa o ID real (do proprietário para terceirizados)
         motorista_nome: motoristaNome,
         rota: Array.from(document.getElementById('escalaRota').selectedOptions).map(opt => opt.value).join(' \\ '),
         status: document.getElementById('escalaStatus').value || 'ESCALADO',
@@ -898,7 +909,7 @@ async function abrirModalConfirmar(id) {
     document.getElementById('confIsFuncionario').value = isFuncionario ? 'true' : 'false';
     document.getElementById('confIsTerceirizado').value = isTerceirizado ? 'true' : 'false';
     
-    document.getElementById('modalConfMotorista').textContent = motorista?.nome || item.motorista_nome_completo || 'N/A';
+    document.getElementById('modalConfMotorista').textContent = item.motorista_nome || motorista?.nome || 'N/A';
     document.getElementById('modalConfData').textContent = formatarData(item.data);
     document.getElementById('modalConfRota').textContent = item.rota;
     document.getElementById('modalConfVeiculo').textContent = veiculo?.nome || 'N/A';
@@ -1105,18 +1116,30 @@ function editarEscala(id) {
         document.getElementById('modalPeso').value = selectedOption?.dataset?.peso || '';
     }
     
-    const modalMotorista = document.getElementById('modalMotorista');
-    if (item.veiculo_id) {
-        preencherMotoristasModal(modalMotorista, item.veiculo_id);
-        if (item.motorista_id) {
-            modalMotorista.value = item.motorista_id;
-        }
-    } else {
-        preencherMotoristasModal(modalMotorista, null);
-        if (item.motorista_id) {
-            modalMotorista.value = item.motorista_id;
-        }
-    }
+                const modalMotorista = document.getElementById('modalMotorista');
+            if (item.veiculo_id) {
+                preencherMotoristasModal(modalMotorista, item.veiculo_id);
+                // 🔧 CORREÇÃO: Pré-selecionar com base no NOME SALVO (ex: "FRANCISCO (JOSE CARLOS)")
+                // 1. Se for um nome composto com parênteses (terceirizado)
+                if (item.motorista_nome && item.motorista_nome.includes('(')) {
+                    // Procurar a opção no select que tenha exatamente esse texto
+                    const opcaoEncontrada = Array.from(modalMotorista.options).find(opt => 
+                        opt.textContent.trim().toUpperCase() === item.motorista_nome.trim().toUpperCase()
+                    );
+                    if (opcaoEncontrada) {
+                        modalMotorista.value = opcaoEncontrada.value;
+                    }
+                } 
+                // 2. Se for apenas o nome do proprietário ou funcionário
+                else if (item.motorista_id) {
+                    modalMotorista.value = item.motorista_id;
+                }
+            } else {
+                preencherMotoristasModal(modalMotorista, null);
+                if (item.motorista_id) {
+                    modalMotorista.value = item.motorista_id;
+                }
+            }
     
     const modalAjudante = document.getElementById('modalAjudante');
     if (item.nomes_ajudantes) {
@@ -1151,30 +1174,28 @@ async function salvarEdicaoModal(event) {
     const ajudanteSelect = document.getElementById('modalAjudante');
     const ajudantesIds = Array.from(ajudanteSelect.selectedOptions).map(opt => opt.value).filter(v => v);
     
-    const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
-    const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
-    const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
-    let motoristaNome = '';
-    let motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
-    
-    if (isTerceirizado && nomeTerceiro) {
-        const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
-        if (veiculo?.proprietario_id) {
-            const proprietario = motoristas.find(m => m.id === veiculo.proprietario_id);
-            if (proprietario) {
-                motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
-                motoristaIdReal = proprietario.id;
-            } else {
-                motoristaNome = `Desconhecido (${nomeTerceiro})`;
+     const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
+            const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
+            const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
+            let motoristaNome = '';
+            let motoristaIdReal = null; // 🔧 RESETA PARA NULL
+            
+            if (isTerceirizado && nomeTerceiro) {
+                // 🔧 CORREÇÃO CRÍTICA: Se for terceirizado, o motorista_id DEVE ser o ID do PROPRIETÁRIO
+                const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
+                const proprietario = motoristas.find(m => m.id === veiculo?.proprietario_id);
+                
+                if (proprietario) {
+                    motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
+                    motoristaIdReal = proprietario.id; // 🔧 Usa o ID do proprietário
+                } else {
+                    motoristaNome = `Desconhecido (${nomeTerceiro})`;
+                }
+            } else if (motoristaId) {
+                const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
+                motoristaNome = motorista?.nome || '';
+                motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
             }
-        } else {
-            motoristaNome = `Desconhecido (${nomeTerceiro})`;
-        }
-    } else if (motoristaId) {
-        const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
-        motoristaNome = motorista?.nome || '';
-        motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
-    }
     
     const dados = {
         data: document.getElementById('modalData').value,
@@ -1427,7 +1448,7 @@ function renderizarEscalas() {
                 <td class="px-3 py-1.5 text-center">
                     <span class="${statusClass} text-sm">${statusLabel}</span>
                 </td>
-                <td class="px-3 py-1.5 font-medium text-sm">${e.motorista_nome_completo || '-'}</td>
+                <td class="px-3 py-1.5 font-medium text-sm">${e.motorista_nome || '-'}</td>
                 <td class="px-3 py-1.5 text-gray-500 text-xs">${e.nomes_ajudantes || '-'}</td>
                 <td class="px-3 py-1.5 text-center">
                     ${badgeAgregado}

@@ -44,7 +44,22 @@
             </div>
         </header>
 
+                <!-- ===== FILTRO DE PERÍODO ===== -->
+        <div class="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-wrap gap-4 items-end">
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Início</label>
+                <input type="date" id="filtroDataInicio" onchange="atualizarStatsComFiltro()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Fim</label>
+                <input type="date" id="filtroDataFim" onchange="atualizarStatsComFiltro()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex flex-col">
+                <button onclick="limparFiltroData()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar Filtro</button>
+            </div>
+        </div>
         <!-- ===== STATS ===== -->
+       
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <div class="bg-white rounded-xl shadow-md p-4 text-center border-l-4 border-blue-600">
                 <div class="text-2xl font-bold text-blue-600" id="totalMotoristas">0</div>
@@ -285,6 +300,7 @@
                 preencherSelectMeses();
 
                 atualizarStats();
+                atualizarStatsComFiltro();
                 atualizarResumoSemana();
                 setTimeout(() => {
                     atualizarGraficos();
@@ -369,6 +385,56 @@
             document.getElementById('totalDescontos').textContent = formatarMoeda(totalDescontos);
             document.getElementById('totalLiquido').textContent = formatarMoeda(totalLiquido);
             document.getElementById('totalEscalas').textContent = escalasHoje;
+        }
+
+                // 🔧 FILTRO DE PERÍODO PARA OS CARDS
+        function atualizarStatsComFiltro() {
+            const dataInicio = document.getElementById('filtroDataInicio').value;
+            const dataFim = document.getElementById('filtroDataFim').value;
+            
+            // Filtrar lançamentos pelo período selecionado
+            let lancamentosFiltrados = [...lancamentos];
+            if (dataInicio) {
+                lancamentosFiltrados = lancamentosFiltrados.filter(l => l.data >= dataInicio);
+            }
+            if (dataFim) {
+                lancamentosFiltrados = lancamentosFiltrados.filter(l => l.data <= dataFim);
+            }
+            
+            // 🔧 CORREÇÃO: Filtrar apenas lançamentos de agregados
+            const lancamentosAgregados = lancamentosFiltrados.filter(l => {
+                const motorista = motoristas.find(m => m.id === l.motorista_id);
+                return motorista && motorista.tipo === 'agregado';
+            });
+            
+            // Totais financeiros (APENAS agregados)
+            const totalDiarias = lancamentosAgregados.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
+            const totalDescontos = lancamentosAgregados.reduce((s, l) => s + (Number(l.desconto) || 0), 0);
+            const totalPedagios = lancamentosAgregados.reduce((s, l) => s + (Number(l.pedagio) || 0), 0);
+            const totalAlmoco = lancamentosAgregados.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
+            const totalChapa = lancamentosAgregados.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
+            const totalLiquido = totalDiarias + totalPedagios + totalAlmoco + totalChapa - totalDescontos;
+            
+            // Escalas da data selecionada
+            let escalasFiltradas = [...escalas];
+            if (dataInicio) {
+                escalasFiltradas = escalasFiltradas.filter(e => e.data >= dataInicio);
+            }
+            if (dataFim) {
+                escalasFiltradas = escalasFiltradas.filter(e => e.data <= dataFim);
+            }
+            const escalasHoje = escalasFiltradas.length;
+
+            document.getElementById('totalDiarias').textContent = formatarMoeda(totalDiarias);
+            document.getElementById('totalDescontos').textContent = formatarMoeda(totalDescontos);
+            document.getElementById('totalLiquido').textContent = formatarMoeda(totalLiquido);
+            document.getElementById('totalEscalas').textContent = escalasHoje;
+        }
+
+        function limparFiltroData() {
+            document.getElementById('filtroDataInicio').value = '';
+            document.getElementById('filtroDataFim').value = '';
+            atualizarStatsComFiltro();
         }
 
         function atualizarResumoSemana() {

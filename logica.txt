@@ -7,6 +7,7 @@ Pagamento: FRANCISCO recebe valor_diaria completo
 Veículo: FRANCISCO (proprietario_id = 1)
 Motorista: JOSE CARLOS (terceirizado do FRANCISCO)
 proprietario_id = 1 (FRANCISCO)
+motorista_id = 1
 chapa = 0
 Pagamento: FRANCISCO recebe valor_diaria completo
 JOSE CARLOS é pago por FRANCISCO (fora do sistema)
