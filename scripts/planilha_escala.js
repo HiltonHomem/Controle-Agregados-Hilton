@@ -39,6 +39,10 @@ function exportarEscalaPDF(escalas, dataFiltro) {
     const agregados = dados.filter(e => e.veiculo_proprietario_id !== null && e.veiculo_proprietario_id !== undefined);
     const frota = dados.filter(e => e.veiculo_proprietario_id === null || e.veiculo_proprietario_id === undefined);
     
+    // 🔧 VARIÁVEIS GLOBAIS PARA OS TOTAIS UNIFICADOS
+    let totalNFGeral = 0;
+    let totalPesoGeral = 0;
+    
     // ===== CABEÇALHO =====
     doc.setFontSize(16);
     doc.setTextColor(corPrimaria[0], corPrimaria[1], corPrimaria[2]);
@@ -59,7 +63,7 @@ function exportarEscalaPDF(escalas, dataFiltro) {
 
     let startY = 40;
 
-        function renderizarGrupo(titulo, items, cor, startY) {
+    function renderizarGrupo(titulo, items, cor, startY) {
         if (items.length === 0) return startY;
 
         doc.setFontSize(11);
@@ -71,27 +75,21 @@ function exportarEscalaPDF(escalas, dataFiltro) {
         const headers = [
             'Veiculo', 'Placa', 'Motorista', 'Ajudante(s)', 'Rota',
             'Celular', 'Maq.Cartao', 'NF', 'Peso Carga', 'Retornos',
-            'Carregamento', 'Status'
+            'Carregamento'
         ];
 
-        // 🔧 Calcular totais de NF e Peso
-        let totalNF = 0;
-        let totalPeso = 0;
-
         const rows = items.map(e => {
-            // 🔧 Somar NF (tenta converter para número, ignora texto)
+            // 🔧 SOMAR TOTAIS GERAIS
             const nfValue = parseFloat(e.nf);
             if (!isNaN(nfValue)) {
-                totalNF += nfValue;
+                totalNFGeral += nfValue;
             }
 
-            // 🔧 Somar Peso Carga
             const pesoValue = parseFloat(e.peso_carga);
             if (!isNaN(pesoValue)) {
-                totalPeso += pesoValue;
+                totalPesoGeral += pesoValue;
             }
 
-            const statusLabel = limparTexto(getStatusLabel(e.status));
             return [
                 limparTexto(e.veiculo_nome || '-'),
                 limparTexto(e.veiculo_placa || '-'),
@@ -103,12 +101,11 @@ function exportarEscalaPDF(escalas, dataFiltro) {
                 limparTexto(e.nf || '-'),
                 e.peso_carga ? `${e.peso_carga}kg` : '-',
                 limparTexto(e.retornos || '-'),
-                limparTexto(e.carregamento || '-'),
-                statusLabel
+                limparTexto(e.carregamento || '-')
             ];
         });
 
-        const colWidths = [26, 18, 30, 24, 26, 18, 15, 13, 18, 20, 20, 18];
+        const colWidths = [28, 20, 32, 26, 28, 20, 16, 16, 20, 22, 22];
 
         doc.autoTable({
             startY: startY,
@@ -142,21 +139,12 @@ function exportarEscalaPDF(escalas, dataFiltro) {
                 7: { cellWidth: colWidths[7], halign: 'center' },
                 8: { cellWidth: colWidths[8], halign: 'center' },
                 9: { cellWidth: colWidths[9], halign: 'center' },
-                10: { cellWidth: colWidths[10], halign: 'center' },
-                11: { cellWidth: colWidths[11], halign: 'center' }
+                10: { cellWidth: colWidths[10], halign: 'center' }
             },
             alternateRowStyles: {
                 fillColor: [248, 249, 250]
             },
             didParseCell: function(data) {
-                if (data.column.index === 11 && data.cell.raw) {
-                    const status = data.cell.raw;
-                    if (status.includes('OK')) data.cell.styles.textColor = [34, 197, 94];
-                    else if (status.includes('OFICINA')) data.cell.styles.textColor = [234, 179, 8];
-                    else if (status.includes('INDISPONIVEL')) data.cell.styles.textColor = [239, 68, 68];
-                    else if (status.includes('ESCALADO')) data.cell.styles.textColor = [59, 130, 246];
-                    data.cell.styles.fontStyle = 'bold';
-                }
                 if (data.column.index === 2 && data.cell.raw && data.cell.raw.includes('(')) {
                     data.cell.styles.textColor = [139, 92, 246];
                     data.cell.styles.fontStyle = 'italic';
@@ -166,28 +154,6 @@ function exportarEscalaPDF(escalas, dataFiltro) {
             pageBreak: 'auto'
         });
 
-        const finalY = doc.lastAutoTable.finalY + 2;
-
-        // 🔧 DESENHAR RESUMO DOS TOTAIS (GRUDADO NA TABELA)
-        doc.setDrawColor(200, 200, 200);
-        doc.line(14, finalY, 280, finalY); // Linha separadora
-
-        doc.setFontSize(8);
-        doc.setTextColor(80, 80, 80);
-        doc.setFont(undefined, 'bold');
-
-        // Posição X para o resumo (alinhado com as colunas NF e Peso)
-        // Usando a soma das colunas anteriores para achar a posição exata no PDF
-        const xNF = 1 + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5] + colWidths[6];
-        const xPeso = xNF + colWidths[7] + 10; // Soma + um pequeno espaço extra
-
-        // Caso você queira o resumo alinhado à direita, use:
-        // const xNF = 176; // Ajuste para onde ficar a coluna NF na página
-        // const xPeso = 196; // Ajuste para onde ficar a coluna Peso na página
-
-        doc.text(`Total NF: ${totalNF}`, xNF, finalY + 5);
-        doc.text(`Total Peso: ${totalPeso}kg`, xPeso, finalY + 5);
-
         return doc.lastAutoTable.finalY + 8;
     }
 
@@ -196,13 +162,17 @@ function exportarEscalaPDF(escalas, dataFiltro) {
 
     const finalY = startY + 6;
     doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.setFont(undefined, 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.setFont(undefined, 'bold');
     
     let resumoTexto = `Total: ${dados.length} veiculos`;
     if (agregados.length > 0) resumoTexto += `  |  Agregados: ${agregados.length}`;
     if (frota.length > 0) resumoTexto += `  |  Frota Propria: ${frota.length}`;
     doc.text(resumoTexto, 14, finalY);
+    
+    // 🔧 IMPRIMIR TOTAIS UNIFICADOS (APENAS 1 VEZ)
+    doc.text(`Total NF: ${totalNFGeral}`, 175, finalY-5);
+    doc.text(`Total Peso: ${totalPesoGeral}kg`, 210, finalY-5);
     
     const dataGeracao = new Date().toLocaleString('pt-BR');
     doc.text(`Gerado em: ${dataGeracao}`, 270, finalY, { align: 'right' });

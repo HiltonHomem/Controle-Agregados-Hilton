@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Proposta de Parceria Técnica | Hilton</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f1f4f9;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+    }
+    .proposal {
+      max-width: 1000px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      padding: 3rem 3rem 2.5rem;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #e6edf5;
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #0a1a2b;
+    }
+    .header .badge {
+      background: #eef4ff;
+      color: #1a4b8c;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 60px;
+      border: 1px solid #cddff5;
+      white-space: nowrap;
+    }
+    .section { margin-bottom: 2.2rem; }
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0a1a2b;
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-title .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #0a1a2b;
+      color: white;
+      width: 26px;
+      height: 26px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .section p, .section li { color: #1e2f40; line-height: 1.6; font-size: 1rem; }
+    .section ul { list-style: none; padding-left: 0.5rem; margin-top: 0.3rem; }
+    .section ul li { position: relative; padding-left: 1.5rem; margin-bottom: 0.45rem; }
+    .section ul li::before { content: "▹"; position: absolute; left: 0; color: #1a5fb0; font-weight: 600; }
+    .highlight-box {
+      background: #f7faff;
+      border-left: 5px solid #1a5fb0;
+      padding: 1rem 1.5rem;
+      border-radius: 14px;
+      margin: 1.2rem 0 0.5rem;
+      font-weight: 500;
+      color: #0d2847;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 0.5rem;
+    }
+    @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; gap: 0.5rem; } }
+    .pricing {
+      background: #f8fafc;
+      border-radius: 20px;
+      padding: 1.5rem 2rem;
+      border: 1px solid #e2eaf2;
+      margin-top: 0.5rem;
+    }
+    .pricing .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid #dce5ef;
+    }
+    .pricing .row:last-child { border-bottom: none; }
+    .pricing .row .label { font-weight: 500; color: #1e3a5f; }
+    .pricing .row .value { font-weight: 700; color: #0a1a2b; }
+    .pricing .sub-item {
+      padding-left: 1.5rem;
+      font-size: 0.95rem;
+      color: #2f4f73;
+      border-bottom: 1px solid #dce5ef;
+      padding-top: 0.3rem;
+      padding-bottom: 0.7rem;
+    }
+    .pricing .sub-item:last-of-type { border-bottom: none; }
+    .pricing .total-box {
+      margin-top: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      align-items: flex-start;
+    }
+    .pricing .total {
+      background: #0a1a2b;
+      color: white;
+      padding: 0.7rem 1.5rem;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 1rem;
+      display: inline-block;
+    }
+    .pricing .total.blue { background: #1a4b8c; }
+    .footnote {
+      font-size: 0.9rem;
+      color: #3b5a78;
+      background: #eef4fa;
+      padding: 0.5rem 1.2rem;
+      border-radius: 40px;
+      display: inline-block;
+    }
+    .obs-box {
+      margin-top: 1.2rem;
+      background: #f7faff;
+      padding: 0.8rem 1.2rem;
+      border-radius: 14px;
+      border-left: 4px solid #1a5fb0;
+    }
+    .obs-box p { font-size: 0.95rem; color: #0d2847; margin: 0; }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, #d3dfeb, transparent);
+      margin: 1.8rem 0;
+    }
+    .footer {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      border-top: 1px solid #e2eaf2;
+      padding-top: 1.8rem;
+      font-size: 0.95rem;
+      color: #2c4a6a;
+    }
+    .footer strong { color: #0a1a2b; }
+    .signature {
+      background: #f2f6fc;
+      padding: 0.5rem 1.4rem;
+      border-radius: 60px;
+      font-weight: 500;
+      border: 1px solid #cddff5;
+    }
+    @media (max-width: 500px) {
+      .proposal { padding: 1.8rem; }
+      .header h1 { font-size: 1.6rem; }
+      .pricing { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="proposal">
+
+    <div class="header">
+      <div>
+        <h1>⚡ Proposta de Parceria Técnica</h1>
+        <div style="margin-top: 0.3rem; font-size: 0.95rem; color: #2f4f73;">
+          Desenvolvimento, Automação &amp; Sistemas
+        </div>
+      </div>
+      <div class="badge">PJ · Flexível · Remoto</div>
+    </div>
+
+    <!-- 1. VISÃO GERAL -->
+    <div class="section">
+      <div class="section-title"><span class="num">1</span> Visão Geral</div>
+      <p>
+        Esta proposta formaliza um modelo de parceria técnica contínua para atuar como
+        <strong>braço de tecnologia</strong> da operação. O escopo vai além do desenvolvimento de sistemas:
+        inclui a criação de novas soluções, automações, landing pages e toda a demanda tecnológica
+        necessária para escalar os projetos da empresa.
+      </p>
+    </div>
+
+    <!-- 2. ESCOPO -->
+    <div class="section">
+      <div class="section-title"><span class="num">2</span> Escopo de Atuação</div>
+      <div class="grid-2">
+        <div>
+          <strong style="font-size: 1.05rem; color: #0a1a2b;">A. App de Acompanhamento de Performance</strong>
+          <ul>
+            <li>Finalização da plataforma com fluxos de prescrição (treinos e dietas).</li>
+            <li>Painel de controle com biomarcadores e check-ins semanais.</li>
+            <li><strong>APK Android</strong> (WebView encapsulado com Kotlin) para atletas.</li>
+            <li>Integração com banco de dados e relatórios automatizados.</li>
+          </ul>
+        </div>
+        <div>
+          <strong style="font-size: 1.05rem; color: #0a1a2b;">B. CRM &amp; Automações</strong>
+          <ul>
+            <li>Estruturação de CRM interno para gestão de leads e alunos.</li>
+            <li>Fluxos automatizados (n8n/Webhooks) para onboarding e comunicação.</li>
+            <li>Modelagem de dados para unificar informações operacionais.</li>
+            <li>Integração com Type/Forms feito pelo Lucas</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top: 1.2rem;">
+        <strong style="font-size: 1.05rem; color: #0a1a2b;">C. Suporte &amp; Desenvolvimento Sob Demanda</strong>
+        <ul>
+          <li>Criação de landing pages, interfaces e ferramentas para a operação.</li>
+          <li>Suporte remoto e sustentação da infraestrutura.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 3. VISÃO DE FUTURO -->
+    <div class="section">
+      <div class="section-title"><span class="num">3</span> Visão de Futuro — SaaS &amp; White-label</div>
+      <div class="highlight-box">
+        O App de Acompanhamento de Performance já possui base arquitetural para ser validado como produto.
+        Após estabilização na operação interna, podemos estruturar um modelo de negócio em conjunto:
+        <strong>escalar e vender o sistema como SaaS (assinatura/white-label)</strong> para outros
+        treinadores, nutricionistas e clínicas do mercado.
+      </div>
+    </div>
+
+    <!-- 4. INVESTIMENTO -->
+    <div class="section">
+      <div class="section-title"><span class="num">4</span> Investimento</div>
+      <p style="margin-bottom: 1rem;">
+        Formato de prestação de serviços (PJ) com entregas por sprints semanais e suporte contínuo.
+      </p>
+
+      <div class="pricing">
+        <!-- App -->
+        <div class="row"><span class="label"><strong>App de Acompanhamento</strong> (Check-in + APK Android)</span><span class="value"></span></div>
+        <div class="sub-item">Desenvolvimento (único): <strong>R$ 3.000,00</strong></div>
+        <div class="sub-item" style="border-bottom: none;">Suporte mensal: <strong>R$ 800,00</strong></div>
+
+        <div style="height: 0.8rem;"></div>
+
+        <div class="row"><span class="label"><strong>App de Acompanhamento</strong> (Check-in + Nutri + APK Android)</span><span class="value"></span></div>
+        <div class="sub-item">Desenvolvimento (único): <strong>R$ 3.500,00</strong></div>
+        <div class="sub-item" style="border-bottom: none;">Suporte mensal: <strong>R$ 800,00</strong></div>
+
+        <div style="height: 0.8rem;"></div>
+
+        <!-- CRM -->
+        <div class="row"><span class="label"><strong>CRM</strong> (Gestão de Leads e Alunos)</span><span class="value"></span></div>
+        <div class="sub-item">Desenvolvimento (único): <strong>R$ 2.000,00</strong></div>
+        <div class="sub-item" style="border-bottom: none;">Suporte mensal: <strong>R$ 700,00</strong></div>
+
+        <div style="height: 0.8rem;"></div>
+
+        <div style="margin-top: 0.8rem; font-size: 0.95rem; color: #2f4f73;">
+          <strong>Wellhub (Gympass)</strong> incluso, conforme política da empresa.
+        </div>
+      </div>
+
+      <div class="obs-box">
+        <p>
+          <strong>▶ Observação:</strong> O APK Android será gerado a partir da versão web do sistema,
+          encapsulado com código Kotlin (WebView). Isso garante uma experiência mobile nativa
+          com custo e prazo reduzidos. Prazos de entrega alinhados conforme demanda.
+        </p>
+      </div>
+    </div>
+
+    <!-- 5. ALINHAMENTO -->
+    <div class="section" style="margin-bottom: 0;">
+      <div class="section-title"><span class="num">5</span> Alinhamento</div>
+      <p>
+        A proposta pode ser ajustada em uma call rápida para alinhar expectativas, prazos e prioridades.
+        Estou à disposição para iniciar assim que definirmos os próximos passos.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="footer">
+      <div>
+        <strong>Hilton dos Santos Homem</strong><br>
+        Desenvolvedor Full-Stack &amp; Administrador de Banco de Dados<br>
+        <a href="https://hiltonhomem.com" style="font-size: 0.85rem; color: #4b6e8e;">hiltonhomem.com</a>
+      </div>
+      <div class="signature">📄 Proposta · Setembro 2026</div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Funcionários</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js?v=1.0"></script>
+    <script src="scripts/funcionarios.js?v=2.0"></script>
+
+    <script src="scripts/header.js?v=1.0"></script>
+    
+    <style>
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.3s ease; }
+        .animate-slide-in { animation: slideIn 0.3s ease; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-5">
+    <div class="max-w-7xl mx-auto">
+        <!-- ===== HEADER ===== -->
+        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
+            <!-- Conteúdo gerado automaticamente pelo header.js -->
+        </header>
+
+        <!-- ===== FORM DE REGISTRO DIÁRIO ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📝 Registrar Situação Diária</h2>
+                <span class="text-xs text-gray-500">Preenchido pela Logística</span>
+            </div>
+            <form id="statusForm" onsubmit="salvarStatus(event)">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col sm:col-span-2">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Funcionário *</label>
+                        <select id="funcionarioId" onchange="document.getElementById('funcionarioTipo').value = this.options[this.selectedIndex]?.dataset?.tipo || ''" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                        <input type="hidden" id="funcionarioTipo" value="">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data *</label>
+                        <input type="date" id="statusData" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Banco de Horas</label>
+                        <input type="text" id="bancoHoras" placeholder="Ex: +2h, -1h" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Férias</label>
+                        <input type="text" id="ferias" placeholder="Ex: 15 dias" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Licença Médica</label>
+                        <input type="text" id="licencaMedica" placeholder="Ex: Atestado" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Falta</label>
+                        <input type="text" id="falta" placeholder="Ex: Sem justificativa" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Sobra</label>
+                        <input type="text" id="sobra" placeholder="Ex: Ficou até 18h" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex flex-col sm:col-span-2">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="observacao" placeholder="Informações adicionais" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">💾 Salvar Registro</button>
+                    <button type="button" onclick="limparForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== FILTROS E TABELA ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📋 Mapa Diário de Funcionários</h2>
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="totalRegistros">0</span>
+            </div>
+            
+            <div class="flex flex-wrap gap-3 mb-4">
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data</label>
+                    <input type="date" id="filtroData" onchange="renderizarTabela()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Buscar</label>
+                    <input type="text" id="filtroBusca" placeholder="Nome do funcionário..." oninput="renderizarTabela()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button onclick="limparFiltros()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar Filtros</button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border-collapse border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="border border-gray-300 px-3 py-2 text-left font-bold text-black">NOME</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left font-bold text-red-600">BANCO DE HORAS</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left font-bold text-red-600">FÉRIAS:</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left font-bold text-red-600">LICENÇA MÉDICA:</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left font-bold text-red-600">FALTA:</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left font-bold text-red-600">SOBRA:</th>
+                            <th class="border border-gray-300 px-3 py-2 text-center font-bold text-gray-600">AÇÕES:</th>
+                        </tr>
+                    </thead>
+                    <tbody id="funcionariosBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-10 text-gray-400">
+                                <div class="text-5xl mb-2">👥</div>
+                                <p>Carregando dados...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE VISUALIZAÇÃO ===== -->
+    <div id="modalVisualizar" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 animate-slide-up">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b">
+                <h2 class="text-xl font-bold text-gray-800">👁️ Visualizar Registro</h2>
+                <button onclick="fecharModalVisualizar()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Funcionário:</span>
+                    <p class="text-lg font-bold" id="visualizarNome">-</p>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Data:</span>
+                    <p class="font-medium" id="visualizarData">-</p>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Banco de Horas:</span>
+                    <p class="font-medium" id="visualizarBancoHoras">-</p>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Férias:</span>
+                    <p class="font-medium" id="visualizarFerias">-</p>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Licença Médica:</span>
+                    <p class="font-medium" id="visualizarLicenca">-</p>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Falta:</span>
+                    <p class="font-medium" id="visualizarFalta">-</p>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sobra:</span>
+                    <p class="font-medium" id="visualizarSobra">-</p>
+                </div>
+                <div>
+                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Observação:</span>
+                    <p class="font-medium" id="visualizarObservacao">-</p>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6 pt-4 border-t">
+                <button onclick="fecharModalVisualizar()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE EDIÇÃO ===== -->
+    <div id="modalEditar" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 animate-slide-up">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b">
+                <h2 class="text-xl font-bold text-gray-800">✏️ Editar Registro</h2>
+                <button onclick="fecharModalEditar()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+            </div>
+            <form id="modalEditarForm" onsubmit="salvarEdicaoModal(event)">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Funcionário (fixo)</label>
+                        <input type="text" id="modalFuncionarioNome" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 w-full" readonly>
+                        <input type="hidden" id="modalFuncionarioId" value="">
+                        <input type="hidden" id="modalTipo" value="">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Banco de Horas</label>
+                        <input type="text" id="modalBancoHoras" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Férias</label>
+                        <input type="text" id="modalFerias" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Licença Médica</label>
+                        <input type="text" id="modalLicencaMedica" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Falta</label>
+                        <input type="text" id="modalFalta" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Sobra</label>
+                        <input type="text" id="modalSobra" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="modalObservacao" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full">
+                    </div>
+                </div>
+                <div class="flex gap-3 justify-end mt-6 pt-4 border-t">
+                    <button type="button" onclick="fecharModalEditar()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">💾 Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

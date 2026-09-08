@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="scripts/supabase.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+    <script src="scripts/header.js?v=1.0"></script>
     
     <style>
         @keyframes slideIn {
@@ -26,22 +28,8 @@
 <body class="bg-gray-100 p-4 md:p-5">
     <div class="max-w-7xl mx-auto">
         <!-- ===== HEADER ===== -->
-        <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap justify-between items-center gap-3">
-            <div>
-                <h1 class="text-2xl font-bold">📊 Dashboard</h1>
-                <p class="text-blue-100 text-sm">Visão geral do sistema</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <nav class="flex gap-1 flex-wrap">
-                    <a href="escala.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">📋 Escala</a>
-                    <a href="dashboard.html" class="px-4 py-2 rounded-lg bg-white/30 font-medium text-sm">📊 Dashboard</a>
-                    <a href="controle_agregados.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">💰 Agregados</a>
-                    <a href="veiculos.html" class="px-4 py-2 rounded-lg bg-white/10 font-medium text-sm hover:bg-white/20 transition">🚗 Veículos</a>
-                </nav>
-                <button onclick="carregarDados()" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
-                
-                <button onclick="fazerLogout()" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition">🚪 Sair</button>
-            </div>
+        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
+            <!-- Conteúdo gerado automaticamente pelo header.js -->
         </header>
 
                 <!-- ===== FILTRO DE PERÍODO ===== -->
