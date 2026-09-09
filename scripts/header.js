@@ -29,6 +29,11 @@ const CONFIG_PAGINAS = {
         subtitulo: 'Registros diários para o RH', 
         funcaoAtualizar: 'carregarDados()' 
     },
+    'ajudante-agregado.html': { 
+        titulo: '🛠️ Ajudantes Agregados', 
+        subtitulo: 'Gerenciar ajudantes agregados', 
+        funcaoAtualizar: 'carregarDados()' 
+    },
     'admin.html': { 
         titulo: '⚙️ Administração', 
         subtitulo: 'Logs de auditoria do sistema', 
@@ -43,6 +48,7 @@ const PAGINAS_MENU = [
     { arquivo: 'controle_agregados.html', icone: '💰', nome: 'Agregados' },
     { arquivo: 'veiculos.html', icone: '🚗', nome: 'Veículos' },
     { arquivo: 'funcionarios.html', icone: '👥', nome: 'Funcionários' },
+    { arquivo: 'ajudante-agregado.html', icone: '🛠️', nome: 'Ajudantes Agregados' },
     { arquivo: 'admin.html', icone: '⚙️', nome: 'Admin' }
 ];
 

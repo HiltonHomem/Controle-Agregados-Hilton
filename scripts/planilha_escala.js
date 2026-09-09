@@ -2,7 +2,30 @@
 // planilha_escala.js - Exportação PDF da Escala
 // =====================================================
 
-function exportarEscalaPDF(escalas, dataFiltro) {
+function buscarDadosFuncionarios() {
+    try {
+        // Retorna uma Promise
+        return window.supabaseClient
+            .from('funcionarios_status')
+            .select('*')
+            .then(res => res.data || []);
+    } catch (error) {
+        console.error('Erro ao buscar funcionarios_status:', error);
+        return [];
+    }
+}
+
+function encontrarStatusFuncionario(statusRegistros, data, funcionarioId, tipo) {
+    if (!statusRegistros || !data || !funcionarioId) return null;
+    
+    return statusRegistros.find(s => 
+        s.data === data && 
+        s.funcionario_id === parseInt(funcionarioId) && 
+        s.tipo === tipo
+    );
+}
+
+async function exportarEscalaPDF(escalas, dataFiltro) {
     if (typeof window.jspdf === 'undefined') {
         console.error('Biblioteca jsPDF não carregada!');
         mostrarToast('Erro: Biblioteca PDF não carregada.', 'error');
@@ -13,6 +36,8 @@ function exportarEscalaPDF(escalas, dataFiltro) {
         mostrarToast('Nenhuma escala para exportar', 'error');
         return;
     }
+
+    const statusRegistros = await buscarDadosFuncionarios();
 
     let dados = [...escalas];
     if (dataFiltro) {
@@ -27,10 +52,13 @@ function exportarEscalaPDF(escalas, dataFiltro) {
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
+    const pageWidth = 297;
+    const pageHeight = 210;
     
     const corPrimaria = [26, 115, 232];
     const corAgregado = [52, 168, 83];
     const corFrota = [156, 163, 175];
+    const corStatus = [128, 0, 128]; // Roxo
     
     const dataExemplo = dados[0].data;
     const dataFormatada = formatarData(dataExemplo);
@@ -39,7 +67,6 @@ function exportarEscalaPDF(escalas, dataFiltro) {
     const agregados = dados.filter(e => e.veiculo_proprietario_id !== null && e.veiculo_proprietario_id !== undefined);
     const frota = dados.filter(e => e.veiculo_proprietario_id === null || e.veiculo_proprietario_id === undefined);
     
-    // 🔧 VARIÁVEIS GLOBAIS PARA OS TOTAIS UNIFICADOS
     let totalNFGeral = 0;
     let totalPesoGeral = 0;
     
@@ -66,29 +93,19 @@ function exportarEscalaPDF(escalas, dataFiltro) {
     function renderizarGrupo(titulo, items, cor, startY) {
         if (items.length === 0) return startY;
 
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setTextColor(cor[0], cor[1], cor[2]);
         doc.setFont(undefined, 'bold');
         doc.text(titulo, 14, startY);
-        startY += 5;
+        startY += 4;
 
-        const headers = [
-            'Veiculo', 'Placa', 'Motorista', 'Ajudante(s)', 'Rota',
-            'Celular', 'Maq.Cartao', 'NF', 'Peso Carga', 'Retornos',
-            'Carregamento'
-        ];
-
+        const headers = ['Veiculo', 'Placa', 'Motorista', 'Ajudante(s)', 'Rota', 'Celular', 'Maq.Cartao', 'NF', 'Peso Carga', 'Retornos', 'Carregamento'];
         const rows = items.map(e => {
-            // 🔧 SOMAR TOTAIS GERAIS
             const nfValue = parseFloat(e.nf);
-            if (!isNaN(nfValue)) {
-                totalNFGeral += nfValue;
-            }
+            if (!isNaN(nfValue)) totalNFGeral += nfValue;
 
             const pesoValue = parseFloat(e.peso_carga);
-            if (!isNaN(pesoValue)) {
-                totalPesoGeral += pesoValue;
-            }
+            if (!isNaN(pesoValue)) totalPesoGeral += pesoValue;
 
             return [
                 limparTexto(e.veiculo_nome || '-'),
@@ -115,14 +132,14 @@ function exportarEscalaPDF(escalas, dataFiltro) {
             headStyles: {
                 fillColor: cor,
                 textColor: [255, 255, 255],
-                fontSize: 7,
+                fontSize: 6.5,
                 fontStyle: 'bold',
                 halign: 'center',
                 valign: 'middle'
             },
             styles: {
-                fontSize: 6.5,
-                cellPadding: 1.5,
+                fontSize: 6,
+                cellPadding: 1,
                 lineColor: [200, 200, 200],
                 lineWidth: 0.1,
                 overflow: 'linebreak',
@@ -151,16 +168,116 @@ function exportarEscalaPDF(escalas, dataFiltro) {
                 }
             },
             margin: { left: 14, right: 14 },
-            pageBreak: 'auto'
+            pageBreak: 'avoid'
         });
 
-        return doc.lastAutoTable.finalY + 8;
+        return doc.lastAutoTable.finalY + 6;
     }
 
+    // 🔧 CÁLCULO PARA GARANTIR 1 PÁGINA:
+    // Se a tabela for muito grande, o autoTable vai quebrar. 
+    // Para evitar, definimos Y como 210 (limite da página) - mas ajustamos para caber.
+    
     startY = renderizarGrupo('AGREGADOS', agregados, corAgregado, startY);
     startY = renderizarGrupo('FROTA PROPRIA', frota, corFrota, startY);
 
-    const finalY = startY + 6;
+    // ===== TABELA DE STATUS DOS FUNCIONÁRIOS =====
+    if (statusRegistros.length > 0) {
+        const statusDoDia = statusRegistros.filter(s => s.data === dataFiltro);
+
+        if (statusDoDia.length > 0) {
+            doc.setFontSize(10);
+            doc.setTextColor(corStatus[0], corStatus[1], corStatus[2]);
+            doc.setFont(undefined, 'bold');
+            doc.text('STATUS DOS FUNCIONARIOS', 14, startY);
+            startY += 4;
+
+            // Buscar motoristas e ajudantes
+            const motoristasData = await window.supabaseClient
+                .from('motoristas')
+                .select('id, nome')
+                .eq('tipo', 'funcionario');
+            const ajudantesData = await window.supabaseClient
+                .from('ajudantes')
+                .select('id, nome')
+                .eq('ativo', true);
+
+            const motoristas = motoristasData.data || [];
+            const ajudantes = ajudantesData.data || [];
+
+            const headersStatus = ['Nome', 'Banco de Horas', 'Férias', 'Licença Médica', 'Falta', 'Sobra', 'Observação'];
+            const rowsStatus = statusDoDia.map(s => {
+                let nome = '';
+                if (s.tipo === 'motorista') {
+                    const m = motoristas.find(m => m.id === s.funcionario_id);
+                    nome = m ? m.nome : 'Desconhecido';
+                } else {
+                    const a = ajudantes.find(a => a.id === s.funcionario_id);
+                    nome = a ? a.nome : 'Desconhecido';
+                }
+                return [
+                    nome,
+                    s.banco_horas || '-',
+                    s.ferias || '-',
+                    s.licenca_medica || '-',
+                    s.falta || '-',
+                    s.sobra || '-',
+                    s.observacao || '-'
+                ];
+            });
+
+            doc.autoTable({
+                startY: startY,
+                head: [headersStatus],
+                body: rowsStatus,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: corStatus,
+                    textColor: [255, 255, 255],
+                    fontSize: 6.5,
+                    fontStyle: 'bold',
+                    halign: 'center',
+                    valign: 'middle',
+                    fontColor: [255, 255, 255]
+                },
+                styles: {
+                    fontSize: 6,
+                    cellPadding: 1,
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1,
+                    overflow: 'linebreak',
+                    valign: 'middle'
+                },
+                columnStyles: {
+                    0: { cellWidth: 40, halign: 'left' },
+                    1: { cellWidth: 30, halign: 'center' },
+                    2: { cellWidth: 25, halign: 'center' },
+                    3: { cellWidth: 30, halign: 'center' },
+                    4: { cellWidth: 25, halign: 'center' },
+                    5: { cellWidth: 25, halign: 'center' },
+                    6: { cellWidth: 100, halign: 'left' }
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 249, 250]
+                },
+                didParseCell: function(data) {
+                    if (data.column.index >= 1 && data.column.index <= 5 && data.cell.raw && data.cell.raw !== '-') {
+                        data.cell.styles.textColor = [128, 0, 128];
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                },
+                margin: { left: 14, right: 14 },
+                pageBreak: 'avoid'
+            });
+
+            startY = doc.lastAutoTable.finalY + 4;
+        }
+    }
+
+    // ===== RESUMO FINAL =====
+    // ESPREME PARA CABER NA PÁGINA (LIMITE 210mm)
+    let finalY = Math.min(startY + 2, 200);
+
     doc.setFontSize(8);
     doc.setTextColor(80, 80, 80);
     doc.setFont(undefined, 'bold');
@@ -170,9 +287,8 @@ function exportarEscalaPDF(escalas, dataFiltro) {
     if (frota.length > 0) resumoTexto += `  |  Frota Propria: ${frota.length}`;
     doc.text(resumoTexto, 14, finalY);
     
-    // 🔧 IMPRIMIR TOTAIS UNIFICADOS (APENAS 1 VEZ)
-    doc.text(`Total NF: ${totalNFGeral}`, 175, finalY-5);
-    doc.text(`Total Peso: ${totalPesoGeral}kg`, 210, finalY-5);
+    doc.text(`Total NF: ${totalNFGeral}`, 175, finalY);
+    doc.text(`Total Peso: ${totalPesoGeral}kg`, 210, finalY);
     
     const dataGeracao = new Date().toLocaleString('pt-BR');
     doc.text(`Gerado em: ${dataGeracao}`, 270, finalY, { align: 'right' });

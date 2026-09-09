@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Ajudantes Agregados</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js?v=1.0"></script>
+    
+    <!-- Bibliotecas para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+     <script src="scripts/header.js?v=1.0"></script>
+    
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slide-in { animation: slideIn 0.3s ease; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-5">
+    <div class="max-w-7xl mx-auto">
+         <!-- ===== HEADER DINÂMICA (GERADA PELO header.js) ===== -->
+        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
+            <!-- Conteúdo gerado automaticamente pelo header.js -->
+        </header>
+
+        <!-- ===== FILTROS E SELEÇÃO ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">🔍 Filtrar Ajudante Agregado</h2>
+            <div class="flex flex-wrap gap-4 items-end">
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Selecione o Ajudante</label>
+                    <select id="selectAjudante" onchange="carregarViagens()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[250px]">
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Início</label>
+                    <input type="date" id="filtroDataInicio" onchange="carregarViagens()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Fim</label>
+                    <input type="date" id="filtroDataFim" onchange="carregarViagens()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                </div>
+                <button onclick="limparFiltros()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar</button>
+            </div>
+        </div>
+
+        <!-- ===== TABELA DE VIAGENS ===== -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">📋 Viagens do Ajudante</h2>
+                <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="totalViagens">0</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b-2 border-gray-200">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Data</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Rota</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Veículo</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Placa</th>
+                            <th class="px-3 py-2 text-left font-semibold text-gray-600">Motorista</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Status</th>
+                            <th class="px-3 py-2 text-center font-semibold text-gray-600">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="viagensBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-10 text-gray-400">
+                                <div class="text-5xl mb-2">📭</div>
+                                <p>Selecione um ajudante para ver as viagens</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== AUTENTICAÇÃO =====
+        async function verificarAuth() {
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+            }
+        }
+        verificarAuth();
+
+        // ===== VARIÁVEIS GLOBAIS =====
+        let ajudantesAgregados = [];
+        let viagens = [];
+
+        async function fazerLogout() {
+            await window.supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        }
+
+        // ===== CARREGAR AJUDANTES DO TIPO AGREGADO =====
+        async function carregarAjudantes() {
+            try {
+                // Buscar apenas ajudantes com tipo = 'agregado' e ativos
+                const { data, error } = await supabaseClient
+                    .from('ajudantes')
+                    .select('*')
+                    .eq('tipo', 'agregado')
+                    .eq('ativo', true)
+                    .order('nome');
+
+                if (error) throw error;
+                ajudantesAgregados = data || [];
+
+                const select = document.getElementById('selectAjudante');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                ajudantesAgregados.forEach(a => {
+                    select.innerHTML += `<option value="${a.id}">${a.nome}</option>`;
+                });
+            } catch (error) {
+                console.error('Erro ao carregar ajudantes:', error);
+                mostrarToast('Erro ao carregar ajudantes', 'error');
+            }
+        }
+
+        // ===== CARREGAR VIAGENS DO AJUDANTE =====
+        async function carregarViagens() {
+            const ajudanteId = document.getElementById('selectAjudante').value;
+            const dataInicio = document.getElementById('filtroDataInicio').value;
+            const dataFim = document.getElementById('filtroDataFim').value;
+
+            if (!ajudanteId) {
+                document.getElementById('viagensBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-10 text-gray-400">
+                            <div class="text-5xl mb-2">📭</div>
+                            <p>Selecione um ajudante para ver as viagens</p>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('totalViagens').textContent = '0';
+                return;
+            }
+
+            try {
+                let query = window.supabaseClient
+                    .from('view_ajudantes_escalas')
+                    .select('*')
+                    .eq('ajudante_id', parseInt(ajudanteId))
+                    .order('escala_data', { ascending: false });
+
+                // Aplicar filtros de data se existirem
+                if (dataInicio) query = query.gte('escala_data', dataInicio);
+                if (dataFim) query = query.lte('escala_data', dataFim);
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                viagens = data || [];
+                renderizarViagens();
+            } catch (error) {
+                console.error('Erro ao carregar viagens:', error);
+                mostrarToast('Erro ao carregar viagens', 'error');
+            }
+        }
+
+        // ===== RENDERIZAR VIAGENS =====
+        function renderizarViagens() {
+            const tbody = document.getElementById('viagensBody');
+            document.getElementById('totalViagens').textContent = viagens.length;
+
+            if (viagens.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-10 text-gray-400">
+                            <div class="text-5xl mb-2">📭</div>
+                            <p>Nenhuma viagem encontrada para este ajudante</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            viagens.forEach(v => {
+                const statusClass = v.escala_status === 'OK' ? 'text-green-600' : 'text-blue-600';
+                
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2">${formatarData(v.escala_data)}</td>
+                        <td class="px-3 py-2">${v.escala_rota || '-'}</td>
+                        <td class="px-3 py-2">${v.veiculo_nome || '-'}</td>
+                        <td class="px-3 py-2">${v.veiculo_placa || '-'}</td>
+                        <td class="px-3 py-2">${v.motorista_nome || '-'}</td>
+                        <td class="px-3 py-2 text-center">
+                            <span class="${statusClass} font-bold">${v.escala_status || '-'}</span>
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <button onclick="gerarRecibo(${v.escala_id})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium transition">🧾 Gerar Recibo</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ===== GERAR RECIBO PDF =====
+        async function gerarRecibo(escalaId) {
+            // Buscar detalhes da viagem para montar o recibo
+            const viagem = viagens.find(v => v.escala_id === escalaId);
+            if (!viagem) {
+                mostrarToast('Viagem não encontrada', 'error');
+                return;
+            }
+
+            // Buscar o ajudante selecionado
+            const ajudanteId = document.getElementById('selectAjudante').value;
+            const ajudante = ajudantesAgregados.find(a => a.id === parseInt(ajudanteId));
+
+            if (!ajudante) {
+                mostrarToast('Ajudante não encontrado', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // ===== TENTAR ADICIONAR LOGO =====
+            try {
+                const logoUrl = 'images/logo_reidistribuidora.png';
+                const response = await fetch(logoUrl);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = function() {
+                        doc.addImage(reader.result, 'PNG', 15, 10, 30, 30); // Posição e tamanho do logo
+                        finalizarRecibo();
+                    };
+                    reader.readAsDataURL(blob);
+                } else {
+                    finalizarRecibo();
+                }
+            } catch (error) {
+                finalizarRecibo();
+            }
+
+            function finalizarRecibo() {
+                // Cabeçalho
+                doc.setFontSize(18);
+                doc.setTextColor(26, 115, 232);
+                doc.setFont(undefined, 'bold');
+                doc.text('RECIBO DE PAGAMENTO', 105, 25, { align: 'center' });
+                
+                doc.setFontSize(10);
+                doc.setTextColor(80, 80, 80);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`, 195, 30, { align: 'right' });
+
+                // Dados do Ajudante
+                doc.setFontSize(12);
+                doc.setTextColor(51, 51, 51);
+                doc.setFont(undefined, 'bold');
+                doc.text('DADOS DO AJUDANTE', 15, 50);
+                
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Nome: ${ajudante.nome}`, 15, 58);
+                doc.text(`CPF: ${ajudante.cpf || 'Não informado'}`, 15, 64);
+
+                // Dados da Viagem
+                doc.setFontSize(12);
+                doc.setTextColor(51, 51, 51);
+                doc.setFont(undefined, 'bold');
+                doc.text('DADOS DA VIAGEM', 15, 78);
+                
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Data: ${formatarData(viagem.escala_data)}`, 15, 86);
+                doc.text(`Rota: ${viagem.escala_rota || 'Não informado'}`, 15, 92);
+                doc.text(`Veículo: ${viagem.veiculo_nome || 'Não informado'} (${viagem.veiculo_placa || 'Sem placa'})`, 15, 98);
+                doc.text(`Motorista: ${viagem.motorista_nome || 'Não informado'}`, 15, 104);
+
+                // Nota de pagamento
+                doc.setFontSize(12);
+                doc.setTextColor(51, 51, 51);
+                doc.setFont(undefined, 'bold');
+                doc.text('PAGAMENTO', 15, 120);
+                
+                doc.setFontSize(14);
+                doc.setTextColor(234, 67, 53);
+                doc.text('R$ ______________________', 15, 130);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(80, 80, 80);
+                doc.setFont(undefined, 'italic');
+                doc.text('Valor pago em espécie, conforme combinado entre as partes.', 15, 140);
+                
+                // Assinatura
+                doc.setDrawColor(150, 150, 150);
+                doc.line(60, 180, 180, 180);
+                doc.setFontSize(10);
+                doc.setTextColor(80, 80, 80);
+                doc.setFont(undefined, 'normal');
+                doc.text('Assinatura do Ajudante', 120, 185, { align: 'center' });
+
+                const nomeArquivo = `recibo_${ajudante.nome.replace(/\s/g, '_')}_${viagem.escala_data}.pdf`;
+                doc.save(nomeArquivo);
+                mostrarToast(`Recibo gerado com sucesso!`);
+            }
+        }
+
+        // ===== FUNÇÕES AUXILIARES =====
+        function formatarData(data) {
+            if (!data) return '-';
+            const partes = data.split('-');
+            if (partes.length === 3) {
+                return `${partes[2]}/${partes[1]}/${partes[0]}`;
+            }
+            return new Date(data).toLocaleDateString('pt-BR');
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroDataInicio').value = '';
+            document.getElementById('filtroDataFim').value = '';
+            carregarViagens();
+        }
+
+        function mostrarToast(mensagem, tipo = 'success') {
+            const cores = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-5 right-5 ${cores[tipo] || 'bg-blue-500'} text-white px-6 py-3 rounded-xl shadow-lg font-medium animate-slide-in z-50 max-w-md`;
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        function inicializar() {
+            carregarAjudantes();
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializar);
+    </script>
+</body>
+</html>
