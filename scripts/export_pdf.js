@@ -23,14 +23,11 @@ function formatarMoedaPDF(valor) {
 function formatarDataPDF(data) {
     if (!data) return '-';
     
-    // Verifica se a data vem no formato ISO (YYYY-MM-DD)
     if (typeof data === 'string' && data.includes('-')) {
-        const partes = data.split('T')[0].split('-'); // Pega a parte antes do T e divide
-        // Retorna manualmente no formato DD/MM/AAAA sem passar pelo new Date() e fuso horário
+        const partes = data.split('T')[0].split('-');
         return `${partes[2]}/${partes[1]}/${partes[0]}`;
     }
     
-    // Se for um objeto Date ou outro formato, mantém a lógica antiga de fallback
     const d = new Date(data);
     return d.toLocaleDateString('pt-BR');
 }
@@ -43,9 +40,42 @@ function calcularTotalPDF(item) {
            (Number(item.desconto) || 0);
 }
 
+// =====================================================
+// 🔧 HELPERS DE DATA - IMUNES A FUSO HORÁRIO
+// =====================================================
+
+/**
+ * Retorna {ano, mes, dia} a partir de "YYYY-MM-DD" SEM usar new Date().
+ */
+function parseDataISO(dataISO) {
+    if (!dataISO) return null;
+    const partes = String(dataISO).split('T')[0].split('-');
+    if (partes.length !== 3) return null;
+    return {
+        ano: parseInt(partes[0], 10),
+        mes: parseInt(partes[1], 10),
+        dia: parseInt(partes[2], 10)
+    };
+}
+
+/**
+ * Retorna "YYYY-MM" de uma data "YYYY-MM-DD" sem usar new Date().
+ */
+function getMesAno(dataISO) {
+    const p = parseDataISO(dataISO);
+    if (!p) return null;
+    return `${p.ano}-${String(p.mes).padStart(2, '0')}`;
+}
+
+/**
+ * 🔧 Retorna a quinzena (1 ou 2) SEM usar new Date().
+ * 1ª quinzena: dias 1 a 15
+ * 2ª quinzena: dias 16 ao fim
+ */
 function getQuinzena(data) {
-    const dia = new Date(data).getDate();
-    return dia <= 15 ? 1 : 2;
+    const p = parseDataISO(data);
+    if (!p) return 1;
+    return p.dia <= 15 ? 1 : 2;
 }
 
 function getNomeMes(mes) {
@@ -54,6 +84,15 @@ function getNomeMes(mes) {
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
     ];
     return meses[mes - 1];
+}
+
+/**
+ * 🔧 Ordena datas ISO como string (funciona porque YYYY-MM-DD é lexicográfico).
+ */
+function ordenarPorDataAsc(a, b) {
+    const da = String(a.data || '').split('T')[0];
+    const db = String(b.data || '').split('T')[0];
+    return da.localeCompare(db);
 }
 
 // ================= REMOVER APENAS EMOJIS (MANTÉM ACENTOS E º) =================
@@ -98,10 +137,11 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
 
     const nomeLimpo = removerEmojis(motoristaNome);
 
+    // 🔧 AGRUPAMENTO POR MÊS SEM FUSO HORÁRIO
     const meses = {};
     dados.forEach(item => {
-        const data = new Date(item.data);
-        const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+        const mesAno = getMesAno(item.data);
+        if (!mesAno) return;
         if (!meses[mesAno]) meses[mesAno] = [];
         meses[mesAno].push(item);
     });
@@ -135,11 +175,13 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
         doc.setDrawColor(200, 200, 200);
         doc.line(14, 54, 196, 54);
 
+        // 🔧 SEPARAÇÃO POR QUINZENA SEM FUSO
         const quinzena1 = itensMes.filter(item => getQuinzena(item.data) === 1);
         const quinzena2 = itensMes.filter(item => getQuinzena(item.data) === 2);
 
-        quinzena1.sort((a, b) => new Date(a.data) - new Date(b.data));
-        quinzena2.sort((a, b) => new Date(a.data) - new Date(b.data));
+        // 🔧 ORDENAÇÃO SEM FUSO
+        quinzena1.sort(ordenarPorDataAsc);
+        quinzena2.sort(ordenarPorDataAsc);
 
         let yPos = 60;
 
@@ -217,7 +259,6 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
                 ];
             });
 
-            // Ajustar larguras para caber na página (total = 182mm)
             doc.autoTable({
                 startY: yPos,
                 head: [headers],
@@ -267,21 +308,17 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
 
                     if (data.column.index === 6 || data.column.index === 7) {
                         if (data.section === 'head') {
-                            
                             data.cell.styles.textColor = [234, 67, 53];
                         } 
                     }
 
                     if (data.column.index === 8 ) {
                         if (data.section === 'head') {
-                            // Cabeçalho "TOTAL" em verde
                             data.cell.styles.textColor = [0, 255, 0];
                         } else {
-                            // Números do total em azul (como já estava no seu código original)
                             data.cell.styles.textColor = [26, 115, 232];
                         }
                     }
-
                 },
                 margin: { left: 14, right: 14 }
             });
@@ -361,7 +398,7 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
     mostrarToastPDF(`PDF "${filename}" gerado com sucesso!`);
 }
 
-// ================= RELATÓRIO GERAL (CORRIGIDO) =================
+// ================= RELATÓRIO GERAL =================
 function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos', filename = 'relatorio_agregados.pdf') {
     if (!dados || dados.length === 0) {
         mostrarToastPDF('Sem dados para exportar', 'error');
@@ -441,7 +478,7 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos', filen
 
     yPos += 24;
 
-    // ===== TABELA (CORRIGIDA - LARGURAS AJUSTADAS) =====
+    // ===== TABELA =====
     const headers = ['Data', 'Motorista', 'Rota', 'Diária', 'Pedágio', 'Almoço', 'Chapa', 'Desconto', 'Total'];
 
     const rows = dados.map(item => {
@@ -460,7 +497,6 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos', filen
         ];
     });
 
-    // Larguras ajustadas para caber na página (total = 182mm)
     doc.autoTable({
         startY: yPos,
         head: [headers],
@@ -481,15 +517,15 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos', filen
             overflow: 'linebreak'
         },
         columnStyles: {
-            0: { cellWidth: 18, halign: 'center' },      // Data
-            1: { cellWidth: 24, fontStyle: 'bold' },     // Motorista
-            2: { cellWidth: 28 },                         // Rota
-            3: { cellWidth: 20, halign: 'right' },       // Diária
-            4: { cellWidth: 18, halign: 'right' },       // Pedágio
-            5: { cellWidth: 16, halign: 'right' },       // Almoço
-            6: { cellWidth: 16, halign: 'right' },       // Chapa
-            7: { cellWidth: 20, halign: 'right' },       // Desconto
-            8: { cellWidth: 22, halign: 'right', fontStyle: 'bold' } // Total
+            0: { cellWidth: 18, halign: 'center' },
+            1: { cellWidth: 24, fontStyle: 'bold' },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 20, halign: 'right' },
+            4: { cellWidth: 18, halign: 'right' },
+            5: { cellWidth: 16, halign: 'right' },
+            6: { cellWidth: 16, halign: 'right' },
+            7: { cellWidth: 20, halign: 'right' },
+            8: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
         },
         alternateRowStyles: {
             fillColor: [248, 249, 250]
@@ -508,7 +544,6 @@ function gerarPDFGeral(dados, titulo = 'Relatório Geral de Lançamentos', filen
         margin: { left: 14, right: 14 }
     });
 
-    // Rodapé
     const pageCount = doc.internal.getNumberOfPages();
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
@@ -526,19 +561,14 @@ function exportarPDF(dados, titulo = 'Relatório de Lançamentos', filename = 'r
 
 // ===== EXPORTAR RELATÓRIO QUINZENAL DO MOTORISTA =====
 function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFim) {
-    // 🔧 CORREÇÃO: Filtrar lançamentos onde o motorista é o PROPRIETÁRIO
-    // Ou seja: lançamentos onde proprietario_id = motoristaId
+    // 🔧 Filtrar lançamentos onde o motorista é o PROPRIETÁRIO ou o próprio motorista
     const dadosFiltrados = lancamentos.filter(l => {
-        // 1. O agregado é o proprietário do veículo (proprietario_id)
         if (l.proprietario_id === motoristaId) return true;
-        
-        // 2. O agregado é o motorista (caso ele mesmo dirija)
         if (l.motorista_id === motoristaId) return true;
-        
         return false;
     });
 
-    // Aplicar filtro de data se informado
+    // Aplicar filtro de data se informado (comparação de strings, imune a fuso)
     let dados = dadosFiltrados;
     if (dataInicio) {
         dados = dados.filter(l => l.data >= dataInicio);
@@ -552,18 +582,13 @@ function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFi
         return;
     }
 
-    // Buscar nome do motorista (proprietário)
     const motorista = motoristas.find(m => m.id === motoristaId);
     const nomeMotorista = motorista?.nome || 'Motorista';
 
-    // 🔧 CORREÇÃO: Ajustar os nomes para mostrar Proprietário (Motorista)
-    // quando o motorista for diferente do proprietário
     const dadosFormatados = dados.map(l => {
-
-         const veiculoInfo = veiculos.find(v => v.id === l.veiculo_id);
+        const veiculoInfo = veiculos.find(v => v.id === l.veiculo_id);
         const placaVeiculo = veiculoInfo?.placa || '-';
 
-        // Se o proprietário é diferente do motorista, mostra "PROPRIETÁRIO (MOTORISTA)"
         if (l.proprietario_id === motoristaId && l.motorista_id !== motoristaId) {
             const motoristaNome = motoristas.find(m => m.id === l.motorista_id)?.nome || 'Desconhecido';
             return {
@@ -572,12 +597,12 @@ function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFi
                 placa: placaVeiculo
             };
         }
-        return {...l,
-            placa: placaVeiculo // A placa correta desse lançamento específico
+        return {
+            ...l,
+            placa: placaVeiculo
         };
     });
 
-    // Gerar PDF com os dados formatados
     if (typeof gerarPDFQuinzenalMensal === 'function') {
         gerarPDFQuinzenalMensal(dadosFormatados, nomeMotorista);
     } else {
