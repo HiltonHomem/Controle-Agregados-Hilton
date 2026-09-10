@@ -7,37 +7,44 @@ const CONFIG_PAGINAS = {
     'escala.html': { 
         titulo: '📋 Escala Logística Diária', 
         subtitulo: 'Gestão de rotas e motoristas', 
-        funcaoAtualizar: 'carregarDados()' 
+        funcaoAtualizar: 'carregarDados()',
+        botoesExtras: []
     },
     'dashboard.html': { 
         titulo: '📊 Dashboard', 
         subtitulo: 'Visão geral do sistema', 
-        funcaoAtualizar: 'carregarDados()' 
+        funcaoAtualizar: 'carregarDados()',
+        botoesExtras: []
     },
     'controle_agregados.html': { 
         titulo: '💰 Controle de Agregados', 
         subtitulo: 'Gestão financeira de motoristas', 
-        funcaoAtualizar: 'carregarDados()' 
+        funcaoAtualizar: 'carregarDados()',
+        botoesExtras: []
     },
     'veiculos.html': { 
         titulo: '🚗 Gestão de Veículos', 
         subtitulo: 'Frota própria, agregados e proprietários', 
-        funcaoAtualizar: 'carregarDados()' 
+        funcaoAtualizar: 'carregarDados()',
+        botoesExtras: []
     },
     'funcionarios.html': { 
         titulo: '👥 Gestão de Funcionários', 
         subtitulo: 'Registros diários para o RH', 
-        funcaoAtualizar: 'carregarDados()' 
+        funcaoAtualizar: 'carregarDados()',
+        botoesExtras: []
     },
     'ajudante-agregado.html': { 
         titulo: '🛠️ Ajudantes Agregados', 
         subtitulo: 'Gerenciar ajudantes agregados', 
-        funcaoAtualizar: 'carregarDados()' 
+        funcaoAtualizar: 'carregarDados()',
+        botoesExtras: []
     },
     'admin.html': { 
         titulo: '⚙️ Administração', 
         subtitulo: 'Logs de auditoria do sistema', 
-        funcaoAtualizar: 'carregarLogs()' 
+        funcaoAtualizar: 'carregarLogs()',
+        botoesExtras: []
     }
 };
 
@@ -73,7 +80,6 @@ async function buscarUsuario() {
         if (error) throw error;
         usuarioAtualHeader = data;
     } catch (error) {
-        // Fallback caso não encontre na tabela
         const { data: { session } } = await window.supabaseClient.auth.getSession();
         usuarioAtualHeader = { 
             nome: session?.user?.email?.split('@')[0] || 'Usuário',
@@ -108,7 +114,6 @@ function injetarHeader() {
     const headerPrincipal = document.getElementById('headerPrincipal');
     if (!headerPrincipal) return;
 
-    // 🔧 IDENTIFICAR A PÁGINA ATUAL
     const paginaAtual = window.location.pathname.split('/').pop() || 'escala.html';
     const configAtual = CONFIG_PAGINAS[paginaAtual] || CONFIG_PAGINAS['escala.html'];
     
@@ -127,19 +132,33 @@ function injetarHeader() {
         `;
     });
 
+    // 🔧 GERAR BOTÕES EXTRAS (registrados pela própria página)
+    let botoesExtrasHtml = '';
+    if (Array.isArray(configAtual.botoesExtras)) {
+        configAtual.botoesExtras.forEach(btn => {
+            const classes = btn.classes || 'bg-white/20 hover:bg-white/30';
+            botoesExtrasHtml += `
+                <button onclick="${btn.onclick}" class="px-4 py-2 rounded-lg text-white text-sm font-medium transition ${classes}">
+                    ${btn.label}
+                </button>
+            `;
+        });
+    }
+
     // 🔧 GERAR CONTEÚDO FINAL DO HEADER
     headerPrincipal.innerHTML = `
-        <div class="flex flex-wrap justify-between items-center w-full">
+        <div class="flex flex-wrap justify-between items-center w-full gap-2">
             <div id="saudacaoUsuario" class="text-white text-sm font-medium">
                 ${saudacao}${role}
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+                ${botoesExtrasHtml}
                 <button onclick="${configAtual.funcaoAtualizar}" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition">🔄 Atualizar</button>
                 <button onclick="fazerLogout()" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition">🚪 Sair</button>
             </div>
         </div>
         
-        <div class="flex flex-wrap justify-between items-center w-full">
+        <div class="flex flex-wrap justify-between items-center w-full gap-2">
             <div>
                 <h1 class="text-2xl font-bold">${configAtual.titulo}</h1>
                 <p class="text-blue-100 text-sm">${configAtual.subtitulo}</p>
@@ -150,6 +169,20 @@ function injetarHeader() {
         </div>
     `;
 }
+
+// ===== REGISTRAR BOTÕES EXTRAS (chamado pela própria página) =====
+window.registrarBotoesHeader = function(botoes) {
+    const paginaAtual = window.location.pathname.split('/').pop();
+    const config = CONFIG_PAGINAS[paginaAtual];
+    if (!config) return;
+
+    config.botoesExtras = botoes || [];
+
+    // Só re-renderiza se o header já foi injetado (evita rodar antes do usuário carregar)
+    if (document.getElementById('headerPrincipal')?.innerHTML.trim() !== '') {
+        injetarHeader();
+    }
+};
 
 // ===== FUNÇÃO DE LOGOUT (COMPARTILHADA) =====
 async function fazerLogout() {

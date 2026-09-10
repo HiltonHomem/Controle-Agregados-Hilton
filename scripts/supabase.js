@@ -33,3 +33,6 @@ function mostrarToast(mensagem, tipo = 'success') {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
+
+// Caminho base para os assets (imagens, etc.)
+window.BASE_URL = window.location.pathname.includes('/Escala-simples/') ? '/Escala-simples/' : '/';

@@ -19,6 +19,7 @@ const ROTAS_PADRAO = [
     "BARRA",
     "BÚZIOS",
     "CAXIAS",
+    "CABO FRIO",
     "CENTRO",
     "GUAPIMIRIM",
     "ILHA DO GOVERNADOR",
@@ -26,6 +27,7 @@ const ROTAS_PADRAO = [
     "ITAGUAÍ",
     "ITAIPAVA",
     "JACAREPAGUÁ",
+    "MACAÉ",
     "MAGÉ",
     "MARICÁ",
     "NITERÓI",
@@ -1447,7 +1449,7 @@ function renderizarEscalas() {
                 <td class="px-3 py-1.5 font-medium text-sm">${formatarData(e.data)}</td>
                 <td class="px-3 py-1.5 font-semibold text-sm">${veiculoNome}</td>
                 <td class="px-3 py-1.5 text-gray-600 text-sm">${placa}</td>
-                <td class="px-3 py-1.5 text-center text-gray-600 text-sm">${peso}kg</td>
+                <td class="px-3 py-1.5 text-center text-gray-600 text-sm">${e.peso_carga}kg</td>
                 <td class="px-3 py-1.5 text-center">
                     <span class="${statusClass} text-sm">${statusLabel}</span>
                 </td>
@@ -1474,7 +1476,7 @@ function renderizarEscalas() {
                     <div class="flex flex-wrap gap-1.5 text-[10px] text-gray-500 leading-tight">
                         ${e.celular ? `<span><span class="font-medium text-gray-600">📱</span> ${e.celular}</span>` : ''}
                         ${e.nf ? `<span><span class="font-medium text-gray-600">📄</span> ${e.nf}</span>` : ''}
-                        ${e.peso_carga ? `<span><span class="font-medium text-gray-600">⚖️</span> ${e.peso_carga}kg</span>` : ''}
+                      
                         ${e.retornos ? `<span><span class="font-medium text-gray-600">🔄</span> ${e.retornos}</span>` : ''}
                         ${e.carregamento ? `<span><span class="font-medium text-gray-600">📦</span> ${e.carregamento}</span>` : ''}
                         ${e.observacao ? `<span class="text-yellow-600"><span class="font-medium text-gray-600">📌</span> ${e.observacao}</span>` : ''}

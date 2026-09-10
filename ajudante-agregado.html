@@ -8,12 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="scripts/supabase.js?v=1.0"></script>
+    <script src="scripts/header.js?v=1.0"></script>
     
     <!-- Bibliotecas para PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-
-     <script src="scripts/header.js?v=1.0"></script>
     
     <style>
         @keyframes slideIn {
@@ -21,6 +20,11 @@
             to { transform: translateX(0); opacity: 1; }
         }
         .animate-slide-in { animation: slideIn 0.3s ease; }
+        .animate-slide-up { animation: slideUp 0.3s ease; }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
         
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
@@ -30,7 +34,7 @@
 </head>
 <body class="bg-gray-100 p-4 md:p-5">
     <div class="max-w-7xl mx-auto">
-         <!-- ===== HEADER DINÂMICA (GERADA PELO header.js) ===== -->
+        <!-- ===== HEADER DINÂMICA (GERADA PELO header.js) ===== -->
         <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
             <!-- Conteúdo gerado automaticamente pelo header.js -->
         </header>
@@ -74,12 +78,13 @@
                             <th class="px-3 py-2 text-left font-semibold text-gray-600">Placa</th>
                             <th class="px-3 py-2 text-left font-semibold text-gray-600">Motorista</th>
                             <th class="px-3 py-2 text-center font-semibold text-gray-600">Status</th>
+                            <th class="px-3 py-2 text-right font-semibold text-gray-600">Valor (R$)</th>
                             <th class="px-3 py-2 text-center font-semibold text-gray-600">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="viagensBody">
                         <tr>
-                            <td colspan="7" class="text-center py-10 text-gray-400">
+                            <td colspan="8" class="text-center py-10 text-gray-400">
                                 <div class="text-5xl mb-2">📭</div>
                                 <p>Selecione um ajudante para ver as viagens</p>
                             </td>
@@ -87,6 +92,26 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE VALOR ===== -->
+    <div id="modalValor" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 animate-slide-up">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b">
+                <h2 id="modalValorTitle" class="text-xl font-bold text-gray-800">💸 Digite o valor do pagamento</h2>
+                <button onclick="fecharModalValor()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+            </div>
+            <form onsubmit="salvarValor(event)">
+                <div class="flex flex-col mb-4">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor (R$)</label>
+                    <input type="number" step="0.01" id="inputValor" placeholder="0.00" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+                <div class="flex gap-3 justify-end mt-4 pt-4 border-t">
+                    <button type="button" onclick="fecharModalValor()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">💾 Salvar Valor</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -103,11 +128,26 @@
         // ===== VARIÁVEIS GLOBAIS =====
         let ajudantesAgregados = [];
         let viagens = [];
+        let viagemSelecionada = null;
+
+        // =====================================================
+        // 🔧 FUNÇÃO PARA BUSCAR CAMINHO ABSOLUTO DA LOGO
+        // =====================================================
+        function getCaminhoAbsolutoDaLogo() {
+            // Pega a URL atual sem o nome do arquivo (ex: https://hiltonhomem.com/Escala-simples/)
+            const urlAtual = window.location.href;
+            const caminhoSemArquivo = urlAtual.substring(0, urlAtual.lastIndexOf('/') + 1);
+            
+            // Retorna o caminho absoluto para a pasta images
+            return `${caminhoSemArquivo}images/logo_reidistribuidora.png`;
+        }
 
         async function fazerLogout() {
             await window.supabaseClient.auth.signOut();
             window.location.href = 'login.html';
         }
+
+
 
         // ===== CARREGAR AJUDANTES DO TIPO AGREGADO =====
         async function carregarAjudantes() {
@@ -143,7 +183,7 @@
             if (!ajudanteId) {
                 document.getElementById('viagensBody').innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center py-10 text-gray-400">
+                        <td colspan="8" class="text-center py-10 text-gray-400">
                             <div class="text-5xl mb-2">📭</div>
                             <p>Selecione um ajudante para ver as viagens</p>
                         </td>
@@ -183,7 +223,7 @@
             if (viagens.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center py-10 text-gray-400">
+                        <td colspan="8" class="text-center py-10 text-gray-400">
                             <div class="text-5xl mb-2">📭</div>
                             <p>Nenhuma viagem encontrada para este ajudante</p>
                         </td>
@@ -195,6 +235,8 @@
             let html = '';
             viagens.forEach(v => {
                 const statusClass = v.escala_status === 'OK' ? 'text-green-600' : 'text-blue-600';
+                const valorFormatado = v.valor_pagamento ? `R$ ${Number(v.valor_pagamento).toFixed(2).replace('.', ',')}` : '-';
+                const temValor = !!v.valor_pagamento;
                 
                 html += `
                     <tr class="hover:bg-gray-50">
@@ -206,8 +248,12 @@
                         <td class="px-3 py-2 text-center">
                             <span class="${statusClass} font-bold">${v.escala_status || '-'}</span>
                         </td>
+                        <td class="px-3 py-2 text-right font-semibold">
+                            <span class="${temValor ? 'text-green-600' : 'text-gray-400'}">${valorFormatado}</span>
+                        </td>
                         <td class="px-3 py-2 text-center">
-                            <button onclick="gerarRecibo(${v.escala_id})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium transition">🧾 Gerar Recibo</button>
+                            <button onclick="abrirModalValor(${v.escala_id})" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium transition">✏️ Editar</button>
+                            <button onclick="gerarPDF(${v.escala_id})" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium transition">🧾 PDF</button>
                         </td>
                     </tr>
                 `;
@@ -215,16 +261,78 @@
             tbody.innerHTML = html;
         }
 
-        // ===== GERAR RECIBO PDF =====
-        async function gerarRecibo(escalaId) {
-            // Buscar detalhes da viagem para montar o recibo
-            const viagem = viagens.find(v => v.escala_id === escalaId);
-            if (!viagem) {
+        // ===== MODAL DE VALOR =====
+        function abrirModalValor(escalaId) {
+            viagemSelecionada = viagens.find(v => v.escala_id === escalaId);
+            if (!viagemSelecionada) {
                 mostrarToast('Viagem não encontrada', 'error');
                 return;
             }
 
-            // Buscar o ajudante selecionado
+            // Pré-preencher com o valor já cadastrado (se existir)
+            document.getElementById('inputValor').value = viagemSelecionada.valor_pagamento || '';
+            document.getElementById('modalValorTitle').textContent = '💸 Digite o valor do pagamento';
+
+            document.getElementById('modalValor').classList.remove('hidden');
+            document.getElementById('modalValor').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function fecharModalValor() {
+            document.getElementById('modalValor').style.display = 'none';
+            document.getElementById('modalValor').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            viagemSelecionada = null;
+        }
+
+        // ===== SALVAR VALOR =====
+        async function salvarValor(event) {
+            event.preventDefault();
+            
+            const valor = parseFloat(document.getElementById('inputValor').value) || 0;
+            if (valor <= 0) {
+                mostrarToast('Digite um valor válido', 'error');
+                return;
+            }
+
+            try {
+                // 🔧 SALVAR VALOR NA TABELA escala_ajudantes
+                const ajudanteId = document.getElementById('selectAjudante').value;
+                const { error } = await supabaseClient
+                    .from('escala_ajudantes')
+                    .update({ valor: valor })
+                    .eq('escala_id', viagemSelecionada.escala_id)
+                    .eq('ajudante_id', parseInt(ajudanteId));
+
+                if (error) throw error;
+
+                fecharModalValor();
+                
+                // Atualizar viagens para refletir o valor salvo
+                await carregarViagens();
+                
+                mostrarToast(`Valor de R$ ${valor.toFixed(2).replace('.', ',')} salvo com sucesso!`);
+            } catch (error) {
+                console.error('Erro ao salvar valor:', error);
+                mostrarToast('Erro ao salvar valor', 'error');
+            }
+        }
+
+        // ===== GERAR PDF =====
+        async function gerarPDF(escalaId) {
+            viagemSelecionada = viagens.find(v => v.escala_id === escalaId);
+            if (!viagemSelecionada) {
+                mostrarToast('Viagem não encontrada', 'error');
+                return;
+            }
+
+            // 🔧 VERIFICAR SE TEM VALOR
+            if (!viagemSelecionada.valor_pagamento) {
+                mostrarToast('⚠️ Preencha o valor antes de gerar o recibo!', 'error');
+                abrirModalValor(escalaId);
+                return;
+            }
+
             const ajudanteId = document.getElementById('selectAjudante').value;
             const ajudante = ajudantesAgregados.find(a => a.id === parseInt(ajudanteId));
 
@@ -235,16 +343,18 @@
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            const valor = parseFloat(viagemSelecionada.valor_pagamento);
 
             // ===== TENTAR ADICIONAR LOGO =====
             try {
-                const logoUrl = 'images/logo_reidistribuidora.png';
+                // 🔧 BUSCAR LOGO COM CAMINHO ABSOLUTO
+                const logoUrl = getCaminhoAbsolutoDaLogo(); // 🔧 Nova função
                 const response = await fetch(logoUrl);
                 if (response.ok) {
                     const blob = await response.blob();
                     const reader = new FileReader();
                     reader.onloadend = function() {
-                        doc.addImage(reader.result, 'PNG', 15, 10, 30, 30); // Posição e tamanho do logo
+                        doc.addImage(reader.result, 'PNG', 15, 8, 25, 25);
                         finalizarRecibo();
                     };
                     reader.readAsDataURL(blob);
@@ -257,64 +367,72 @@
 
             function finalizarRecibo() {
                 // Cabeçalho
-                doc.setFontSize(18);
+                doc.setFontSize(16);
                 doc.setTextColor(26, 115, 232);
                 doc.setFont(undefined, 'bold');
-                doc.text('RECIBO DE PAGAMENTO', 105, 25, { align: 'center' });
-                
-                doc.setFontSize(10);
+                doc.text('RECIBO DE PAGAMENTO', 105, 20, { align: 'center' });
+
+                // Dados da Empresa Pagadora
+                doc.setFontSize(9);
                 doc.setTextColor(80, 80, 80);
                 doc.setFont(undefined, 'normal');
-                doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`, 195, 30, { align: 'right' });
+                doc.text('Forca Total Distribuidora de Generos Alimenticios LTDA.', 105, 28, { align: 'center' });
+                doc.text('CNPJ: 11.203.563/0001-01', 105, 33, { align: 'center' });
+                doc.text('Rua da Cevada, 113 - Penha Circular, RJ - Rio de Janeiro', 105, 38, { align: 'center' });
+
+                // Linha separadora
+                doc.setDrawColor(200, 200, 200);
+                doc.line(15, 45, 195, 45);
 
                 // Dados do Ajudante
                 doc.setFontSize(12);
                 doc.setTextColor(51, 51, 51);
                 doc.setFont(undefined, 'bold');
-                doc.text('DADOS DO AJUDANTE', 15, 50);
+                doc.text('DADOS DO AJUDANTE', 15, 55);
                 
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
-                doc.text(`Nome: ${ajudante.nome}`, 15, 58);
-                doc.text(`CPF: ${ajudante.cpf || 'Não informado'}`, 15, 64);
+                doc.text(`Nome: ${ajudante.nome}`, 15, 63);
+                doc.text(`CPF: ${ajudante.cpf || 'Não informado'}`, 15, 69);
 
                 // Dados da Viagem
                 doc.setFontSize(12);
                 doc.setTextColor(51, 51, 51);
                 doc.setFont(undefined, 'bold');
-                doc.text('DADOS DA VIAGEM', 15, 78);
+                doc.text('DADOS DA VIAGEM', 15, 83);
                 
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
-                doc.text(`Data: ${formatarData(viagem.escala_data)}`, 15, 86);
-                doc.text(`Rota: ${viagem.escala_rota || 'Não informado'}`, 15, 92);
-                doc.text(`Veículo: ${viagem.veiculo_nome || 'Não informado'} (${viagem.veiculo_placa || 'Sem placa'})`, 15, 98);
-                doc.text(`Motorista: ${viagem.motorista_nome || 'Não informado'}`, 15, 104);
+                doc.text(`Data: ${formatarData(viagemSelecionada.escala_data)}`, 15, 91);
+                doc.text(`Rota: ${viagemSelecionada.escala_rota || 'Não informado'}`, 15, 97);
+                doc.text(`Veículo: ${viagemSelecionada.veiculo_nome || 'Não informado'} (${viagemSelecionada.veiculo_placa || 'Sem placa'})`, 15, 103);
+                doc.text(`Motorista: ${viagemSelecionada.motorista_nome || 'Não informado'}`, 15, 109);
 
                 // Nota de pagamento
                 doc.setFontSize(12);
                 doc.setTextColor(51, 51, 51);
                 doc.setFont(undefined, 'bold');
-                doc.text('PAGAMENTO', 15, 120);
+                doc.text('PAGAMENTO', 15, 125);
                 
+                // 🔧 IMPRIMIR O VALOR DIGITADO
                 doc.setFontSize(14);
                 doc.setTextColor(234, 67, 53);
-                doc.text('R$ ______________________', 15, 130);
+                doc.text(`R$ ${valor.toFixed(2).replace('.', ',')}`, 15, 135);
                 
                 doc.setFontSize(10);
                 doc.setTextColor(80, 80, 80);
                 doc.setFont(undefined, 'italic');
-                doc.text('Valor pago em espécie, conforme combinado entre as partes.', 15, 140);
+                doc.text('Valor pago em espécie, conforme combinado entre as partes.', 15, 145);
                 
                 // Assinatura
                 doc.setDrawColor(150, 150, 150);
-                doc.line(60, 180, 180, 180);
+                doc.line(60, 185, 180, 185);
                 doc.setFontSize(10);
                 doc.setTextColor(80, 80, 80);
                 doc.setFont(undefined, 'normal');
-                doc.text('Assinatura do Ajudante', 120, 185, { align: 'center' });
+                doc.text('Assinatura do Ajudante', 120, 190, { align: 'center' });
 
-                const nomeArquivo = `recibo_${ajudante.nome.replace(/\s/g, '_')}_${viagem.escala_data}.pdf`;
+                const nomeArquivo = `recibo_${ajudante.nome.replace(/\s/g, '_')}_${viagemSelecionada.escala_data}.pdf`;
                 doc.save(nomeArquivo);
                 mostrarToast(`Recibo gerado com sucesso!`);
             }

@@ -871,6 +871,24 @@
 
         document.addEventListener('DOMContentLoaded', inicializar);
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof registrarBotoesHeader === 'function') {
+                registrarBotoesHeader([
+                    { 
+                        label: '📄 PDF Geral', 
+                        onclick: "exportarPDF(lancamentos, 'Relatório Geral de Lançamentos', 'relatorio_geral.pdf')",
+                        classes: 'bg-green-500 hover:bg-green-600'
+                    },
+                    { 
+                        label: '📋 PDF Quinzenal', 
+                        onclick: 'abrirModalQuinzenal()',
+                        classes: 'bg-yellow-500 hover:bg-yellow-600'
+                    }
+                ]);
+            }
+        });
+    </script>
     <script src="scripts/footer.js?v=1.0"></script>
 </body>
 </html>
