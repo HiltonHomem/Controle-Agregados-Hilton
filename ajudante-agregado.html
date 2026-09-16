@@ -147,8 +147,6 @@
             window.location.href = 'login.html';
         }
 
-
-
         // ===== CARREGAR AJUDANTES DO TIPO AGREGADO =====
         async function carregarAjudantes() {
             try {
@@ -393,7 +391,7 @@
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
                 doc.text(`Nome: ${ajudante.nome}`, 15, 63);
-                doc.text(`CPF: ${ajudante.cpf || 'Não informado'}`, 15, 69);
+                doc.text(`CPF: ${formatarCPF(ajudante.cpf)}`, 15, 69); // 🔧 CPF formatado
 
                 // Dados da Viagem
                 doc.setFontSize(12);
@@ -446,6 +444,25 @@
                 return `${partes[2]}/${partes[1]}/${partes[0]}`;
             }
             return new Date(data).toLocaleDateString('pt-BR');
+        }
+
+        // ===== FORMATAÇÃO DE CPF =====
+        function formatarCPF(cpf) {
+            if (!cpf) return 'Não informado';
+
+            // Remove tudo que não for dígito
+            const numeros = String(cpf).replace(/\D/g, '');
+
+            // Se for só zeros (000.000.000-00), trata como não informado
+            //if (/^0+$/.test(numeros) || numeros === '') return 'Não informado';
+
+            // Se não tem 11 dígitos, retorna como veio
+            if (numeros.length !== 11) {
+                return cpf;
+            }
+
+            // Formata: 000.000.000-00
+            return numeros.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
         }
 
         function limparFiltros() {
