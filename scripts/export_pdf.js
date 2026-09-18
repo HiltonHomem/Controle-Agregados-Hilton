@@ -123,7 +123,7 @@ function removerEmojis(texto) {
 }
 
 // ================= RELATÓRIO QUINZENAL MENSAL =================
-function gerarPDFQuinzenalMensal(dados, motoristaNome) {
+function gerarPDFQuinzenalMensal(dados, motoristaNome, nomeEmpresarial) {
     if (!dados || dados.length === 0) {
         mostrarToastPDF('Sem dados para exportar', 'error');
         return;
@@ -136,6 +136,7 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
     const corSecundaria = [52, 168, 83];
 
     const nomeLimpo = removerEmojis(motoristaNome);
+    const empresaLimpa = nomeEmpresarial && String(nomeEmpresarial).trim() ? removerEmojis(String(nomeEmpresarial).trim()) : nomeLimpo;
 
     // 🔧 AGRUPAMENTO POR MÊS SEM FUSO HORÁRIO
     const meses = {};
@@ -161,19 +162,26 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
 
         doc.setFontSize(18);
         doc.setTextColor(corPrimaria[0], corPrimaria[1], corPrimaria[2]);
-        doc.text(`Relatório Quinzenal - ${nomeMes}/${ano}`, 14, 25);
+        doc.text(`Relatório Quinzenal - ${nomeMes}/${ano}`, 14, 23);
         
-        doc.setFontSize(14);
+        doc.setFontSize(13);
         doc.setTextColor(51, 51, 51);
-        doc.text(`Motorista: ${nomeLimpo}`, 14, 35);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Motorista: ${nomeLimpo}`, 14, 32);
+
+        // Nome Empresarial (se nulo, repete o nome do motorista)
+        doc.setFontSize(10.5);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Razão Social / Nome Empresarial: ${empresaLimpa}`, 14, 38);
         
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setTextColor(119, 119, 119);
-        doc.text(`Total de lançamentos no mês: ${itensMes.length}`, 14, 42);
-        doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 48);
+        doc.text(`Total de lançamentos no mês: ${itensMes.length}`, 14, 45);
+        doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 50);
 
         doc.setDrawColor(200, 200, 200);
-        doc.line(14, 54, 196, 54);
+        doc.line(14, 55, 196, 55);
 
         // 🔧 SEPARAÇÃO POR QUINZENA SEM FUSO
         const quinzena1 = itensMes.filter(item => getQuinzena(item.data) === 1);
@@ -183,7 +191,7 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
         quinzena1.sort(ordenarPorDataAsc);
         quinzena2.sort(ordenarPorDataAsc);
 
-        let yPos = 60;
+        let yPos = 61;
 
         function renderizarQuinzena(quizenData, titulo, cor) {
             doc.setFontSize(12);
@@ -330,7 +338,26 @@ function gerarPDFQuinzenalMensal(dados, motoristaNome) {
             doc.setFont(undefined, 'normal');
             const totalRegistros = quizenData.length;
             doc.text(`Total de registros: ${totalRegistros}  |  Total líquido: ${formatarMoedaPDF(totalLiquido)}`, 14, yPos);
-            yPos += 4;
+            yPos += 6;
+
+            // ✍️ LINHA DE ASSINATURA DA QUINZENA
+            // Verifica se precisa quebrar página caso esteja muito próximo do rodapé
+            if (yPos > 245) {
+                doc.addPage();
+                pagina++;
+                yPos = 25;
+            }
+
+            doc.setDrawColor(80, 80, 80);
+            doc.setLineWidth(0.3);
+            doc.line(60, yPos + 10, 150, yPos + 10);
+
+            doc.setFontSize(8);
+            doc.setTextColor(60, 60, 60);
+            doc.setFont(undefined, 'normal');
+            doc.text('Gerente do Setor de Logística', 105, yPos + 14, { align: 'center' });
+
+            yPos += 20;
 
             doc.setDrawColor(180, 180, 180);
             doc.setLineWidth(0.5);
@@ -584,6 +611,7 @@ function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFi
 
     const motorista = motoristas.find(m => m.id === motoristaId);
     const nomeMotorista = motorista?.nome || 'Motorista';
+    const nomeEmpresarial = motorista?.nome_empresarial || null;
 
     const dadosFormatados = dados.map(l => {
         const veiculoInfo = veiculos.find(v => v.id === l.veiculo_id);
@@ -604,7 +632,7 @@ function exportarQuinzenalMotorista(lancamentos, motoristaId, dataInicio, dataFi
     });
 
     if (typeof gerarPDFQuinzenalMensal === 'function') {
-        gerarPDFQuinzenalMensal(dadosFormatados, nomeMotorista);
+        gerarPDFQuinzenalMensal(dadosFormatados, nomeMotorista, nomeEmpresarial);
     } else {
         mostrarToast('Função de PDF não disponível', 'error');
     }

@@ -116,7 +116,7 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
                 limparTexto(e.celular || '-'),
                 e.maquina_cartao || '0',
                 limparTexto(e.nf || '-'),
-                e.peso_carga ? `${e.peso_carga}kg` : '-',
+                e.peso_carga ? `${e.peso_carga} kg` : '-',
                 limparTexto(e.retornos || '-'),
                 limparTexto(e.carregamento || '-')
             ];
@@ -288,10 +288,10 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
     doc.text(resumoTexto, 14, finalY);
     
     doc.text(`Total NF: ${totalNFGeral}`, 175, finalY);
-    doc.text(`Total Peso: ${totalPesoGeral}kg`, 210, finalY);
+    doc.text(`Total Peso: ${totalPesoGeral} kg`, 210, finalY);
     
     const dataGeracao = new Date().toLocaleString('pt-BR');
-    doc.text(`Gerado em: ${dataGeracao}`, 270, finalY, { align: 'right' });
+     doc.text(`Gerado em: ${dataGeracao}`, 270, finalY + 5, { align: 'right' });
 
     // ===== ADICIONAR LOGO E SALVAR =====
     const nomeArquivo = `escala_${dados[0].data}.pdf`;

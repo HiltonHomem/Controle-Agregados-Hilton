@@ -110,11 +110,12 @@ text
 ├── controle_agregados.html        # Controle Financeiro de Agregados
 ├── dashboard.html                 # Dashboard com gráficos
 ├── veiculos.html                  # Gestão de Veículos
+├── multas.html                    # Gestão de Multas (Manual, 2 Fases, CNPJ 11.216.118/0001-78)
 ├── scripts/
 │   ├── supabase.js               # Configuração do Supabase
+│   ├── multas.js                 # Lógica de multas manuais e descontos
+│   ├── multas.sql                # DDL da tabela multas e descontos_lancamentos
 │   └── export_pdf.js             # Geração de relatórios PDF
-├── schema.sql                    # Estrutura do banco de dados
-└── seed.sql                      # Dados iniciais
 🔧 Configuração
 1. Configurar Supabase
 Crie uma conta no Supabase

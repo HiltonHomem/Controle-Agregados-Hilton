@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="scripts/supabase.js?v=1.0"></script>
-    <script src="scripts/header.js?v=1.1"></script>
+    <script src="scripts/header.js?v=1.2"></script>
     
     <!-- Bibliotecas para PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -147,14 +147,14 @@
             window.location.href = 'login.html';
         }
 
-        // ===== CARREGAR AJUDANTES DO TIPO AGREGADO =====
+        // ===== CARREGAR AJUDANTES DO TIPO AGREGADO OU SEM TIPO (NULL) =====
         async function carregarAjudantes() {
             try {
-                // Buscar apenas ajudantes com tipo = 'agregado' e ativos
+                // Buscar ajudantes com tipo = 'agregado' OU tipo IS NULL, e que estejam ativos
                 const { data, error } = await supabaseClient
                     .from('ajudantes')
                     .select('*')
-                    .eq('tipo', 'agregado')
+                    .or('tipo.eq.agregado,tipo.is.null')
                     .eq('ativo', true)
                     .order('nome');
 
@@ -382,6 +382,9 @@
                 doc.setDrawColor(200, 200, 200);
                 doc.line(15, 45, 195, 45);
 
+                // Nome a ser exibido no recibo (usa nome_completo se existir, senão usa nome)
+                const nomeExibicao = (ajudante.nome_completo && ajudante.nome_completo.trim()) ? ajudante.nome_completo.trim() : ajudante.nome;
+
                 // Dados do Ajudante
                 doc.setFontSize(12);
                 doc.setTextColor(51, 51, 51);
@@ -390,7 +393,7 @@
                 
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
-                doc.text(`Nome: ${ajudante.nome}`, 15, 63);
+                doc.text(`Nome: ${nomeExibicao}`, 15, 63);
                 doc.text(`CPF: ${formatarCPF(ajudante.cpf)}`, 15, 69); // 🔧 CPF formatado
 
                 // Dados da Viagem
@@ -428,9 +431,12 @@
                 doc.setFontSize(10);
                 doc.setTextColor(80, 80, 80);
                 doc.setFont(undefined, 'normal');
-                doc.text('Assinatura do Ajudante', 120, 190, { align: 'center' });
+                doc.text(nomeExibicao, 120, 190, { align: 'center' });
+                doc.setFontSize(8);
+                doc.setTextColor(120, 120, 120);
+                doc.text('Assinatura do Ajudante', 120, 195, { align: 'center' });
 
-                const nomeArquivo = `recibo_${ajudante.nome.replace(/\s/g, '_')}_${viagemSelecionada.escala_data}.pdf`;
+                const nomeArquivo = `recibo_${nomeExibicao.replace(/\s/g, '_')}_${viagemSelecionada.escala_data}.pdf`;
                 doc.save(nomeArquivo);
                 mostrarToast(`Recibo gerado com sucesso!`);
             }

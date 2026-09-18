@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Multas & Infrações</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase.js?v=1.0"></script>
+    <script src="scripts/header.js?v=1.2"></script>
+    <script src="scripts/multas.js?v=1.1"></script>
+
+    <style>
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-6 text-gray-800">
+    <div class="max-w-7xl mx-auto">
+        <!-- ===== HEADER ===== -->
+        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 text-white rounded-2xl p-5 mb-6 shadow-lg flex flex-col gap-3">
+            <!-- Injetado por scripts/header.js -->
+        </header>
+
+        <!-- ===== BARRA DE AÇÕES PRINCIPAIS ===== -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">🚨</span>
+                <div>
+                    <h2 class="text-base font-bold text-gray-800">Central de Gestão de Multas & Infrações</h2>
+                    <p class="text-xs text-gray-500">
+                        CNPJ da Empresa: <strong class="text-indigo-700 font-mono">11.216.118/0001-78</strong> • Controle de Autuações, Penalidades e Descontos de Motoristas
+                    </p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="rolarParaFormulario()" class="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition">
+                    ➕ <span>Cadastrar Nova Multa</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== INDICADORES / KPIS ===== -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-600">
+                <div class="text-2xl font-black text-blue-600" id="kpiTotalMultas">0</div>
+                <div class="text-xs text-gray-500 font-semibold uppercase mt-0.5">Total de Multas</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500">
+                <div class="text-2xl font-black text-amber-500" id="kpiAutuacao">0</div>
+                <div class="text-xs text-gray-500 font-semibold uppercase mt-0.5">🟡 1. Em Autuação</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-rose-500">
+                <div class="text-2xl font-black text-rose-500" id="kpiPenalidade">0</div>
+                <div class="text-xs text-gray-500 font-semibold uppercase mt-0.5">🔴 2. Em Penalidade</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500">
+                <div class="text-2xl font-black text-emerald-500" id="kpiPagas">0</div>
+                <div class="text-xs text-gray-500 font-semibold uppercase mt-0.5">Pagas</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-600">
+                <div class="text-lg font-black text-purple-700" id="kpiValorPendente">R$ 0,00</div>
+                <div class="text-xs text-gray-500 font-semibold uppercase mt-0.5">Total a Cobrar</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-teal-600">
+                <div class="text-lg font-black text-teal-700" id="kpiValorDescontado">R$ 0,00</div>
+                <div class="text-xs text-gray-500 font-semibold uppercase mt-0.5">Total Descontado</div>
+            </div>
+        </div>
+
+        <!-- ===== MODAL DE CADASTRO / EDIÇÃO DE MULTA ===== -->
+        <div id="modalMulta" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 md:p-4 overflow-y-auto">
+            <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl animate-slide-up border border-gray-100 my-auto max-h-[92vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-100 sticky top-0 bg-white z-10">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">📝</span>
+                        <h3 class="text-base md:text-lg font-bold text-gray-800" id="modalMultaTitulo">Nova Infração / Auto de Infração</h3>
+                        <span id="formModoBadge" class="bg-blue-600 text-white text-xs px-2.5 py-0.5 rounded-full font-semibold">Inserção</span>
+                    </div>
+                    <button type="button" onclick="fecharModalMulta()" class="text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>
+                </div>
+
+                <form id="multaForm" onsubmit="salvarMulta(event)">
+                    <input type="hidden" id="multaId" value="">
+                    <input type="hidden" id="cnpjEmpresa" value="11.216.118/0001-78">
+
+                    <!-- 1. BLOCO: IDENTIFICAÇÃO E VÍNCULO -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span>1. Auto de Infração & Vínculo</span>
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">N° do Auto (AIT) *</label>
+                                <input type="text" id="numeroAutoInfracao" placeholder="Ex: R004928172" class="border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase font-bold focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Cód. Renainf</label>
+                                <input type="text" id="codigoRenainf" placeholder="Opcional" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-purple-800 mb-1">🔗 Auto Originário (Se derivado/NIC)</label>
+                                <select id="autoOrigemId" class="border border-purple-300 bg-purple-50/50 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500">
+                                    <option value="">Nenhum (Auto Originário Próprio)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. BLOCO: VEÍCULO E CONDUTOR (SEM DUPLICIDADE) -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span>2. Veículo & Motorista</span>
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Veículo (Placa / Modelo) *</label>
+                                <select id="veiculoId" onchange="aoSelecionarVeiculo()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500" required>
+                                    <option value="">Selecione o veículo...</option>
+                                </select>
+                                <input type="hidden" id="placa" value="">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Motorista Responsável</label>
+                                <select id="motoristaId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Selecione o motorista...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. BLOCO: DADOS DA INFRAÇÃO -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span>3. Motivo & Dados da Infração</span>
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                            <div class="flex flex-col sm:col-span-1">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Cód. Infração *</label>
+                                <input type="text" id="codigoInfracao" placeholder="Ex: 7455-0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" required>
+                                <input type="hidden" id="desdobramentoInfracao" value="0">
+                            </div>
+                            <div class="flex flex-col sm:col-span-2">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Motivo / Descrição da Infração *</label>
+                                <input type="text" id="descricaoInfracao" placeholder="Ex: Velocidade superior à máxima em até 20%" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div class="flex flex-col sm:col-span-1">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Órgão Autuador</label>
+                                <input type="text" id="orgaoAutuador" placeholder="Ex: PRF / DETRAN" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. BLOCO: CICLO DE VIDA (2 FASES) -->
+                    <div class="mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-200">
+                            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                ⚙️ Fase da Notificação (Autuação vs Penalidade)
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <select id="faseInfracao" onchange="alternarCamposFase()" class="bg-white border-2 border-indigo-600 font-bold text-indigo-900 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-indigo-500">
+                                    <option value="AUTUACAO">🟡 1. Autuação (Defesa Prévia)</option>
+                                    <option value="PENALIDADE">🔴 2. Penalidade (Gera Cobrança e Boleto)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Seção Autuação -->
+                            <div id="secaoAutuacao" class="p-3 bg-white rounded-lg border border-amber-200 transition">
+                                <h5 class="text-xs font-bold text-amber-800 uppercase mb-2">🟡 Fase 1: Autuação</h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="flex flex-col">
+                                        <label class="text-xs font-medium text-gray-600 mb-1">Emissão da Autuação</label>
+                                        <input type="date" id="dataEmissaoAutuacao" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <label class="text-xs font-bold text-amber-900 mb-1">Prazo Limite p/ Defesa</label>
+                                        <input type="date" id="dataLimiteDefesaAutuacao" class="border border-amber-300 bg-amber-50/40 rounded-lg px-3 py-1.5 text-sm font-semibold">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Seção Penalidade -->
+                            <div id="secaoPenalidade" class="p-3 bg-white rounded-lg border border-rose-200 transition">
+                                <h5 class="text-xs font-bold text-rose-800 uppercase mb-2">🔴 Fase 2: Penalidade</h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div class="flex flex-col">
+                                        <label class="text-xs font-medium text-gray-600 mb-1">N° Notif.</label>
+                                        <input type="text" id="numeroNotificacaoPenalidade" placeholder="Ex: PEN-01" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm">
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <label class="text-xs font-medium text-gray-600 mb-1">Emissão</label>
+                                        <input type="date" id="dataEmissaoPenalidade" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm">
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <label class="text-xs font-bold text-rose-800 mb-1">Vencimento Pgto *</label>
+                                        <input type="date" id="dataVencimentoPenalidade" class="border border-rose-300 bg-rose-50/40 rounded-lg px-2 py-1.5 text-sm font-semibold">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. BLOCO: VALORES & DESCONTO DO MOTORISTA -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span>4. Valores & Desconto</span>
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Valor Real / Integral (R$) *</label>
+                                <input type="number" step="0.01" id="valorIntegral" placeholder="0.00" class="border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-emerald-700 mb-1">Valor com Desconto SNE (R$)</label>
+                                <input type="number" step="0.01" id="valorComDesconto" placeholder="0.00" class="border border-emerald-300 bg-emerald-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-semibold text-gray-700 mb-1">Status da Multa</label>
+                                <select id="statusPagamento" class="border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500">
+                                    <option value="PENDENTE">⏳ Pendente</option>
+                                    <option value="EM_DEFESA">🛡️ Em Recurso / Defesa</option>
+                                    <option value="PAGO">✅ Pago</option>
+                                    <option value="VENCIDO">⚠️ Vencido</option>
+                                    <option value="CANCELADA">❌ Cancelada</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-indigo-50/60 p-3 rounded-lg border border-indigo-200 flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="descontarMotorista" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer">
+                                <label for="descontarMotorista" class="text-sm font-bold text-indigo-900 cursor-pointer">
+                                    💸 A empresa irá descontar esta multa do motorista
+                                </label>
+                            </div>
+                            <span class="text-xs text-indigo-600">
+                                * Se marcado, você poderá registrar o débito na tabela <code>descontos_lancamentos</code>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 6. BLOCO: OBSERVAÇÕES -->
+                    <div class="mb-4">
+                        <label class="text-xs font-semibold text-gray-600 mb-1 block">Observações Adicionais</label>
+                        <textarea id="observacoes" rows="2" placeholder="Anotações sobre a infração..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                        <button type="button" onclick="fecharModalMulta()" class="px-5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="btnSalvar" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition">
+                            💾 Salvar Infração
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== TABELA DE MULTAS & FILTROS ===== -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-lg font-bold text-gray-800">📋 Lista de Infrações e Notificações</h2>
+                    <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="totalMultasBadge">0</span>
+                </div>
+                <div id="loadingIndicador" class="hidden text-xs text-blue-600 font-medium flex items-center gap-1">
+                    <span class="animate-spin">⏳</span> Carregando dados...
+                </div>
+            </div>
+
+            <!-- Barra de Filtros -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 mb-4 bg-gray-50 p-3 rounded-lg">
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 mb-1">Filtrar por Fase</label>
+                    <select id="filtroFase" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white">
+                        <option value="">Todas as Fases</option>
+                        <option value="AUTUACAO">🟡 1. Autuação</option>
+                        <option value="PENALIDADE">🔴 2. Penalidade</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 mb-1">Status de Pagamento</label>
+                    <select id="filtroStatus" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white">
+                        <option value="">Todos os Status</option>
+                        <option value="PENDENTE">⏳ Pendente</option>
+                        <option value="PAGO">✅ Pago</option>
+                        <option value="VENCIDO">⚠️ Vencido</option>
+                        <option value="EM_DEFESA">🛡️ Em Recurso</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 mb-1">Desconto Motorista</label>
+                    <select id="filtroDesconto" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white">
+                        <option value="">Todos</option>
+                        <option value="SIM">Com Desconto Previsto</option>
+                        <option value="PENDENTE">Aguardando Efetivar Desconto</option>
+                        <option value="NAO">Sem Desconto</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 mb-1">Motorista</label>
+                    <select id="filtroMotorista" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white">
+                        <option value="">Todos os Motoristas</option>
+                    </select>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-xs font-semibold text-gray-600 mb-1">Buscar Infração / AIT</label>
+                    <input type="text" id="filtroBusca" placeholder="AIT, placa, código..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white">
+                </div>
+            </div>
+
+            <!-- Tabela Responsiva -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100/80 text-gray-700 text-xs uppercase tracking-wider font-semibold border-b border-gray-200">
+                            <th class="px-4 py-3">Auto (AIT) / Código</th>
+                            <th class="px-4 py-3">Placa / Veículo</th>
+                            <th class="px-4 py-3">Motorista</th>
+                            <th class="px-4 py-3">Motivo da Infração</th>
+                            <th class="px-4 py-3">Fase</th>
+                            <th class="px-4 py-3">Prazos & Validade</th>
+                            <th class="px-4 py-3">Valores & Status</th>
+                            <th class="px-4 py-3">Desconto</th>
+                            <th class="px-4 py-3 text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaMultasBody">
+                        <!-- Injetado dinamicamente por multas.js -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE EFETUAÇÃO DE DESCONTO ===== -->
+    <div id="modalDesconto" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-slide-up border border-gray-100">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <span>💸 Lançar Desconto para Motorista</span>
+                </h3>
+                <button onclick="fecharModalDesconto()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <p class="text-xs text-gray-600 mb-4">
+                Este desconto será gravado na tabela <strong>descontos_lancamentos</strong> e vinculado à respectiva multa.
+            </p>
+
+            <form onsubmit="confirmarDescontoLancamento(event)">
+                <input type="hidden" id="modalDescontoMultaId">
+                <div class="flex flex-col gap-3 mb-5">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Infração Vinculada</label>
+                        <div id="modalDescontoAitInfo" class="font-bold text-gray-800 text-sm bg-gray-50 p-2 rounded border border-gray-200">-</div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-700 block mb-1">Motorista Responsável *</label>
+                        <select id="modalDescontoMotoristaId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium" required>
+                            <option value="">Selecione o motorista...</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-700 block mb-1">Valor do Desconto (R$) *</label>
+                            <input type="number" step="0.01" id="modalDescontoValor" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-700 block mb-1">Data do Débito *</label>
+                            <input type="date" id="modalDescontoData" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-700 block mb-1">Descrição / Histórico</label>
+                        <textarea id="modalDescontoObs" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="fecharModalDesconto()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">Cancelar</button>
+                    <button type="submit" id="btnConfirmarDesconto" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
+                        Confirmar Desconto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE REGISTRAR PAGAMENTO DA MULTA ===== -->
+    <div id="modalPagamento" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-slide-up border border-gray-100">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <span>💳 Registrar Pagamento da Multa</span>
+                </h3>
+                <button type="button" onclick="fecharModalPagamento()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">&times;</button>
+            </div>
+
+            <form onsubmit="confirmarPagamentoMulta(event)">
+                <input type="hidden" id="pagamentoMultaId">
+                <div class="flex flex-col gap-3 mb-5">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 uppercase">Auto de Infração</label>
+                        <div id="pagamentoAitInfo" class="font-bold text-gray-800 text-sm bg-gray-50 p-2.5 rounded-lg border border-gray-200">-</div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-700 block mb-1">Valor Efetivamente Pago (R$) *</label>
+                        <input type="number" step="0.01" id="pagamentoValorPago" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold text-emerald-800" required>
+                        <span class="text-xs text-gray-500">Pode ser o valor com desconto SNE ou valor integral.</span>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-700 block mb-1">Data do Pagamento / Liquidação *</label>
+                        <input type="date" id="pagamentoData" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="fecharModalPagamento()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">Cancelar</button>
+                    <button type="submit" id="btnConfirmarPgto" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
+                        Confirmar Pagamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -40,6 +40,12 @@ const CONFIG_PAGINAS = {
         funcaoAtualizar: 'carregarDados()',
         botoesExtras: []
     },
+    'multas.html': { 
+        titulo: '🚨 Gestão de Multas & Infrações', 
+        subtitulo: 'Lançamento manual, 2 fases e controle de descontos', 
+        funcaoAtualizar: 'carregarDados()',
+        botoesExtras: []
+    },
     'admin.html': { 
         titulo: '⚙️ Administração', 
         subtitulo: 'Logs de auditoria do sistema', 
@@ -54,6 +60,7 @@ const PAGINAS_MENU = [
     { arquivo: 'dashboard.html', icone: '📊', nome: 'Dashboard' },
     { arquivo: 'controle_agregados.html', icone: '💰', nome: 'Agregados' },
     { arquivo: 'veiculos.html', icone: '🚗', nome: 'Veículos' },
+    { arquivo: 'multas.html', icone: '🚨', nome: 'Multas' },
     { arquivo: 'funcionarios.html', icone: '👥', nome: 'Funcionários' },
     { arquivo: 'ajudante-agregado.html', icone: '🛠️', nome: 'Ajudantes Agregados' },
     { arquivo: 'admin.html', icone: '⚙️', nome: 'Admin' }
