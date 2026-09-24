@@ -110,7 +110,7 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
             return [
                 limparTexto(e.veiculo_nome || '-'),
                 limparTexto(e.veiculo_placa || '-'),
-                limparTexto(e.motorista_nome_completo || '-'),
+                limparTexto(e.motorista_nome || e.motorista_nome_completo || '-'),
                 limparTexto(e.nomes_ajudantes || '-'),
                 limparTexto(e.rota || '-'),
                 limparTexto(e.celular || '-'),
@@ -147,11 +147,11 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
             },
             columnStyles: {
                 0: { cellWidth: colWidths[0], halign: 'left' },
-                1: { cellWidth: colWidths[1], halign: 'center' },
-                2: { cellWidth: colWidths[2], halign: 'left' },
-                3: { cellWidth: colWidths[3], halign: 'left' },
-                4: { cellWidth: colWidths[4], halign: 'left' },
-                5: { cellWidth: colWidths[5], halign: 'center' },
+                1: { cellWidth: colWidths[1], halign: 'center', fontStyle: 'bold' },
+                2: { cellWidth: colWidths[2], halign: 'left', fontStyle: 'bold' },
+                3: { cellWidth: colWidths[3], halign: 'left', fontStyle: 'bold' },
+                4: { cellWidth: colWidths[4], halign: 'left', fontStyle: 'bold' },
+                5: { cellWidth: colWidths[5], halign: 'center', fontStyle: 'bold' },
                 6: { cellWidth: colWidths[6], halign: 'center' },
                 7: { cellWidth: colWidths[7], halign: 'center' },
                 8: { cellWidth: colWidths[8], halign: 'center' },
@@ -160,12 +160,6 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
             },
             alternateRowStyles: {
                 fillColor: [248, 249, 250]
-            },
-            didParseCell: function(data) {
-                if (data.column.index === 2 && data.cell.raw && data.cell.raw.includes('(')) {
-                    data.cell.styles.textColor = [139, 92, 246];
-                    data.cell.styles.fontStyle = 'italic';
-                }
             },
             margin: { left: 14, right: 14 },
             pageBreak: 'avoid'
@@ -261,7 +255,7 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
                     fillColor: [248, 249, 250]
                 },
                 didParseCell: function(data) {
-                    if (data.column.index >= 1 && data.column.index <= 5 && data.cell.raw && data.cell.raw !== '-') {
+                    if (data.section === 'body' && data.column.index >= 1 && data.column.index <= 5 && data.cell.raw && data.cell.raw !== '-') {
                         data.cell.styles.textColor = [128, 0, 128];
                         data.cell.styles.fontStyle = 'bold';
                     }

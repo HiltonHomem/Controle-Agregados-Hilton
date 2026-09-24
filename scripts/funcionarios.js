@@ -134,15 +134,36 @@ async function salvarStatus(event) {
 }
 
 // ===== RENDERIZAR TABELA =====
+function obterRegistrosFiltrados() {
+    const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+    const dataFim = document.getElementById('filtroDataFim')?.value || '';
+    const filtroBusca = (document.getElementById('filtroBusca')?.value || '').toLowerCase().trim();
+
+    return statusRegistros.filter(r => {
+        // Filtro de período
+        if (dataInicio && r.data < dataInicio) return false;
+        if (dataFim && r.data > dataFim) return false;
+
+        // Se tiver funcionário vinculado
+        const func = funcionarios.find(f => f.id === r.funcionario_id && f.origem === r.tipo);
+        const nome = func ? func.nome.toLowerCase() : '';
+
+        if (filtroBusca && !nome.includes(filtroBusca)) return false;
+
+        // Só exibe se tiver pelo menos um campo preenchido
+        const temRegistro = r.banco_horas || r.ferias || r.licenca_medica || r.falta || r.sobra || r.observacao;
+        return !!temRegistro;
+    });
+}
+
 function renderizarTabela() {
     const tbody = document.getElementById('funcionariosBody');
     const thead = document.querySelector('#funcionariosBody').closest('table').querySelector('thead');
-    const filtroData = document.getElementById('filtroData').value;
-    const filtroBusca = document.getElementById('filtroBusca').value.toLowerCase();
 
-    // 🔧 CABEÇALHO GERADO DINAMICAMENTE
+    // 🔧 CABEÇALHO COM A COLUNA DATA
     thead.innerHTML = `
         <tr>
+            <th class="border border-gray-300 px-3 py-2 text-center font-bold text-black w-24">DATA</th>
             <th class="border border-gray-300 px-3 py-2 text-left font-bold text-black">NOME</th>
             <th class="border border-gray-300 px-3 py-2 text-left font-bold text-red-600">BANCO DE HORAS</th>
             <th class="border border-gray-300 px-3 py-2 text-left font-bold text-red-600">FÉRIAS:</th>
@@ -153,44 +174,44 @@ function renderizarTabela() {
         </tr>
     `;
 
-    let funcionariosFiltrados = [...funcionarios];
-    if (filtroBusca) {
-        funcionariosFiltrados = funcionariosFiltrados.filter(f => f.nome.toLowerCase().includes(filtroBusca));
-    }
+    const registros = obterRegistrosFiltrados();
 
-    if (funcionariosFiltrados.length === 0) {
+    if (registros.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center py-10 text-gray-400">
-                    <div class="text-5xl mb-2">👥</div>
-                    <p>Nenhum funcionário encontrado</p>
+                <td colspan="8" class="text-center py-10 text-gray-400">
+                    <div class="text-5xl mb-2">📭</div>
+                    <p>Nenhum registro de situação para o período selecionado</p>
                 </td>
             </tr>
         `;
+        document.getElementById('totalRegistros').textContent = '0';
         return;
     }
 
+    // Ordenar por data decrescente e depois por nome
+    const registrosOrdenados = [...registros].sort((a, b) => {
+        if (a.data !== b.data) return b.data.localeCompare(a.data);
+        const funcA = funcionarios.find(f => f.id === a.funcionario_id && f.origem === a.tipo)?.nome || '';
+        const funcB = funcionarios.find(f => f.id === b.funcionario_id && f.origem === b.tipo)?.nome || '';
+        return funcA.localeCompare(funcB);
+    });
+
     let html = '';
-    funcionariosFiltrados.forEach(func => {
-        const registro = statusRegistros.find(r => 
-            r.funcionario_id === func.id && 
-            r.tipo === func.origem &&
-            (!filtroData || r.data === filtroData)
-        );
+    registrosOrdenados.forEach(r => {
+        const func = funcionarios.find(f => f.id === r.funcionario_id && f.origem === r.tipo);
+        const nomeFunc = func ? func.nome : `ID ${r.funcionario_id}`;
 
-        const bancoHoras = registro?.banco_horas || '';
-        const ferias = registro?.ferias || '';
-        const licencaMedica = registro?.licenca_medica || '';
-        const falta = registro?.falta || '';
-        const sobra = registro?.sobra || '';
+        const bancoHoras = r.banco_horas || '';
+        const ferias = r.ferias || '';
+        const licencaMedica = r.licenca_medica || '';
+        const falta = r.falta || '';
+        const sobra = r.sobra || '';
 
-        const temRegistro = bancoHoras || ferias || licencaMedica || falta || sobra;
-        if (!temRegistro) return;
-
-        // 🔧 BOTÕES: Visualizar, Editar e Excluir
         html += `
             <tr class="border-b border-gray-200 hover:bg-gray-50">
-                <td class="border border-gray-300 px-3 py-2 font-bold">${func.nome}</td>
+                <td class="border border-gray-300 px-3 py-2 text-center text-xs font-semibold text-gray-700 whitespace-nowrap">${formatarData(r.data)}</td>
+                <td class="border border-gray-300 px-3 py-2 font-bold">${nomeFunc}</td>
                 <td class="border border-gray-300 px-3 py-2">
                     ${bancoHoras ? `<span class="text-blue-700 font-semibold">${bancoHoras}</span>` : ''}
                 </td>
@@ -206,42 +227,30 @@ function renderizarTabela() {
                 <td class="border border-gray-300 px-3 py-2">
                     ${sobra ? `<span class="text-green-700 font-semibold">${sobra}</span>` : ''}
                 </td>
-                <td class="border border-gray-300 px-3 py-2 text-center">
-                    <button onclick="abrirModalVisualizar(${func.id}, '${filtroData || ''}', '${func.origem}')" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition">👁️</button>
-                    <button onclick="abrirModalEditar(${func.id}, '${filtroData || ''}', '${func.origem}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition">✏️</button>
-                    <button onclick="excluirRegistro(${func.id}, '${filtroData || ''}', '${func.origem}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition">🗑️</button>
+                <td class="border border-gray-300 px-3 py-2 text-center whitespace-nowrap">
+                    <button onclick="abrirModalVisualizar(${r.id})" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition" title="Visualizar">👁️</button>
+                    <button onclick="abrirModalEditar(${r.id})" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition" title="Editar">✏️</button>
+                    <button onclick="excluirRegistro(${r.id})" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition" title="Excluir">🗑️</button>
                 </td>
             </tr>
         `;
     });
 
-    if (html === '') {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center py-10 text-gray-400">
-                    <div class="text-5xl mb-2">📭</div>
-                    <p>Nenhum registro de situação para este dia</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
     tbody.innerHTML = html;
-    document.getElementById('totalRegistros').textContent = funcionariosFiltrados.length;
+    document.getElementById('totalRegistros').textContent = registrosOrdenados.length;
 }
 
 // ===== MODAL DE VISUALIZAÇÃO =====
-function abrirModalVisualizar(funcionarioId, data, tipo) {
-    const funcionario = funcionarios.find(f => f.id === funcionarioId && f.origem === tipo);
-    const registro = statusRegistros.find(r => r.funcionario_id === funcionarioId && r.tipo === tipo && (!data || r.data === data));
-
-    if (!funcionario || !registro) {
-        mostrarToast('Nenhum registro encontrado para visualizar', 'info');
+function abrirModalVisualizar(registroId) {
+    const registro = statusRegistros.find(r => r.id === registroId);
+    if (!registro) {
+        mostrarToast('Registro não encontrado', 'info');
         return;
     }
 
-    document.getElementById('visualizarNome').textContent = funcionario.nome;
+    const funcionario = funcionarios.find(f => f.id === registro.funcionario_id && f.origem === registro.tipo);
+
+    document.getElementById('visualizarNome').textContent = funcionario?.nome || 'Desconhecido';
     document.getElementById('visualizarData').textContent = formatarData(registro.data);
     document.getElementById('visualizarBancoHoras').textContent = registro.banco_horas || '-';
     document.getElementById('visualizarFerias').textContent = registro.ferias || '-';
@@ -262,18 +271,20 @@ function fecharModalVisualizar() {
 }
 
 // ===== MODAL DE EDIÇÃO =====
-function abrirModalEditar(funcionarioId, data, tipo) {
-    const funcionario = funcionarios.find(f => f.id === funcionarioId && f.origem === tipo);
-    const registro = statusRegistros.find(r => r.funcionario_id === funcionarioId && r.tipo === tipo && (!data || r.data === data));
-
-    if (!funcionario || !registro) {
-        mostrarToast('Nenhum registro encontrado para editar', 'info');
+function abrirModalEditar(registroId) {
+    const registro = statusRegistros.find(r => r.id === registroId);
+    if (!registro) {
+        mostrarToast('Registro não encontrado para editar', 'info');
         return;
     }
 
-    document.getElementById('modalFuncionarioNome').value = funcionario.nome;
-    document.getElementById('modalFuncionarioId').value = funcionarioId;
-    document.getElementById('modalTipo').value = tipo;
+    const funcionario = funcionarios.find(f => f.id === registro.funcionario_id && f.origem === registro.tipo);
+
+    document.getElementById('modalRegistroId').value = registro.id;
+    document.getElementById('modalDataRegistro').value = registro.data;
+    document.getElementById('modalFuncionarioNome').value = `${funcionario?.nome || ''} (${formatarData(registro.data)})`;
+    document.getElementById('modalFuncionarioId').value = registro.funcionario_id;
+    document.getElementById('modalTipo').value = registro.tipo;
     document.getElementById('modalBancoHoras').value = registro.banco_horas || '';
     document.getElementById('modalFerias').value = registro.ferias || '';
     document.getElementById('modalLicencaMedica').value = registro.licenca_medica || '';
@@ -296,8 +307,10 @@ function fecharModalEditar() {
 async function salvarEdicaoModal(event) {
     event.preventDefault();
     
+    const registroId = document.getElementById('modalRegistroId').value;
     const funcionarioId = document.getElementById('modalFuncionarioId').value;
     const tipo = document.getElementById('modalTipo').value;
+    const dataRegistro = document.getElementById('modalDataRegistro').value;
 
     const bancoHoras = document.getElementById('modalBancoHoras').value.trim();
     const ferias = document.getElementById('modalFerias').value.trim();
@@ -316,44 +329,18 @@ async function salvarEdicaoModal(event) {
     };
 
     try {
-        // Buscar o registro exato
-        const { data: existente } = await supabaseClient
-            .from('funcionarios_status')
-            .select('id')
-            .eq('funcionario_id', parseInt(funcionarioId))
-            .eq('tipo', tipo)
-            .eq('data', document.getElementById('statusData').value) // Para a busca pelo dia atual
-            .maybeSingle();
+        let query = supabaseClient.from('funcionarios_status').update(dados);
 
-        // Se a data selecionada no filtro não for hoje, buscar pelo valor correto
-        if (!existente) {
-            const { data: buscarData } = await supabaseClient
-                .from('funcionarios_status')
-                .select('id')
-                .eq('funcionario_id', parseInt(funcionarioId))
-                .eq('tipo', tipo)
-                .eq('data', document.getElementById('filtroData').value)
-                .maybeSingle();
-            
-            if (buscarData) {
-                const { error } = await supabaseClient
-                    .from('funcionarios_status')
-                    .update(dados)
-                    .eq('id', buscarData.id);
-                
-                if (error) throw error;
-            } else {
-                mostrarToast('Data não encontrada no registro', 'error');
-                return;
-            }
+        if (registroId) {
+            query = query.eq('id', parseInt(registroId));
         } else {
-            const { error } = await supabaseClient
-                .from('funcionarios_status')
-                .update(dados)
-                .eq('id', existente.id);
-            
-            if (error) throw error;
+            query = query.eq('funcionario_id', parseInt(funcionarioId))
+                         .eq('tipo', tipo)
+                         .eq('data', dataRegistro);
         }
+
+        const { error } = await query;
+        if (error) throw error;
 
         mostrarToast('Registro atualizado com sucesso!');
         fecharModalEditar();
@@ -365,16 +352,14 @@ async function salvarEdicaoModal(event) {
 }
 
 // ===== EXCLUSÃO =====
-async function excluirRegistro(funcionarioId, data, tipo) {
+async function excluirRegistro(registroId) {
     if (!confirm('Deseja realmente excluir este registro?')) return;
 
     try {
         const { error } = await supabaseClient
             .from('funcionarios_status')
             .delete()
-            .eq('funcionario_id', funcionarioId)
-            .eq('data', data)
-            .eq('tipo', tipo);
+            .eq('id', parseInt(registroId));
 
         if (error) throw error;
 
@@ -384,6 +369,139 @@ async function excluirRegistro(funcionarioId, data, tipo) {
         console.error('Erro ao excluir registro:', error);
         mostrarToast('Erro ao excluir registro', 'error');
     }
+}
+
+// ===== RELATÓRIO GERAL EM PDF =====
+async function gerarRelatorioFuncionariosPDF() {
+    if (typeof window.jspdf === 'undefined') {
+        mostrarToast('Biblioteca PDF não carregada!', 'error');
+        return;
+    }
+
+    const dataInicio = document.getElementById('filtroDataInicio')?.value || '';
+    const dataFim = document.getElementById('filtroDataFim')?.value || '';
+    const registros = obterRegistrosFiltrados();
+
+    if (registros.length === 0) {
+        mostrarToast('Nenhum registro para exportar no período selecionado.', 'info');
+        return;
+    }
+
+    // Ordenação cronológica para o relatório
+    const registrosOrdenados = [...registros].sort((a, b) => {
+        if (a.data !== b.data) return a.data.localeCompare(b.data);
+        const funcA = funcionarios.find(f => f.id === a.funcionario_id && f.origem === a.tipo)?.nome || '';
+        const funcB = funcionarios.find(f => f.id === b.funcionario_id && f.origem === b.tipo)?.nome || '';
+        return funcA.localeCompare(funcB);
+    });
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape', 'mm', 'a4');
+
+    const corHeader = [128, 0, 128]; // Roxo
+    const corPrimaria = [26, 115, 232];
+
+    // ===== CABEÇALHO =====
+    doc.setFontSize(16);
+    doc.setTextColor(corPrimaria[0], corPrimaria[1], corPrimaria[2]);
+    doc.setFont(undefined, 'bold');
+    doc.text('RELATÓRIO GERAL - SITUAÇÃO DOS FUNCIONÁRIOS', 14, 15);
+
+    doc.setFontSize(10);
+    doc.setTextColor(51, 51, 51);
+    doc.setFont(undefined, 'normal');
+
+    let textoPeriodo = 'Período: Todos os registros cadastrados';
+    if (dataInicio && dataFim) {
+        textoPeriodo = `Período: ${formatarData(dataInicio)} até ${formatarData(dataFim)}`;
+    } else if (dataInicio) {
+        textoPeriodo = `A partir de: ${formatarData(dataInicio)}`;
+    } else if (dataFim) {
+        textoPeriodo = `Até: ${formatarData(dataFim)}`;
+    }
+    doc.text(textoPeriodo, 14, 22);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Total de Registros: ${registrosOrdenados.length}`, 14, 28);
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 32, 283, 32);
+
+    // Linhas da tabela
+    const headers = ['Data', 'Nome', 'Função', 'Banco de Horas', 'Férias', 'Licença Médica', 'Falta', 'Sobra', 'Observação'];
+    const rows = registrosOrdenados.map(r => {
+        const func = funcionarios.find(f => f.id === r.funcionario_id && f.origem === r.tipo);
+        return [
+            formatarData(r.data),
+            func?.nome || `ID ${r.funcionario_id}`,
+            r.tipo === 'motorista' ? 'Motorista' : 'Ajudante',
+            r.banco_horas || '-',
+            r.ferias || '-',
+            r.licenca_medica || '-',
+            r.falta || '-',
+            r.sobra || '-',
+            r.observacao || '-'
+        ];
+    });
+
+    doc.autoTable({
+        startY: 36,
+        head: [headers],
+        body: rows,
+        theme: 'striped',
+        headStyles: {
+            fillColor: corHeader,
+            textColor: [255, 255, 255],
+            fontSize: 7.5,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle'
+        },
+        styles: {
+            fontSize: 7,
+            cellPadding: 2,
+            lineColor: [220, 220, 220],
+            lineWidth: 0.1,
+            overflow: 'linebreak',
+            valign: 'middle'
+        },
+        columnStyles: {
+            0: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+            1: { cellWidth: 42, halign: 'left', fontStyle: 'bold' },
+            2: { cellWidth: 22, halign: 'center' },
+            3: { cellWidth: 28, halign: 'center' },
+            4: { cellWidth: 24, halign: 'center' },
+            5: { cellWidth: 26, halign: 'center' },
+            6: { cellWidth: 24, halign: 'center' },
+            7: { cellWidth: 24, halign: 'center' },
+            8: { cellWidth: 59, halign: 'left' }
+        },
+        alternateRowStyles: {
+            fillColor: [248, 249, 250]
+        },
+        didParseCell: function(data) {
+            if (data.section === 'body') {
+                // Destacar faltas em vermelho se houver
+                if (data.column.index === 6 && data.cell.raw && data.cell.raw !== '-') {
+                    data.cell.styles.textColor = [220, 38, 38];
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            }
+        },
+        margin: { left: 14, right: 14 }
+    });
+
+    // Rodapé
+    const dataGeracao = new Date().toLocaleString('pt-BR');
+    const finalY = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Relatório gerado em: ${dataGeracao}`, 283, Math.min(finalY, 202), { align: 'right' });
+
+    const nomeArquivo = `relatorio_funcionarios_${dataInicio || 'inicio'}_a_${dataFim || 'fim'}.pdf`;
+    doc.save(nomeArquivo);
+    mostrarToast('Relatório PDF gerado com sucesso!');
 }
 
 // ===== FUNÇÕES AUXILIARES =====
@@ -400,7 +518,11 @@ function limparForm() {
 }
 
 function limparFiltros() {
-    document.getElementById('filtroData').value = '';
+    const hoje = new Date().toISOString().split('T')[0];
+    const dataInicioInput = document.getElementById('filtroDataInicio');
+    const dataFimInput = document.getElementById('filtroDataFim');
+    if (dataInicioInput) dataInicioInput.value = '';
+    if (dataFimInput) dataFimInput.value = '';
     document.getElementById('filtroBusca').value = '';
     renderizarTabela();
 }
@@ -427,8 +549,15 @@ function mostrarToast(mensagem, tipo = 'success') {
 function inicializar() {
     const hoje = new Date().toISOString().split('T')[0];
     document.getElementById('statusData').value = hoje;
-    document.getElementById('filtroData').value = hoje;
+    
+    // Inicializa período com o dia de hoje por padrão
+    const dataInicioInput = document.getElementById('filtroDataInicio');
+    const dataFimInput = document.getElementById('filtroDataFim');
+    if (dataInicioInput) dataInicioInput.value = hoje;
+    if (dataFimInput) dataFimInput.value = hoje;
+
     carregarDados();
 }
 
 document.addEventListener('DOMContentLoaded', inicializar);
+window.gerarRelatorioFuncionariosPDF = gerarRelatorioFuncionariosPDF;

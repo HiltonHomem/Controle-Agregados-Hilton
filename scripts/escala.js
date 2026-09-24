@@ -18,9 +18,11 @@ const ROTAS_PADRAO = [
     "BAIXADA (ATÉ QUEIMADOS)",
     "BARRA",
     "BÚZIOS",
-    "CAXIAS",
     "CABO FRIO",
+    "CAMBUQUIRA",
+    "CAXIAS",
     "CENTRO",
+    "GUANABARA",
     "GUAPIMIRIM",
     "ILHA DO GOVERNADOR",
     "ITABORAÍ",
@@ -30,6 +32,7 @@ const ROTAS_PADRAO = [
     "MACAÉ",
     "MAGÉ",
     "MARICÁ",
+    "MUNDIAL",
     "NITERÓI",
     "NORTE",
     "NOVA FRIBURGO",
@@ -44,7 +47,8 @@ const ROTAS_PADRAO = [
     "SÃO PEDRO DA ALDEIA",
     "SAQUAREMA",
     "SUL",
-    "TERESÓPOLIS"
+    "TERESÓPOLIS",
+    "VIANENSE"
 ];
 
 async function verificarAuth() {
@@ -743,6 +747,74 @@ function atualizarCamposVeiculoModal() {
 }
 
 // =====================================================
+// VALIDAÇÃO DE DUPLICIDADE (MOTORISTA E AJUDANTE)
+// =====================================================
+
+function verificarDuplicidadeEscala(data, escalaIdAtual, motoristaNome, motoristaId, ajudantesIds, celular) {
+    if (!data || !escalas || escalas.length === 0) return null;
+
+    const idAtual = escalaIdAtual ? parseInt(escalaIdAtual) : null;
+    const escalasDoDia = escalas.filter(e => e.data === data && (!idAtual || e.id !== idAtual));
+
+    if (escalasDoDia.length === 0) return null;
+
+    // 1. Verificar Motorista
+    if (motoristaNome || motoristaId) {
+        const nomeAlvo = (motoristaNome || '').trim().toUpperCase();
+        for (const esc of escalasDoDia) {
+            const escMotoristaNome = (esc.motorista_nome || esc.motorista_nome_completo || '').trim().toUpperCase();
+            const escPlaca = esc.veiculo_placa ? `placa ${esc.veiculo_placa}` : `veículo ${esc.veiculo_nome || 'N/A'}`;
+
+            let conflito = false;
+            // Se tiver nome comparável (incluindo terceiros ex: MARCELO (FELIPE))
+            if (nomeAlvo && escMotoristaNome && nomeAlvo === escMotoristaNome) {
+                conflito = true;
+            } else if (!nomeAlvo.includes('(') && !escMotoristaNome.includes('(') && motoristaId && esc.motorista_id === motoristaId) {
+                conflito = true;
+            }
+
+            if (conflito) {
+                const nomeExibir = esc.motorista_nome || esc.motorista_nome_completo || motoristaNome;
+                return `O motorista "${nomeExibir}" já está escalado no dia ${formatarData(data)} na ${escPlaca}!`;
+            }
+        }
+    }
+
+    // 2. Verificar Ajudante(s)
+    if (ajudantesIds && ajudantesIds.length > 0) {
+        for (const aId of ajudantesIds) {
+            const ajudanteObj = ajudantes.find(a => a.id === parseInt(aId));
+            const nomeAjudante = ajudanteObj ? ajudanteObj.nome.trim().toUpperCase() : '';
+            if (!nomeAjudante) continue;
+
+            for (const esc of escalasDoDia) {
+                const escPlaca = esc.veiculo_placa ? `placa ${esc.veiculo_placa}` : `veículo ${esc.veiculo_nome || 'N/A'}`;
+                if (esc.nomes_ajudantes) {
+                    const nomesEscala = esc.nomes_ajudantes.split(',').map(n => n.trim().toUpperCase());
+                    if (nomesEscala.includes(nomeAjudante)) {
+                        return `O ajudante "${ajudanteObj.nome}" já está escalado no dia ${formatarData(data)} na ${escPlaca}!`;
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Verificar Celular
+    if (celular && celular.trim()) {
+        const celAlvo = celular.trim().toUpperCase();
+        for (const esc of escalasDoDia) {
+            const escCelular = (esc.celular || '').trim().toUpperCase();
+            if (escCelular && escCelular === celAlvo) {
+                const escPlaca = esc.veiculo_placa ? `placa ${esc.veiculo_placa}` : `veículo ${esc.veiculo_nome || 'N/A'}`;
+                return `O celular "${celular.trim()}" já está em uso no dia ${formatarData(data)} na ${escPlaca}!`;
+            }
+        }
+    }
+
+    return null;
+}
+
+// =====================================================
 // SALVAR ESCALA
 // =====================================================
 
@@ -756,34 +828,34 @@ async function salvarEscala(event) {
     const ajudanteSelect = document.getElementById('escalaAjudante');
     const ajudantesIds = Array.from(ajudanteSelect.selectedOptions).map(opt => opt.value).filter(v => v);
     
-           const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
-        const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
-        const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
-        let motoristaNome = '';
-        let motoristaIdReal = null; // 🔧 VARIÁVEL PARA O ID REAL
+    const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
+    const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
+    const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
+    let motoristaNome = '';
+    let motoristaIdReal = null; // 🔧 VARIÁVEL PARA O ID REAL
 
-        if (isTerceirizado && nomeTerceiro) {
-            // 🔧 CORREÇÃO CRÍTICA: Se for terceirizado, o motorista_id DEVE ser o ID do PROPRIETÁRIO
-            // Buscar o veículo para achar o proprietário
-            const veiculoSelecionado = veiculos.find(v => v.id === parseInt(veiculoId));
-            const proprietario = motoristas.find(m => m.id === veiculoSelecionado?.proprietario_id);
-            
-            if (proprietario) {
-                motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
-                motoristaIdReal = proprietario.id; // 🔧 Usa o ID do proprietário
-            } else {
-                motoristaNome = `Desconhecido (${nomeTerceiro})`;
-            }
-        } else if (motoristaId) {
-            const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
-            motoristaNome = motorista?.nome || '';
-            motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
-        }
+    if (isTerceirizado && nomeTerceiro) {
+        // 🔧 CORREÇÃO CRÍTICA: Se for terceirizado, o motorista_id DEVE ser o ID do PROPRIETÁRIO
+        // Buscar o veículo para achar o proprietário
+        const veiculoSelecionado = veiculos.find(v => v.id === parseInt(veiculoId));
+        const proprietario = motoristas.find(m => m.id === veiculoSelecionado?.proprietario_id);
         
-        const dados = {
-            data: document.getElementById('escalaData').value,
-            veiculo_id: parseInt(veiculoId),
-            motorista_id: motoristaIdReal, // 🔧 Usa o ID real (do proprietário para terceirizados)
+        if (proprietario) {
+            motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
+            motoristaIdReal = proprietario.id; // 🔧 Usa o ID do proprietário
+        } else {
+            motoristaNome = `Desconhecido (${nomeTerceiro})`;
+        }
+    } else if (motoristaId) {
+        const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
+        motoristaNome = motorista?.nome || '';
+        motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
+    }
+    
+    const dados = {
+        data: document.getElementById('escalaData').value,
+        veiculo_id: parseInt(veiculoId),
+        motorista_id: motoristaIdReal, // 🔧 Usa o ID real (do proprietário para terceirizados)
         motorista_nome: motoristaNome,
         rota: Array.from(document.getElementById('escalaRota').selectedOptions).map(opt => opt.value).join(' \\ '),
         status: document.getElementById('escalaStatus').value || 'ESCALADO',
@@ -799,6 +871,13 @@ async function salvarEscala(event) {
 
     if (!dados.data || !dados.veiculo_id || !dados.rota) {
         mostrarToast('Preencha Data, Veículo e Rota', 'error');
+        return;
+    }
+
+    // 🛑 Validação de duplicidade no mesmo dia
+    const erroDuplicidade = verificarDuplicidadeEscala(dados.data, id, dados.motorista_nome, dados.motorista_id, ajudantesIds, dados.celular);
+    if (erroDuplicidade) {
+        mostrarToast(erroDuplicidade, 'error');
         return;
     }
 
@@ -1223,6 +1302,13 @@ async function salvarEdicaoModal(event) {
         return;
     }
 
+    // 🛑 Validação de duplicidade no mesmo dia
+    const erroDuplicidade = verificarDuplicidadeEscala(dados.data, id, dados.motorista_nome, dados.motorista_id, ajudantesIds, dados.celular);
+    if (erroDuplicidade) {
+        mostrarToast(erroDuplicidade, 'error');
+        return;
+    }
+
     try {
         const { error } = await supabaseClient
             .from('escalas')
@@ -1448,18 +1534,18 @@ function renderizarEscalas() {
             <tr class="${cardBgClass} hover-row border-t border-gray-300">
                 <td class="px-3 py-1.5 font-medium text-sm">${formatarData(e.data)}</td>
                 <td class="px-3 py-1.5 font-semibold text-sm">${veiculoNome}</td>
-                <td class="px-3 py-1.5 text-gray-600 text-sm">${placa}</td>
+                <td class="px-3 py-1.5 font-bold text-gray-800 text-sm">${placa}</td>
                 <td class="px-3 py-1.5 text-center text-gray-600 text-sm">${e.peso_carga}kg</td>
                 <td class="px-3 py-1.5 text-center">
                     <span class="${statusClass} text-sm">${statusLabel}</span>
                 </td>
-                <td class="px-3 py-1.5 font-medium text-sm">${e.motorista_nome || '-'}</td>
-                <td class="px-3 py-1.5 text-gray-500 text-xs">${e.nomes_ajudantes || '-'}</td>
+                <td class="px-3 py-1.5 font-bold text-gray-900 text-sm">${e.motorista_nome || '-'}</td>
+                <td class="px-3 py-1.5 font-bold text-gray-800 text-xs">${e.nomes_ajudantes || '-'}</td>
                 <td class="px-3 py-1.5 text-center">
                     ${badgeAgregado}
                     ${badgeTerceirizado}
                 </td>
-                <td class="px-3 py-1.5 text-gray-600 text-sm">${e.rota}</td>
+                <td class="px-3 py-1.5 font-bold text-gray-900 text-sm">${e.rota}</td>
                 <td class="px-3 py-1.5 text-center">
                     <div class="flex items-center justify-center gap-1 flex-wrap">
                         ${btnConfirmar}

@@ -1,69 +1,135 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escala Logística Diária</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="scripts/supabase.js?v=1.0"></script>
-    
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    
+
     <!-- ===== BIBLIOTECAS PARA PDF ===== -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    
+
     <!-- ===== SCRIPTS DO SISTEMA ===== -->
-    <script src="scripts/planilha_escala.js?v=1.2"></script>
-    <script src="scripts/escala.js?v=1.1"></script>
+    <script src="scripts/planilha_escala.js?v=1.4"></script>
+    <script src="scripts/escala.js?v=1.5"></script>
     <script src="scripts/header.js?v=1.2"></script>
 
-    
+
     <style>
         @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
+
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
-        .animate-slide-up { animation: slideUp 0.3s ease; }
-        .animate-slide-in { animation: slideIn 0.3s ease; }
-        
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-        
-        .status-ok { color: #22c55e; font-weight: 600; }
-        .status-oficina { color: #eab308; font-weight: 600; }
-        .status-indisponivel { color: #ef4444; font-weight: 600; }
-        .status-escalado { color: #3b82f6; font-weight: 600; }
-        .status-disponivel { color: #8b5cf6; font-weight: 600; }
-        
-        .badge-fp { background: #2563eb; }
-        .badge-ag { background: #22c55e; }
-        .badge-terceirizado { background: #8b5cf6; }
-        
+
+        .animate-slide-up {
+            animation: slideUp 0.3s ease;
+        }
+
+        .animate-slide-in {
+            animation: slideIn 0.3s ease;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .status-ok {
+            color: #22c55e;
+            font-weight: 600;
+        }
+
+        .status-oficina {
+            color: #eab308;
+            font-weight: 600;
+        }
+
+        .status-indisponivel {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .status-escalado {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .status-disponivel {
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .badge-fp {
+            background: #2563eb;
+        }
+
+        .badge-ag {
+            background: #22c55e;
+        }
+
+        .badge-terceirizado {
+            background: #8b5cf6;
+        }
+
         .escala-card {
             transition: all 0.2s;
             border-left: 4px solid #2563eb;
         }
+
         .escala-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
+
         .escala-card .veiculo-info {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
         }
+
         .escala-card .detalhes {
             display: flex;
             flex-wrap: wrap;
@@ -71,19 +137,22 @@
             font-size: 13px;
             color: #555;
         }
+
         .escala-card .detalhes span {
             display: inline-flex;
             align-items: center;
             gap: 4px;
         }
+
         .escala-card .detalhes .label {
             font-weight: 600;
             color: #333;
         }
-        
+
         .dia-group {
             margin-bottom: 20px;
         }
+
         .dia-group .dia-header {
             background: #f8f9fa;
             padding: 10px 16px;
@@ -94,20 +163,23 @@
             align-items: center;
             border-bottom: 2px solid #2563eb;
         }
+
         .dia-group .dia-header .dia-nome {
             font-weight: 700;
             font-size: 16px;
             color: #1a1a1a;
         }
+
         .dia-group .dia-header .dia-data {
             font-size: 14px;
             color: #777;
         }
-        
+
         /* ===== CORES DAS LINHAS ===== */
         .agregado-row {
             background-color: #dbeafe !important;
         }
+
         .agregado-row td {
             background-color: #dbeafe !important;
         }
@@ -115,27 +187,29 @@
         .frota-row {
             background-color: white !important;
         }
+
         .frota-row td {
             background-color: white !important;
         }
 
         .agregado-row:hover,
         .agregado-row:hover td,
-        .agregado-row:hover + .detalhes-row td,
-        .agregado-row:hover + .detalhes-row {
+        .agregado-row:hover+.detalhes-row td,
+        .agregado-row:hover+.detalhes-row {
             background-color: #93c5fd !important;
         }
 
         .frota-row:hover,
         .frota-row:hover td,
-        .frota-row:hover + .detalhes-row td,
-        .frota-row:hover + .detalhes-row {
+        .frota-row:hover+.detalhes-row td,
+        .frota-row:hover+.detalhes-row {
             background-color: #f3f4f6 !important;
         }
 
         .agregado-row {
             border-top: 1px solid #9ca3af !important;
         }
+
         .agregado-row td {
             border-top: 1px solid #9ca3af !important;
         }
@@ -143,6 +217,7 @@
         .frota-row {
             border-top: 1px solid #d1d5db !important;
         }
+
         .frota-row td {
             border-top: 1px solid #d1d5db !important;
         }
@@ -152,9 +227,11 @@
             padding-top: 0px !important;
             padding-bottom: 2px !important;
         }
+
         .agregado-row .detalhes-row td {
             border-bottom: 1px solid #6b7280 !important;
         }
+
         .frota-row .detalhes-row td {
             border-bottom: 1px solid #9ca3af !important;
         }
@@ -167,10 +244,12 @@
             color: #6b7280;
             padding-left: 4px;
         }
+
         .detalhes-row .detalhes-content .label {
             font-weight: 500;
             color: #4b5563;
         }
+
         .detalhes-row .detalhes-content .valor {
             color: #1f2937;
         }
@@ -185,9 +264,11 @@
             border: none;
             cursor: pointer;
         }
+
         .btn-confirmar:hover {
             background-color: #16a34a;
         }
+
         .btn-editar {
             background-color: #3b82f6;
             color: white;
@@ -198,9 +279,11 @@
             border: none;
             cursor: pointer;
         }
+
         .btn-editar:hover {
             background-color: #2563eb;
         }
+
         .btn-excluir {
             background-color: #ef4444;
             color: white;
@@ -211,15 +294,18 @@
             border: none;
             cursor: pointer;
         }
+
         .btn-excluir:hover {
             background-color: #dc2626;
         }
     </style>
 </head>
+
 <body class="bg-gray-100 p-4 md:p-5">
     <div class="max-w-7xl mx-auto">
         <!-- ===== HEADER ===== -->
-        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
+        <header id="headerPrincipal"
+            class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
             <!-- Conteúdo gerado automaticamente pelo header.js -->
         </header>
 
@@ -233,25 +319,36 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data *</label>
-                        <input type="date" id="escalaData" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <input type="date" id="escalaData"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo *</label>
-                        <select id="escalaVeiculo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo
+                            *</label>
+                        <select id="escalaVeiculo"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Placa</label>
-                        <input type="text" id="escalaPlaca" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                        <input type="text" id="escalaPlaca"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600"
+                            readonly>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx.</label>
-                        <input type="number" id="escalaPeso" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso
+                            Máx.</label>
+                        <input type="number" id="escalaPeso"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600"
+                            readonly>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
-                        <select id="escalaStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <select id="escalaStatus"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="OK">✅ OK</option>
                             <option value="ESCALADO">📌 Escalado</option>
                             <option value="OFICINA">🔧 Oficina</option>
@@ -260,61 +357,88 @@
                         </select>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
-                        <select id="escalaMotorista" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
+                        <select id="escalaMotorista"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Proprietário</label>
-                        <input type="text" id="escalaProprietario" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly placeholder="Proprietário do veículo">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Proprietário</label>
+                        <input type="text" id="escalaProprietario"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600"
+                            readonly placeholder="Proprietário do veículo">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
-                        <select id="escalaAjudante" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" multiple>
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
+                        <select id="escalaAjudante"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            multiple>
                         </select>
                         <span class="text-xs text-gray-400 mt-1">Segure Ctrl para selecionar múltiplos</span>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota *</label>
-                        <select id="escalaRota" multiple required class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28">
+                        <select id="escalaRota" multiple required
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28">
                             <!-- Opções preenchidas via JS -->
                         </select>
                         <span class="text-xs text-gray-400 mt-1">Segure Ctrl para selecionar múltiplas rotas</span>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Celular</label>
-                        <input type="text" id="escalaCelular" placeholder="REI 07" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" id="escalaCelular" placeholder="REI 07"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Máq. Cartão</label>
-                        <input type="text" id="escalaMaquina" step="0.01" placeholder="27 ou DIST" value="" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Máq.
+                            Cartão</label>
+                        <input type="text" id="escalaMaquina" step="0.01" placeholder="27 ou DIST" value=""
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NF</label>
-                        <input type="number" id="escalaNF" placeholder="Ex: 14" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">                    </div>
+                        <input type="number" id="escalaNF" placeholder="Ex: 14"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga (kg)</label>
-                        <input type="number" id="escalaPesoCarga" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga
+                            (kg)</label>
+                        <input type="number" id="escalaPesoCarga" step="0.01" placeholder="0" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Retornos</label>
-                        <input type="text" id="escalaRetornos" placeholder="Ex: 11 NOTAS \ 171 KG" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" id="escalaRetornos" placeholder="Ex: 11 NOTAS \ 171 KG"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Carregamento</label>
-                        <input type="text" id="escalaCarregamento" placeholder="Ex: 16943 / 16961" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Carregamento</label>
+                        <input type="text" id="escalaCarregamento" placeholder="Ex: 16943 / 16961"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
-                        <input type="text" id="escalaObs" placeholder="Observações" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="escalaObs" placeholder="Observações"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
 
                 <div class="flex flex-wrap gap-2 mt-4">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition" id="btnSalvarEscala">💾 Salvar Escala</button>
-                    <button type="button" onclick="limparFormEscala()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar</button>
-                    <button type="button" onclick="cancelarEdicaoEscala()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hidden transition" id="btnCancelarEscala">❌ Cancelar</button>
+                    <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition"
+                        id="btnSalvarEscala">💾 Salvar Escala</button>
+                    <button type="button" onclick="limparFormEscala()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🗑️
+                        Limpar</button>
+                    <button type="button" onclick="cancelarEdicaoEscala()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hidden transition"
+                        id="btnCancelarEscala">❌ Cancelar</button>
                 </div>
                 <input type="hidden" id="editEscalaId" value="">
             </form>
@@ -326,31 +450,36 @@
                 <h2 class="text-lg font-semibold text-gray-800">📅 Escalas Diárias</h2>
                 <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="totalEscalasBadge">0</span>
             </div>
-            
+
             <!-- Filtros -->
             <div class="flex flex-wrap gap-3 mb-4">
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data</label>
-                    <input type="date" id="filtroEscalaData" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="date" id="filtroEscalaData" onchange="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
-                    <input type="text" id="filtroEscalaMotorista" placeholder="Filtrar..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="filtroEscalaMotorista" placeholder="Filtrar..." oninput="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo</label>
-                    <input type="text" id="filtroEscalaVeiculo" placeholder="Filtrar..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="filtroEscalaVeiculo" placeholder="Filtrar..." oninput="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota</label>
-                    <input type="text" id="filtroEscalaRota" placeholder="Filtrar rota..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="filtroEscalaRota" placeholder="Filtrar rota..." oninput="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
-                    <select id="filtroEscalaStatus" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="filtroEscalaStatus" onchange="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
                         <option value="OK">✅ OK</option>
-                        <option value="ESCALADO">📌 Escalado</option>                       
+                        <option value="ESCALADO">📌 Escalado</option>
                         <option value="OFICINA">🔧 Oficina</option>
                         <option value="INDISPONÍVEL">❌ Indisponível</option>
                         <option value="DISPONÍVEL">🟣 Disponível</option>
@@ -358,15 +487,16 @@
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tipo</label>
-                    <select id="filtroTipo" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="filtroTipo" onchange="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
                         <option value="agregado">🔵 Agregados</option>
                         <option value="frota">🏢 Frota Própria</option>
                     </select>
                 </div>
                 <div class="flex flex-col justify-end">
-                    <button onclick="exportarEscalaPDF(escalas, document.getElementById('filtroEscalaData').value)" 
-                            class="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition h-[42px]">
+                    <button onclick="exportarEscalaPDF(escalas, document.getElementById('filtroEscalaData').value)"
+                        class="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition h-[42px]">
                         📄 PDF Escala
                     </button>
                 </div>
@@ -382,14 +512,15 @@
     </div>
 
     <!-- ===== MODAL DE CONFIRMAÇÃO DE VIAGEM ===== -->
-    <div id="modalConfirmarViagem" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div id="modalConfirmarViagem"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl max-w-md w-full max-h-[95vh] overflow-y-auto p-6 animate-slide-up">
             <div class="text-center">
                 <div class="text-5xl mb-2">✅</div>
                 <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmar Viagem</h3>
                 <p class="text-gray-600 text-sm mb-4">Confirme a realização da viagem para gerar o pagamento.</p>
             </div>
-            
+
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
                 <div class="grid grid-cols-2 gap-2 text-sm">
                     <span class="text-gray-500">Motorista:</span>
@@ -408,34 +539,51 @@
             <form id="confirmarViagemForm" onsubmit="confirmarViagem(event)">
                 <div class="space-y-3">
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor da Diária (R$) *</label>
-                        <input type="number" id="confValorDiaria" step="0.01" placeholder="0.00" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor da Diária
+                            (R$) *</label>
+                        <input type="number" id="confValorDiaria" step="0.01" placeholder="0.00"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Pedágio (R$)</label>
-                        <input type="number" id="confPedagio" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Pedágio
+                            (R$)</label>
+                        <input type="number" id="confPedagio" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Almoço (R$)</label>
-                        <input type="number" id="confAlmoco" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Almoço
+                            (R$)</label>
+                        <input type="number" id="confAlmoco" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa (R$)</label>
-                        <input type="number" id="confChapa" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <p class="text-xs text-gray-500 mt-1">Preencha se for funcionário da empresa dirigindo veículo de agregado</p>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa
+                            (R$)</label>
+                        <input type="number" id="confChapa" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-xs text-gray-500 mt-1">Preencha se for funcionário da empresa dirigindo veículo
+                            de agregado</p>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto (R$)</label>
-                        <input type="number" id="confDesconto" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto
+                            (R$)</label>
+                        <input type="number" id="confDesconto" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
-                        <input type="text" id="confObservacao" placeholder="Informações adicionais" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="confObservacao" placeholder="Informações adicionais"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
                 <div class="flex gap-3 justify-end mt-4 pt-4 border-t">
-                    <button type="button" onclick="fecharModalConfirmar()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
-                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">✅ Confirmar Viagem</button>
+                    <button type="button" onclick="fecharModalConfirmar()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
+                    <button type="submit"
+                        class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">✅
+                        Confirmar Viagem</button>
                 </div>
                 <input type="hidden" id="confEscalaId" value="">
                 <input type="hidden" id="confMotoristaId" value="">
@@ -451,31 +599,43 @@
         <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto p-6 animate-slide-up">
             <div class="flex justify-between items-center pb-4 mb-4 border-b">
                 <h2 id="modalTitle" class="text-xl font-bold text-gray-800">✏️ Editar Escala</h2>
-                <button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+                <button onclick="fecharModal()"
+                    class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
             </div>
             <form id="modalForm" onsubmit="salvarEdicaoModal(event)">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data *</label>
-                        <input type="date" id="modalData" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <input type="date" id="modalData"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo *</label>
-                        <select id="modalVeiculo" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo
+                            *</label>
+                        <select id="modalVeiculo"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Placa</label>
-                        <input type="text" id="modalPlaca" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                        <input type="text" id="modalPlaca"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600"
+                            readonly>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Máx.</label>
-                        <input type="number" id="modalPeso" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600" readonly>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso
+                            Máx.</label>
+                        <input type="number" id="modalPeso"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-600"
+                            readonly>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Status</label>
-                        <select id="modalStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <select id="modalStatus"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="OK">✅ OK</option>
                             <option value="ESCALADO">📌 Escalado</option>
                             <option value="OFICINA">🔧 Oficina</option>
@@ -484,54 +644,78 @@
                         </select>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
-                        <select id="modalMotorista" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
+                        <select id="modalMotorista"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
-                        <select id="modalAjudante" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" multiple>
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Ajudante(s)</label>
+                        <select id="modalAjudante"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            multiple>
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota *</label>
-                        <select id="modalRota" multiple required class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28">
+                        <select id="modalRota" multiple required
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28">
                             <!-- Opções preenchidas via JS -->
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Celular</label>
-                        <input type="text" id="modalCelular" placeholder="REI 07" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" id="modalCelular" placeholder="REI 07"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Máq. Cartão</label>
-                        <input type="number" id="modalMaquina" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Máq.
+                            Cartão</label>
+                        <input type="number" id="modalMaquina" step="0.01" placeholder="0" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">NF</label>
-                        <input type="text" id="modalNF" placeholder="Ex: 27 ou DISTR" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">                    </div>
+                        <input type="text" id="modalNF" placeholder="Ex: 27 ou DISTR"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga (kg)</label>
-                        <input type="number" id="modalPesoCarga" step="0.01" placeholder="0" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Peso Carga
+                            (kg)</label>
+                        <input type="number" id="modalPesoCarga" step="0.01" placeholder="0" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Retornos</label>
-                        <input type="text" id="modalRetornos" placeholder="Ex: 11 NOTAS \ 171 KG" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" id="modalRetornos" placeholder="Ex: 11 NOTAS \ 171 KG"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Carregamento</label>
-                        <input type="text" id="modalCarregamento" placeholder="Ex: 16943 / 16961" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Carregamento</label>
+                        <input type="text" id="modalCarregamento" placeholder="Ex: 16943 / 16961"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col sm:col-span-2">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
-                        <input type="text" id="modalObs" placeholder="Observações" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <input type="text" id="modalObs" placeholder="Observações"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">💾 Salvar Alterações</button>
-                    <button type="button" onclick="confirmarExclusao()" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Excluir</button>
-                    <button type="button" onclick="fecharModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
+                    <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">💾
+                        Salvar Alterações</button>
+                    <button type="button" onclick="confirmarExclusao()"
+                        class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️
+                        Excluir</button>
+                    <button type="button" onclick="fecharModal()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌
+                        Cancelar</button>
                 </div>
                 <input type="hidden" id="modalEditId" value="">
             </form>
@@ -539,18 +723,24 @@
     </div>
 
     <!-- ===== MODAL DE CONFIRMAÇÃO DE EXCLUSÃO ===== -->
-    <div id="modalConfirmacao" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+    <div id="modalConfirmacao"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center animate-slide-up">
             <div class="text-6xl mb-2">⚠️</div>
             <p class="text-lg font-semibold text-gray-800" id="confirmMessage">Deseja realmente excluir esta escala?</p>
             <p class="text-sm text-gray-500 mt-1" id="confirmSubmessage">Esta ação não pode ser desfeita.</p>
             <div class="flex gap-3 justify-center mt-4">
-                <button onclick="fecharConfirmacao()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
-                <button id="btnConfirmarExclusao" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Sim, excluir</button>
+                <button onclick="fecharConfirmacao()"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌
+                    Cancelar</button>
+                <button id="btnConfirmarExclusao"
+                    class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️
+                    Sim, excluir</button>
             </div>
         </div>
     </div>
 
     <script src="scripts/footer.js?v=1.0"></script>
 </body>
+
 </html>
