@@ -1,1 +1,43 @@
+# Relatórios e Documentos Gerados
+*.pdf
 relatorio_agregados.pdf
+relatorio_quinzenal_*.pdf
+
+# Planilhas locais e arquivos temporários de dados
+*.xlsx
+*.xls
+~$*.xlsx
+
+# Arquivos de Ambiente e Credenciais
+.env
+.env.local
+.env.*.local
+*.secret
+*.key
+
+# Antigravity e Agent Skills locais (configurações do agente IA)
+.agents/
+skills-lock.json
+
+# Dependências Node.js (caso utilize npm/npx)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos do Sistema Operacional
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Configurações de IDEs locais
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs e arquivos temporários
+*.log
+*.tmp
