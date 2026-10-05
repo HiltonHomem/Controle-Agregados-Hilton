@@ -77,7 +77,9 @@ async function salvarStatus(event) {
     const data = document.getElementById('statusData').value;
     
     const bancoHoras = document.getElementById('bancoHoras').value.trim();
-    const ferias = document.getElementById('ferias').value.trim();
+    const feriasInicio = document.getElementById('feriasInicio')?.value || '';
+    const feriasFim = document.getElementById('feriasFim')?.value || '';
+    const ferias = formatarPeriodoFerias(feriasInicio, feriasFim);
     const licencaMedica = document.getElementById('licencaMedica').value.trim();
     const falta = document.getElementById('falta').value.trim();
     const sobra = document.getElementById('sobra').value.trim();
@@ -85,6 +87,11 @@ async function salvarStatus(event) {
 
     if (!funcionarioId || !tipo || !data) {
         mostrarToast('Selecione funcionário e data', 'error');
+        return;
+    }
+
+    if ((feriasInicio && !feriasFim) || (!feriasInicio && feriasFim)) {
+        mostrarToast('Preencha a data inicial e final das férias', 'error');
         return;
     }
 
@@ -286,7 +293,11 @@ function abrirModalEditar(registroId) {
     document.getElementById('modalFuncionarioId').value = registro.funcionario_id;
     document.getElementById('modalTipo').value = registro.tipo;
     document.getElementById('modalBancoHoras').value = registro.banco_horas || '';
-    document.getElementById('modalFerias').value = registro.ferias || '';
+    const { inicio: fInicio, fim: fFim } = extrairDatasPeriodo(registro.ferias);
+    const modalFeriasInicio = document.getElementById('modalFeriasInicio');
+    const modalFeriasFim = document.getElementById('modalFeriasFim');
+    if (modalFeriasInicio) modalFeriasInicio.value = fInicio;
+    if (modalFeriasFim) modalFeriasFim.value = fFim;
     document.getElementById('modalLicencaMedica').value = registro.licenca_medica || '';
     document.getElementById('modalFalta').value = registro.falta || '';
     document.getElementById('modalSobra').value = registro.sobra || '';
@@ -313,11 +324,18 @@ async function salvarEdicaoModal(event) {
     const dataRegistro = document.getElementById('modalDataRegistro').value;
 
     const bancoHoras = document.getElementById('modalBancoHoras').value.trim();
-    const ferias = document.getElementById('modalFerias').value.trim();
+    const feriasInicio = document.getElementById('modalFeriasInicio')?.value || '';
+    const feriasFim = document.getElementById('modalFeriasFim')?.value || '';
+    const ferias = formatarPeriodoFerias(feriasInicio, feriasFim);
     const licencaMedica = document.getElementById('modalLicencaMedica').value.trim();
     const falta = document.getElementById('modalFalta').value.trim();
     const sobra = document.getElementById('modalSobra').value.trim();
     const observacao = document.getElementById('modalObservacao').value.trim();
+
+    if ((feriasInicio && !feriasFim) || (!feriasInicio && feriasFim)) {
+        mostrarToast('Preencha a data inicial e final das férias', 'error');
+        return;
+    }
 
     const dados = {
         banco_horas: bancoHoras || null,
@@ -505,24 +523,76 @@ async function gerarRelatorioFuncionariosPDF() {
 }
 
 // ===== FUNÇÕES AUXILIARES =====
+function formatarPeriodoFerias(inicio, fim) {
+    if (!inicio && !fim) return '';
+    if (inicio && fim) {
+        return `${formatarData(inicio)} a ${formatarData(fim)}`;
+    }
+    return inicio ? formatarData(inicio) : formatarData(fim);
+}
+
+function converterDataBrParaIso(dataBr) {
+    if (!dataBr) return '';
+    const partes = dataBr.trim().split('/');
+    if (partes.length === 3) {
+        return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+    }
+    return '';
+}
+
+function extrairDatasPeriodo(texto) {
+    if (!texto) return { inicio: '', fim: '' };
+    // Formato esperado: "DD/MM/AAAA a DD/MM/AAAA" ou "AAAA-MM-DD a AAAA-MM-DD"
+    const partes = texto.split(/\s+a\s+|\s+à\s+|\s+ate\s+|\s+até\s+/i);
+    if (partes.length === 2) {
+        const parte1 = partes[0].trim();
+        const parte2 = partes[1].trim();
+        const data1 = parte1.includes('/') ? converterDataBrParaIso(parte1) : (parte1.includes('-') ? parte1 : '');
+        const data2 = parte2.includes('/') ? converterDataBrParaIso(parte2) : (parte2.includes('-') ? parte2 : '');
+        return { inicio: data1, fim: data2 };
+    }
+    return { inicio: '', fim: '' };
+}
+
 function limparForm() {
     document.getElementById('funcionarioId').value = '';
     document.getElementById('funcionarioTipo').value = '';
-    document.getElementById('statusData').value = new Date().toISOString().split('T')[0];
+    document.getElementById('statusData').value = obterDataLocalFormatada(new Date());
     document.getElementById('bancoHoras').value = '';
-    document.getElementById('ferias').value = '';
+    const feriasInicio = document.getElementById('feriasInicio');
+    const feriasFim = document.getElementById('feriasFim');
+    if (feriasInicio) feriasInicio.value = '';
+    if (feriasFim) feriasFim.value = '';
     document.getElementById('licencaMedica').value = '';
     document.getElementById('falta').value = '';
     document.getElementById('sobra').value = '';
     document.getElementById('observacao').value = '';
 }
 
+// ===== FUNÇÕES AUXILIARES DE DATA =====
+function obterDataLocalFormatada(d = new Date()) {
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+}
+
+function obterPeriodoPadrao2Meses() {
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setMonth(inicio.getMonth() - 2);
+    return {
+        dataInicio: obterDataLocalFormatada(inicio),
+        dataFim: obterDataLocalFormatada(fim)
+    };
+}
+
 function limparFiltros() {
-    const hoje = new Date().toISOString().split('T')[0];
+    const { dataInicio, dataFim } = obterPeriodoPadrao2Meses();
     const dataInicioInput = document.getElementById('filtroDataInicio');
     const dataFimInput = document.getElementById('filtroDataFim');
-    if (dataInicioInput) dataInicioInput.value = '';
-    if (dataFimInput) dataFimInput.value = '';
+    if (dataInicioInput) dataInicioInput.value = dataInicio;
+    if (dataFimInput) dataFimInput.value = dataFim;
     document.getElementById('filtroBusca').value = '';
     renderizarTabela();
 }
@@ -547,14 +617,15 @@ function mostrarToast(mensagem, tipo = 'success') {
 
 // ===== INICIALIZAÇÃO =====
 function inicializar() {
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = obterDataLocalFormatada(new Date());
     document.getElementById('statusData').value = hoje;
     
-    // Inicializa período com o dia de hoje por padrão
+    // Inicializa período com os últimos 2 meses por padrão
+    const { dataInicio, dataFim } = obterPeriodoPadrao2Meses();
     const dataInicioInput = document.getElementById('filtroDataInicio');
     const dataFimInput = document.getElementById('filtroDataFim');
-    if (dataInicioInput) dataInicioInput.value = hoje;
-    if (dataFimInput) dataFimInput.value = hoje;
+    if (dataInicioInput) dataInicioInput.value = dataInicio;
+    if (dataFimInput) dataFimInput.value = dataFim;
 
     carregarDados();
 }
