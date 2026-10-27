@@ -5,13 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Controle Integrado</title>
     
+    <!-- Loader Anti-Cache -->
+    <script src="scripts/loader.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/supabase.js?v=1.0"></script>
+    <script>carregarScript('scripts/supabase.js');</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 
-    <script src="scripts/header.js?v=1.1"></script>
-    <script src="scripts/dashboard.js?v=2.0"></script>
+    <script>
+        carregarScript('scripts/header.js');
+        carregarScript('scripts/dashboard.js');
+    </script>
     
     <style>
         @keyframes slideIn {
@@ -173,6 +178,6 @@
         </div>
     </div>
 
-    <script src="scripts/footer.js?v=1.0"></script>
+    <script>carregarScript('scripts/footer.js');</script>
 </body>
 </html>

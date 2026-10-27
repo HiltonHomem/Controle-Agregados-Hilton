@@ -1,49 +1,110 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Agregados</title>
-    
+
+    <!-- Loader Anti-Cache -->
+    <script src="scripts/loader.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/supabase.js?v=1.0"></script>
+    <script>carregarScript('scripts/supabase.js');</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="scripts/export_pdf.js?v=1.4"></script>
+    <script>
+        carregarScript('scripts/export_pdf.js');
+        carregarScript('scripts/header.js');
+    </script>
 
-    <script src="scripts/header.js?v=1.2"></script>
-    
     <style>
         @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
+
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
-        .animate-slide-up { animation: slideUp 0.3s ease; }
-        .animate-slide-in { animation: slideIn 0.3s ease; }
-        
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-        
-        .status-ok { color: #22c55e; font-weight: 600; }
-        .status-oficina { color: #eab308; font-weight: 600; }
-        .status-indisponivel { color: #ef4444; font-weight: 600; }
-        
-        .badge-fp { background: #2563eb; }
-        .badge-ag { background: #22c55e; }
-        .badge-escala { background: #8b5cf6; }
+
+        .animate-slide-up {
+            animation: slideUp 0.3s ease;
+        }
+
+        .animate-slide-in {
+            animation: slideIn 0.3s ease;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .status-ok {
+            color: #22c55e;
+            font-weight: 600;
+        }
+
+        .status-oficina {
+            color: #eab308;
+            font-weight: 600;
+        }
+
+        .status-indisponivel {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .badge-fp {
+            background: #2563eb;
+        }
+
+        .badge-ag {
+            background: #22c55e;
+        }
+
+        .badge-escala {
+            background: #8b5cf6;
+        }
     </style>
 </head>
+
 <body class="bg-gray-100 p-4 md:p-5">
     <div class="max-w-7xl mx-auto">
         <!-- ===== HEADER ===== -->
-        <header id="headerPrincipal" class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
+        <header id="headerPrincipal"
+            class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl p-5 mb-6 flex flex-wrap flex-col gap-3">
             <!-- Conteúdo gerado automaticamente pelo header.js -->
         </header>
 
@@ -76,53 +137,79 @@
             <form id="lancamentoForm" onsubmit="salvarLancamento(event)">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista *</label>
-                        <select id="motoristaId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista
+                            *</label>
+                        <select id="motoristaId"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data *</label>
-                        <input type="date" id="data" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <input type="date" id="data"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota *</label>
-                        <input type="text" id="rota" placeholder="Ex: ZONA SUL" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <input type="text" id="rota" placeholder="Ex: ZONA SUL"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor Diária (R$) *</label>
-                        <input type="number" id="valorDiaria" step="0.01" placeholder="0.00" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor Diária
+                            (R$) *</label>
+                        <input type="number" id="valorDiaria" step="0.01" placeholder="0.00"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Pedágio (R$)</label>
-                        <input type="number" id="pedagio" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Pedágio
+                            (R$)</label>
+                        <input type="number" id="pedagio" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Almoço (R$)</label>
-                        <input type="number" id="almoco" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Almoço
+                            (R$)</label>
+                        <input type="number" id="almoco" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa (R$)</label>
-                        <input type="number" id="chapa" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa
+                            (R$)</label>
+                        <input type="number" id="chapa" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto (R$)</label>
-                        <input type="number" id="desconto" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto
+                            (R$)</label>
+                        <input type="number" id="desconto" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo Utilizado</label>
-                        <select id="veiculoId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo
+                            Utilizado</label>
+                        <select id="veiculoId"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col sm:col-span-2">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
-                        <textarea id="observacao" rows="2" placeholder="Informações adicionais" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <textarea id="observacao" rows="2" placeholder="Informações adicionais"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-4">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition" id="btnSalvar">💾 Salvar</button>
-                    <button type="button" onclick="limparForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Limpar</button>
+                    <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition"
+                        id="btnSalvar">💾 Salvar</button>
+                    <button type="button" onclick="limparForm()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">🗑️
+                        Limpar</button>
                 </div>
                 <input type="hidden" id="editId" value="">
             </form>
@@ -134,30 +221,35 @@
                 <h2 class="text-lg font-semibold text-gray-800">📋 Lançamentos</h2>
                 <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full" id="totalLancamentosBadge">0</span>
             </div>
-            
+
             <!-- Filtros -->
             <div class="flex flex-wrap gap-3 mb-4">
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista</label>
-                    <select id="filtroMotorista" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="filtroMotorista" onchange="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
                     </select>
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Início</label>
-                    <input type="date" id="filtroDataInicio" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="date" id="filtroDataInicio" onchange="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Fim</label>
-                    <input type="date" id="filtroDataFim" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="date" id="filtroDataFim" onchange="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota</label>
-                    <input type="text" id="filtroRota" placeholder="Filtrar rota..." oninput="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="filtroRota" placeholder="Filtrar rota..." oninput="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Origem</label>
-                    <select id="filtroOrigem" onchange="aplicarFiltros()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="filtroOrigem" onchange="aplicarFiltros()"
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
                         <option value="manual">Manual</option>
                         <option value="escala">Da Escala</option>
@@ -202,59 +294,88 @@
         <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto p-6 animate-slide-up">
             <div class="flex justify-between items-center pb-4 mb-4 border-b">
                 <h2 id="modalTitle" class="text-xl font-bold text-gray-800">✏️ Editar Lançamento</h2>
-                <button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+                <button onclick="fecharModal()"
+                    class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
             </div>
             <form id="modalForm" onsubmit="salvarEdicaoModal(event)">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista *</label>
-                        <select id="modalMotoristaId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista
+                            *</label>
+                        <select id="modalMotoristaId"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data *</label>
-                        <input type="date" id="modalData" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <input type="date" id="modalData"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Rota *</label>
-                        <input type="text" id="modalRota" placeholder="Ex: ZONA SUL" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <input type="text" id="modalRota" placeholder="Ex: ZONA SUL"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor Diária (R$) *</label>
-                        <input type="number" id="modalValorDiaria" step="0.01" placeholder="0.00" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Valor Diária
+                            (R$) *</label>
+                        <input type="number" id="modalValorDiaria" step="0.01" placeholder="0.00"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Pedágio (R$)</label>
-                        <input type="number" id="modalPedagio" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Pedágio
+                            (R$)</label>
+                        <input type="number" id="modalPedagio" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Almoço (R$)</label>
-                        <input type="number" id="modalAlmoco" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Almoço
+                            (R$)</label>
+                        <input type="number" id="modalAlmoco" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa (R$)</label>
-                        <input type="number" id="modalChapa" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Chapa
+                            (R$)</label>
+                        <input type="number" id="modalChapa" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto (R$)</label>
-                        <input type="number" id="modalDesconto" step="0.01" placeholder="0.00" value="0" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Desconto
+                            (R$)</label>
+                        <input type="number" id="modalDesconto" step="0.01" placeholder="0.00" value="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col sm:col-span-2">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo Utilizado</label>
-                        <select id="modalVeiculoId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Veículo
+                            Utilizado</label>
+                        <select id="modalVeiculoId"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col sm:col-span-2">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
-                        <textarea id="modalObservacao" rows="2" placeholder="Informações adicionais" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        <label
+                            class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Observação</label>
+                        <textarea id="modalObservacao" rows="2" placeholder="Informações adicionais"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition" id="modalBtnSalvar">💾 Salvar Alterações</button>
-                    <button type="button" onclick="confirmarExclusao()" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Excluir</button>
-                    <button type="button" onclick="fecharModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
+                    <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition"
+                        id="modalBtnSalvar">💾 Salvar Alterações</button>
+                    <button type="button" onclick="confirmarExclusao()"
+                        class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️
+                        Excluir</button>
+                    <button type="button" onclick="fecharModal()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌
+                        Cancelar</button>
                 </div>
                 <input type="hidden" id="modalEditId" value="">
             </form>
@@ -262,14 +383,20 @@
     </div>
 
     <!-- ===== MODAL DE CONFIRMAÇÃO ===== -->
-    <div id="modalConfirmacao" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+    <div id="modalConfirmacao"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center animate-slide-up">
             <div class="text-6xl mb-2">⚠️</div>
-            <p class="text-lg font-semibold text-gray-800" id="confirmMessage">Deseja realmente excluir este lançamento?</p>
+            <p class="text-lg font-semibold text-gray-800" id="confirmMessage">Deseja realmente excluir este lançamento?
+            </p>
             <p class="text-sm text-gray-500 mt-1" id="confirmSubmessage">Esta ação não pode ser desfeita.</p>
             <div class="flex gap-3 justify-center mt-4">
-                <button onclick="fecharConfirmacao()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
-                <button id="btnConfirmarExclusao" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️ Sim, excluir</button>
+                <button onclick="fecharConfirmacao()"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌
+                    Cancelar</button>
+                <button id="btnConfirmarExclusao"
+                    class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition">🗑️
+                    Sim, excluir</button>
             </div>
         </div>
     </div>
@@ -279,28 +406,39 @@
         <div class="bg-white rounded-2xl max-w-md w-full p-6 animate-slide-up">
             <div class="flex justify-between items-center pb-4 mb-4 border-b">
                 <h2 class="text-xl font-bold text-gray-800">📋 Relatório Quinzenal</h2>
-                <button onclick="fecharModalQuinzenal()" class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
+                <button onclick="fecharModalQuinzenal()"
+                    class="text-gray-400 hover:text-red-500 text-3xl transition hover:rotate-90">&times;</button>
             </div>
             <form id="quinzenalForm" onsubmit="gerarRelatorioQuinzenal(event)">
                 <div class="space-y-4">
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista *</label>
-                        <select id="quinzenalMotorista" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Motorista
+                            *</label>
+                        <select id="quinzenalMotorista"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required>
                             <option value="">Selecione...</option>
                         </select>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Início</label>
-                        <input type="date" id="quinzenalDataInicio" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data
+                            Início</label>
+                        <input type="date" id="quinzenalDataInicio"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Data Fim</label>
-                        <input type="date" id="quinzenalDataFim" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="date" id="quinzenalDataFim"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">📄 Gerar PDF</button>
-                    <button type="button" onclick="fecharModalQuinzenal()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌ Cancelar</button>
+                    <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">📄
+                        Gerar PDF</button>
+                    <button type="button" onclick="fecharModalQuinzenal()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">❌
+                        Cancelar</button>
                 </div>
             </form>
         </div>
@@ -353,7 +491,7 @@
 
         function formatarData(data) {
             if (!data) return '-';
-            
+
             // 🔧 CORREÇÃO: Tratar data como string sem fuso horário
             const partes = data.split('-');
             if (partes.length === 3) {
@@ -361,18 +499,18 @@
                 const d = new Date(partes[0], partes[1] - 1, partes[2]);
                 return d.toLocaleDateString('pt-BR');
             }
-            
+
             // Fallback
             const d = new Date(data);
             return d.toLocaleDateString('pt-BR');
         }
 
         function calcularTotal(item) {
-            return (Number(item.valor_diaria) || 0) + 
-                   (Number(item.pedagio) || 0) + 
-                   (Number(item.almoco) || 0) - 
-                   (Number(item.chapa) || 0) - 
-                   (Number(item.desconto) || 0);
+            return (Number(item.valor_diaria) || 0) +
+                (Number(item.pedagio) || 0) +
+                (Number(item.almoco) || 0) -
+                (Number(item.chapa) || 0) -
+                (Number(item.desconto) || 0);
         }
 
         function mostrarToast(mensagem, tipo = 'success') {
@@ -412,12 +550,15 @@
                     .from('view_lancamentos_completos')
                     .select('*')
                     .order('data', { ascending: false });
-                
-                    // FILTRO: Mostrar apenas lançamentos de agregados OU com proprietário definido
-                    lancamentos = (lancamentosData || []).filter(l => {
-                    // Se tem proprietario_id, mostra (é agregado ou terceirizado)
+
+                // FILTRO: Mostrar lançamentos de agregados, com proprietário definido, ou gerados de escala
+                lancamentos = (lancamentosData || []).filter(l => {
+                    // Se tem proprietario_id, mostra (é agregado, terceirizado ou funcionário em férias)
                     if (l.proprietario_id) return true;
-                    
+
+                    // Se a origem for da escala ou observação indicar férias/viagem confirmada
+                    if (l.origem === 'escala') return true;
+
                     // Se não tem proprietario_id, verifica se o motorista é agregado
                     const motorista = motoristas.find(m => m.id === l.motorista_id);
                     return motorista?.tipo === 'agregado';
@@ -488,7 +629,7 @@
             const id = document.getElementById('editId').value;
             const motoristaId = document.getElementById('motoristaId').value;
             const veiculoId = document.getElementById('veiculoId').value;
-            
+
             const dados = {
                 motorista_id: parseInt(motoristaId),
                 veiculo_id: veiculoId ? parseInt(veiculoId) : null,
@@ -539,7 +680,7 @@
             const idNum = parseInt(id);
             const idStr = String(id);
             let item = lancamentos.find(l => l.id === idNum || l.id === idStr || String(l.id) === idStr);
-            
+
             if (!item) {
                 mostrarToast('Item não encontrado', 'error');
                 return;
@@ -555,7 +696,7 @@
             document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir este lançamento?';
             document.getElementById('confirmSubmessage').textContent = `${nomeMotorista} - ${dataFormatada} (${formatarMoeda(item.valor_diaria)})`;
 
-            document.getElementById('btnConfirmarExclusao').onclick = function() {
+            document.getElementById('btnConfirmarExclusao').onclick = function () {
                 executarExclusao();
             };
 
@@ -580,18 +721,18 @@
                     .from('lancamentos')
                     .delete()
                     .eq('id', parseInt(itemParaExcluir));
-                
+
                 if (error) throw error;
 
                 itemParaExcluir = null;
                 origemExclusao = null;
-                
+
                 fecharConfirmacao();
-                
+
                 if (document.getElementById('modalEdicao').style.display === 'flex') {
                     fecharModal();
                 }
-                
+
                 await carregarDados();
                 mostrarToast('Lançamento excluído com sucesso!');
             } catch (error) {
@@ -600,7 +741,7 @@
             }
         }
 
-        document.getElementById('modalConfirmacao').addEventListener('click', function(e) {
+        document.getElementById('modalConfirmacao').addEventListener('click', function (e) {
             if (e.target === this) fecharConfirmacao();
         });
 
@@ -610,7 +751,7 @@
             const idNum = parseInt(id);
             const idStr = String(id);
             let item = lancamentos.find(l => l.id === idNum || l.id === idStr || String(l.id) === idStr);
-            
+
             if (!item) {
                 // Tentar buscar diretamente no banco
                 mostrarToast('Lançamento não encontrado', 'error');
@@ -618,7 +759,7 @@
             }
 
             editandoId = id;
-            
+
             document.getElementById('modalEditId').value = item.id;
             document.getElementById('modalMotoristaId').value = item.motorista_id;
             document.getElementById('modalData').value = item.data;
@@ -647,11 +788,11 @@
 
         async function salvarEdicaoModal(event) {
             event.preventDefault();
-            
+
             const id = document.getElementById('modalEditId').value;
             const motoristaId = document.getElementById('modalMotoristaId').value;
             const veiculoId = document.getElementById('modalVeiculoId').value;
-            
+
             const dados = {
                 motorista_id: parseInt(motoristaId),
                 veiculo_id: veiculoId ? parseInt(veiculoId) : null,
@@ -697,7 +838,7 @@
             }
         }
 
-        document.getElementById('modalEdicao').addEventListener('click', function(e) {
+        document.getElementById('modalEdicao').addEventListener('click', function (e) {
             if (e.target === this) fecharModal();
         });
 
@@ -727,7 +868,7 @@
         function renderizarLancamentos() {
             const tbody = document.getElementById('lancamentosBody');
             let dados = [...lancamentos];
-            
+
             const filtroMotorista = document.getElementById('filtroMotorista').value;
             const filtroDataInicio = document.getElementById('filtroDataInicio').value;
             const filtroDataFim = document.getElementById('filtroDataFim').value;
@@ -756,20 +897,29 @@
             dados.forEach(item => {
                 const total = calcularTotal(item);
                 // 🔧 CORREÇÃO: Mostrar Proprietário (Motorista) quando for chapa
-                    let nome = item.motorista_nome || 'N/A';
-                    if (item.proprietario_id && item.motorista_id !== item.proprietario_id) {
-                        const proprietario = motoristas.find(m => m.id === item.proprietario_id);
-                        const motoristaNome = motoristas.find(m => m.id === item.motorista_id)?.nome || 'Desconhecido';
-                        if (proprietario) {
-                            nome = `${proprietario.nome} (${motoristaNome})`;
-                        }
+                let nome = item.motorista_nome || 'N/A';
+                const motoristaObj = motoristas.find(m => m.id === item.motorista_id);
+                const isFuncEmFerias = motoristaObj?.tipo === 'funcionario' && (
+                    item.proprietario_id === item.motorista_id ||
+                    (item.observacao && item.observacao.includes('Férias'))
+                );
+
+                if (item.proprietario_id && item.motorista_id !== item.proprietario_id) {
+                    const proprietario = motoristas.find(m => m.id === item.proprietario_id);
+                    const motoristaNome = motoristas.find(m => m.id === item.motorista_id)?.nome || 'Desconhecido';
+                    if (proprietario) {
+                        nome = `${proprietario.nome} (${motoristaNome})`;
                     }
+                } else if (isFuncEmFerias) {
+                    nome = `${item.motorista_nome || motoristaObj?.nome || 'N/A'} <span class="text-[10px] bg-amber-500 text-white font-semibold px-1.5 py-0.5 rounded-full ml-1">🏖️ Férias</span>`;
+                }
+
                 const veiculo = item.veiculo_nome || item.veiculo_placa || '-';
                 const origem = item.origem || 'manual';
-                const origemBadge = origem === 'escala' 
+                const origemBadge = origem === 'escala'
                     ? '<span class="inline-block px-2 py-0.5 rounded-full text-white text-xs font-medium bg-purple-500">📋 Escala</span>'
                     : '<span class="inline-block px-2 py-0.5 rounded-full text-white text-xs font-medium bg-gray-500">Manual</span>';
-                
+
                 html += `
                     <tr class="hover:bg-gray-50">
                         <td class="px-3 py-2">${formatarData(item.data)}</td>
@@ -800,7 +950,7 @@
             const totalAlmoco = lancamentos.reduce((s, l) => s + (Number(l.almoco) || 0), 0);
             const totalChapa = lancamentos.reduce((s, l) => s + (Number(l.chapa) || 0), 0);
             const totalLiquido = totalDiarias + totalPedagios + totalAlmoco - totalChapa - totalDescontos;
-            
+
             document.getElementById('totalRegistros').textContent = lancamentos.length;
             document.getElementById('totalDiarias').textContent = formatarMoeda(totalDiarias);
             document.getElementById('totalDescontos').textContent = formatarMoeda(totalDescontos);
@@ -830,14 +980,14 @@
             const motoristaId = document.getElementById('quinzenalMotorista').value;
             const dataInicio = document.getElementById('quinzenalDataInicio').value;
             const dataFim = document.getElementById('quinzenalDataFim').value;
-            
+
             if (!motoristaId) {
                 mostrarToast('Selecione um motorista', 'error');
                 return;
             }
-            
+
             fecharModalQuinzenal();
-            
+
             if (typeof exportarQuinzenalMotorista === 'function') {
                 exportarQuinzenalMotorista(lancamentos, parseInt(motoristaId), dataInicio, dataFim);
             } else {
@@ -845,12 +995,12 @@
             }
         }
 
-        document.getElementById('modalQuinzenal').addEventListener('click', function(e) {
+        document.getElementById('modalQuinzenal').addEventListener('click', function (e) {
             if (e.target === this) fecharModalQuinzenal();
         });
 
         // ===== OUVIR EVENTOS DA ESCALA =====
-        window.addEventListener('lancamentoAdicionado', function(e) {
+        window.addEventListener('lancamentoAdicionado', function (e) {
             const novo = e.detail;
             const existe = lancamentos.some(l => l.escala_id === novo.escala_id);
             if (!existe) {
@@ -875,13 +1025,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof registrarBotoesHeader === 'function') {
                 registrarBotoesHeader([
-                    { 
-                        label: '📄 PDF Geral', 
+                    {
+                        label: '📄 PDF Geral',
                         onclick: "exportarPDF(lancamentos, 'Relatório Geral de Lançamentos', 'relatorio_geral.pdf')",
                         classes: 'bg-green-500 hover:bg-green-600'
                     },
-                    { 
-                        label: '📋 PDF Quinzenal', 
+                    {
+                        label: '📋 PDF Quinzenal',
                         onclick: 'abrirModalQuinzenal()',
                         classes: 'bg-yellow-500 hover:bg-yellow-600'
                     }
@@ -889,6 +1039,7 @@
             }
         });
     </script>
-    <script src="scripts/footer.js?v=1.0"></script>
+    <script>carregarScript('scripts/footer.js');</script>
 </body>
+
 </html>

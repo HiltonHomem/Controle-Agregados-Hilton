@@ -18,6 +18,12 @@ window.supabaseClient = supabaseClient;
 
 function formatarData(data) {
     if (!data) return '-';
+    if (typeof data === 'string' && data.includes('-')) {
+        const partes = data.split('T')[0].split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+    }
     return new Date(data).toLocaleDateString('pt-BR');
 }
 

@@ -24,3 +24,10 @@ Motorista: JOAO (funcionário da empresa)
 proprietario_id = NULL (empresa)
 chapa = 0
 Pagamento: JOAO recebe valor_diaria completo
+
+Veículo: Qualquer veículo (Frota Própria ou Agregado)
+Motorista: JOAO (funcionário em período de férias)
+proprietario_id = ID do Funcionário (JOAO)
+chapa = 0
+Sinalização na Escala: 🏖️ Férias (Agregado) com fundo âmbar/dourado
+Pagamento no Controle de Agregados: JOAO recebe valor_diaria completo integral como agregado temporário, gerando PDF quinzenal.

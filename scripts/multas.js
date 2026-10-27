@@ -11,6 +11,18 @@ let filtroAtualStatus = '';
 let filtroAtualDesconto = '';
 let termoBusca = '';
 
+// Formatação de data segura contra desvio de fuso horário
+function formatarData(data) {
+    if (!data) return '-';
+    if (typeof data === 'string' && data.includes('-')) {
+        const partes = data.split('T')[0].split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+    }
+    return new Date(data).toLocaleDateString('pt-BR');
+}
+
 // ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', async () => {
     const campoCnpj = document.getElementById('cnpjEmpresa');
@@ -59,6 +71,9 @@ function popularSelectsMotoristas() {
         const primeiroTexto = selId.startsWith('filtro') ? 'Todos os Motoristas' : 'Selecione o motorista...';
         
         el.innerHTML = `<option value="">${primeiroTexto}</option>`;
+        if (selId === 'filtroMotorista') {
+            el.innerHTML += `<option value="SEM_MOTORISTA">⚠️ Sem Motorista (A Verificar)</option>`;
+        }
         motoristasLista.forEach(m => {
             el.innerHTML += `<option value="${m.id}">${m.nome} (${m.tipo || 'Motorista'})</option>`;
         });
@@ -175,7 +190,13 @@ function renderizarTabela() {
         }
 
         const filtroMot = document.getElementById('filtroMotorista')?.value;
-        if (filtroMot && m.motorista_id != filtroMot) return false;
+        if (filtroMot === 'SEM_MOTORISTA') {
+            const nomeExib = (m.motorista_nome_exibicao || m.motorista_nome || '').trim();
+            const temMotorista = !!(m.motorista_id || (nomeExib && !nomeExib.toLowerCase().includes('selecione')));
+            if (temMotorista) return false;
+        } else if (filtroMot && m.motorista_id != filtroMot) {
+            return false;
+        }
 
         const filtroVeic = document.getElementById('filtroVeiculo')?.value;
         if (filtroVeic && m.veiculo_id != filtroVeic) return false;
@@ -281,10 +302,46 @@ function renderizarTabela() {
             }
         }
 
-        const motoristaNome = m.motorista_nome_exibicao || m.motorista_nome || '<span class="text-gray-400 italic">Não vinculado</span>';
+        const nomeExibicao = (m.motorista_nome_exibicao || m.motorista_nome || '').trim();
+        const nomeValido = nomeExibicao && !nomeExibicao.toLowerCase().includes('selecione');
+        const temMotorista = !!(m.motorista_id || nomeValido);
+        let motoristaHtml = '';
+
+        if (temMotorista) {
+            let badgeAceite = '';
+            if (m.aceite_motorista) {
+                const dataAceiteFmt = m.data_aceite_motorista ? formatarData(m.data_aceite_motorista) : '';
+                badgeAceite = `
+                    <div class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Condutor deu aceite no app da CNH em ${dataAceiteFmt || 'data não informada'}">
+                        <span>📲 Aceito na CNH</span>
+                        ${dataAceiteFmt ? `<span class="text-emerald-500 font-normal">(${dataAceiteFmt})</span>` : ''}
+                    </div>
+                `;
+            } else {
+                badgeAceite = `
+                    <div class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500" title="Aguardando condutor dar aceite no app CDT/CNH">
+                        <span>⏳ Aguardando Aceite CNH</span>
+                    </div>
+                `;
+            }
+            motoristaHtml = `
+                <div class="text-sm font-medium text-gray-800">${nomeValido ? nomeExibicao : 'Motorista Vinculado'}</div>
+                ${badgeAceite}
+            `;
+        } else {
+            motoristaHtml = `
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-300 text-amber-800 shadow-sm" title="Infração sem condutor indicado. Necessário verificar e indicar motorista.">
+                    <span class="text-sm animate-pulse">⚠️</span>
+                    <div class="flex flex-col text-left">
+                        <span class="text-xs font-bold leading-tight">Não Indicado</span>
+                        <span class="text-[10px] text-amber-600 font-medium">Verificar / Indicar</span>
+                    </div>
+                </div>
+            `;
+        }
 
         return `
-            <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+            <tr class="hover:bg-gray-50 transition border-b border-gray-100 ${!temMotorista ? 'bg-amber-50/20' : ''}">
                 <td class="px-4 py-3 align-top">
                     <div class="font-bold text-gray-900">${m.numero_auto_infracao}</div>
                     <div class="text-xs text-gray-500">Cód: ${m.codigo_infracao}${m.desdobramento_infracao ? '-' + m.desdobramento_infracao : ''}</div>
@@ -295,7 +352,7 @@ function renderizarTabela() {
                     <div class="text-xs text-gray-500">${m.veiculo_modelo || ''}</div>
                 </td>
                 <td class="px-4 py-3 align-top">
-                    <div class="text-sm font-medium text-gray-800">${motoristaNome}</div>
+                    ${motoristaHtml}
                 </td>
                 <td class="px-4 py-3 align-top max-w-xs">
                     <div class="text-xs text-gray-800 font-medium line-clamp-2" title="${m.descricao_infracao}">${m.descricao_infracao}</div>
@@ -355,6 +412,23 @@ function alternarCamposFase() {
     } else {
         boxAutuacao.classList.remove('opacity-50');
         boxPenalidade.classList.remove('opacity-50');
+    }
+}
+
+// ===== ALTERAÇÃO DINÂMICA DO CAMPO DE DATA DE ACEITE DO MOTORISTA =====
+function alternarCampoDataAceite() {
+    const check = document.getElementById('aceiteMotorista');
+    const container = document.getElementById('containerDataAceite');
+    const inputData = document.getElementById('dataAceiteMotorista');
+    
+    if (check && check.checked) {
+        container?.classList.remove('hidden');
+        if (inputData && !inputData.value) {
+            inputData.value = new Date().toISOString().split('T')[0];
+        }
+    } else {
+        container?.classList.add('hidden');
+        if (inputData) inputData.value = '';
     }
 }
 
@@ -422,12 +496,13 @@ async function salvarMulta(event) {
             codigo_renavam: null,
             veiculo_id: veiculoId || null,
             motorista_id: document.getElementById('motoristaId').value || null,
-            motorista_nome: document.getElementById('motoristaId').selectedOptions[0]?.text?.split(' (')[0] || null,
+            motorista_nome: document.getElementById('motoristaId').value ? (document.getElementById('motoristaId').selectedOptions[0]?.text?.split(' (')[0] || null) : null,
             
             codigo_infracao: document.getElementById('codigoInfracao').value.trim(),
             desdobramento_infracao: '0',
             descricao_infracao: document.getElementById('descricaoInfracao').value.trim(),
             orgao_autuador: document.getElementById('orgaoAutuador').value.trim(),
+            data_hora_infracao: document.getElementById('dataInfracao')?.value || null,
             
             fase: document.getElementById('faseInfracao').value,
             data_emissao_autuacao: document.getElementById('dataEmissaoAutuacao').value || null,
@@ -443,6 +518,10 @@ async function salvarMulta(event) {
             
             descontar_motorista: document.getElementById('descontarMotorista').checked,
             status_desconto: document.getElementById('descontarMotorista').checked ? 'PENDENTE' : 'NAO_APLICAVEL',
+            
+            aceite_motorista: document.getElementById('aceiteMotorista')?.checked || false,
+            data_aceite_motorista: document.getElementById('aceiteMotorista')?.checked ? (document.getElementById('dataAceiteMotorista')?.value || null) : null,
+            
             observacoes: document.getElementById('observacoes').value.trim()
         };
 
@@ -488,6 +567,8 @@ function editarMulta(id) {
     document.getElementById('codigoInfracao').value = multa.codigo_infracao || '';
     document.getElementById('descricaoInfracao').value = multa.descricao_infracao || '';
     document.getElementById('orgaoAutuador').value = multa.orgao_autuador || '';
+    const dataInfFormatada = multa.data_hora_infracao ? String(multa.data_hora_infracao).split('T')[0] : '';
+    document.getElementById('dataInfracao').value = dataInfFormatada;
     
     document.getElementById('faseInfracao').value = multa.fase || 'AUTUACAO';
     document.getElementById('dataEmissaoAutuacao').value = multa.data_emissao_autuacao || '';
@@ -502,6 +583,17 @@ function editarMulta(id) {
     document.getElementById('statusPagamento').value = multa.status_pagamento || 'PENDENTE';
     
     document.getElementById('descontarMotorista').checked = !!multa.descontar_motorista;
+    
+    const checkAceite = document.getElementById('aceiteMotorista');
+    const inputDataAceite = document.getElementById('dataAceiteMotorista');
+    if (checkAceite) {
+        checkAceite.checked = !!multa.aceite_motorista;
+    }
+    if (inputDataAceite) {
+        inputDataAceite.value = multa.data_aceite_motorista ? String(multa.data_aceite_motorista).split('T')[0] : '';
+    }
+    alternarCampoDataAceite();
+    
     document.getElementById('observacoes').value = multa.observacoes || '';
 
     document.getElementById('modalMultaTitulo').textContent = `Editar Infração - AIT: ${multa.numero_auto_infracao}`;
@@ -521,6 +613,7 @@ function limparFormularioMulta() {
     document.getElementById('multaId').value = '';
     document.getElementById('placa').value = '';
     document.getElementById('cnpjEmpresa').value = CNPJ_EMPRESA_PADRAO;
+    alternarCampoDataAceite();
     multaEmEdicao = null;
     popularSelectAutosOrigem();
     alternarCamposFase();
@@ -585,24 +678,73 @@ async function confirmarPagamentoMulta(event) {
     }
 }
 
-// ===== EXCLUIR MULTA =====
-async function excluirMulta(id) {
-    const multa = multasLista.find(m => m.id == id);
-    if (!multa) return;
+// ===== MODAL DE CONFIRMAÇÃO ESTILIZADO =====
+let callbackConfirmacao = null;
 
-    if (!confirm(`Tem certeza que deseja excluir o AIT ${multa.numero_auto_infracao}? Se houver descontos vinculados, serão apagados.`)) {
+function abrirConfirmacao({ titulo, mensagem, submensagem, textoBotao, onConfirm }) {
+    const modal = document.getElementById('modalConfirmacao');
+    if (!modal) {
+        if (confirm(`${mensagem}\n${submensagem || ''}`)) {
+            onConfirm();
+        }
         return;
     }
 
-    try {
-        const { error } = await window.supabaseClient.from('multas').delete().eq('id', id);
-        if (error) throw error;
-        mostrarToast('Multa removida com sucesso!', 'success');
-        await carregarDados();
-    } catch (err) {
-        console.error('Erro ao excluir:', err);
-        mostrarToast(`Erro ao excluir: ${err.message}`, 'error');
+    if (titulo) document.getElementById('confirmTitulo').textContent = titulo;
+    if (mensagem) document.getElementById('confirmMensagem').textContent = mensagem;
+    if (submensagem) {
+        const sub = document.getElementById('confirmSubmensagem');
+        sub.textContent = submensagem;
+        sub.classList.remove('hidden');
     }
+    
+    const btn = document.getElementById('btnConfirmarAcao');
+    if (textoBotao) btn.textContent = textoBotao;
+
+    callbackConfirmacao = onConfirm;
+    btn.onclick = async () => {
+        btn.disabled = true;
+        btn.textContent = '⏳ Excluindo...';
+        try {
+            if (callbackConfirmacao) await callbackConfirmacao();
+        } finally {
+            btn.disabled = false;
+            btn.textContent = textoBotao || 'Sim, excluir';
+            fecharModalConfirmacao();
+        }
+    };
+
+    modal.classList.remove('hidden');
+}
+
+function fecharModalConfirmacao() {
+    const modal = document.getElementById('modalConfirmacao');
+    if (modal) modal.classList.add('hidden');
+    callbackConfirmacao = null;
+}
+
+// ===== EXCLUIR MULTA =====
+function excluirMulta(id) {
+    const multa = multasLista.find(m => m.id == id);
+    if (!multa) return;
+
+    abrirConfirmacao({
+        titulo: 'Excluir Infração',
+        mensagem: `Deseja realmente excluir o AIT ${multa.numero_auto_infracao}?`,
+        submensagem: '⚠️ Se houver lançamentos de descontos vinculados a esta multa, eles também serão apagados.',
+        textoBotao: '🗑️ Sim, excluir',
+        onConfirm: async () => {
+            try {
+                const { error } = await window.supabaseClient.from('multas').delete().eq('id', id);
+                if (error) throw error;
+                mostrarToast('Multa removida com sucesso!', 'success');
+                await carregarDados();
+            } catch (err) {
+                console.error('Erro ao excluir:', err);
+                mostrarToast(`Erro ao excluir: ${err.message}`, 'error');
+            }
+        }
+    });
 }
 
 // ===== DESCONTOS LANCAMENTOS (MODAL E EFETIVAÇÃO) =====

@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS multas (
     descontar_motorista BOOLEAN NOT NULL DEFAULT FALSE,
     status_desconto VARCHAR(30) NOT NULL DEFAULT 'NAO_APLICAVEL', -- 'NAO_APLICAVEL', 'PENDENTE', 'DESCONTADO', 'ISENTO'
     
+    -- Aceite do Motorista Infrator (Indicação no App da CNH / CDT)
+    aceite_motorista BOOLEAN NOT NULL DEFAULT FALSE,
+    data_aceite_motorista DATE,
+    
     observacoes TEXT,
     dados_brutos_api JSONB, -- Payload completo da API Serpro para histórico
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

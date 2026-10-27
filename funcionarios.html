@@ -6,15 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão de Funcionários</title>
 
+    <!-- Loader Anti-Cache -->
+    <script src="scripts/loader.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/supabase.js?v=1.0"></script>
+    <script>carregarScript('scripts/supabase.js');</script>
     <!-- ===== BIBLIOTECAS PARA PDF ===== -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
-    <script src="scripts/funcionarios.js?v=3.0"></script>
-    <script src="scripts/header.js?v=1.1"></script>
+    <script>
+        carregarScript('scripts/funcionarios.js');
+        carregarScript('scripts/header.js');
+    </script>
 
     <style>
         @keyframes slideUp {

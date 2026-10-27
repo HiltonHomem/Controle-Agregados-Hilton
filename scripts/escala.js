@@ -8,6 +8,7 @@ let veiculos = [];
 let motoristas = [];
 let ajudantes = [];
 let precos = []; // 🔧 Preços das rotas
+let funcionariosStatus = []; // 🔧 Status dos funcionários (para identificar férias)
 let itemParaExcluir = null;
 
 // 🔧 LISTA DE ROTAS PADRÃO PARA O SELECT (EM ORDEM ALFABÉTICA)
@@ -32,9 +33,12 @@ const ROTAS_PADRAO = [
     "MACAÉ",
     "MAGÉ",
     "MARICÁ",
+    "MERCADO TORRE",
     "MUNDIAL",
     "NITERÓI",
-    "NORTE",
+    "NORTE 1",
+    "NORTE 2",
+    "NORTE 3",
     "NOVA FRIBURGO",
     "OESTE 1",
     "OESTE 2",
@@ -46,9 +50,10 @@ const ROTAS_PADRAO = [
     "SÃO JOSÉ DO VALE",
     "SÃO PEDRO DA ALDEIA",
     "SAQUAREMA",
-    "SUL",
     "TERESÓPOLIS",
-    "VIANENSE"
+    "VIANENSE",
+    "ZONA SUL 1",
+    "ZONA SUL 2"
 ];
 
 async function verificarAuth() {
@@ -67,14 +72,14 @@ async function carregarUsuario(userId) {
             .select('nome, email, role')
             .eq('id', userId)
             .single();
-        
+
         if (error) throw error;
         usuarioAtual = data;
         atualizarSaudacao();
     } catch (error) {
         console.error('Erro ao carregar usuário:', error);
         const { data: { session } } = await window.supabaseClient.auth.getSession();
-        usuarioAtual = { 
+        usuarioAtual = {
             nome: session?.user?.email?.split('@')[0] || 'Usuário',
             email: session?.user?.email,
             role: 'user'
@@ -86,7 +91,7 @@ async function carregarUsuario(userId) {
 function atualizarSaudacao() {
     const saudacaoEl = document.getElementById('saudacaoUsuario');
     if (!saudacaoEl) return;
-    
+
     const nome = usuarioAtual?.nome || 'Usuário';
     saudacaoEl.innerHTML = getSaudacaoPorDia(nome);
 }
@@ -95,16 +100,16 @@ function getSaudacaoPorDia(nome) {
     const hoje = new Date();
     const diaSemana = hoje.getDay();
     const hora = hoje.getHours();
-    
+
     let saudacaoHora = '';
     if (hora < 12) saudacaoHora = 'Bom dia';
     else if (hora < 18) saudacaoHora = 'Boa tarde';
     else saudacaoHora = 'Boa noite';
-    
+
     if (diaSemana === 5) {
         return `🎉 ${saudacaoHora}, ${nome}! <span class="text-yellow-300">Sextou!! 🥳</span>`;
     }
-    
+
     return `👋 ${saudacaoHora}, ${nome}!`;
 }
 
@@ -168,6 +173,56 @@ function getStatusLabel(status) {
     return labels[status] || status;
 }
 
+function converterDataBrParaIso(dataBr) {
+    if (!dataBr) return '';
+    const partes = dataBr.trim().split('/');
+    if (partes.length === 3) {
+        return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+    }
+    return '';
+}
+
+function extrairDatasPeriodo(texto) {
+    if (!texto) return { inicio: '', fim: '' };
+    const partes = texto.split(/\s+a\s+|\s+à\s+|\s+ate\s+|\s+até\s+/i);
+    if (partes.length === 2) {
+        const parte1 = partes[0].trim();
+        const parte2 = partes[1].trim();
+        const data1 = parte1.includes('/') ? converterDataBrParaIso(parte1) : (parte1.includes('-') ? parte1 : '');
+        const data2 = parte2.includes('/') ? converterDataBrParaIso(parte2) : (parte2.includes('-') ? parte2 : '');
+        return { inicio: data1, fim: data2 };
+    }
+    if (partes.length === 1 && partes[0].trim()) {
+        const p = partes[0].trim();
+        const d = p.includes('/') ? converterDataBrParaIso(p) : (p.includes('-') ? p : '');
+        return { inicio: d, fim: d };
+    }
+    return { inicio: '', fim: '' };
+}
+
+function isDataNoPeriodoFerias(data, feriasTexto) {
+    if (!data || !feriasTexto) return false;
+    const { inicio, fim } = extrairDatasPeriodo(feriasTexto);
+    if (!inicio && !fim) return false;
+    const dataAlvo = data.split('T')[0];
+    if (inicio && fim) {
+        return dataAlvo >= inicio && dataAlvo <= fim;
+    }
+    if (inicio) return dataAlvo === inicio;
+    if (fim) return dataAlvo === fim;
+    return false;
+}
+
+function verificarMotoristaEmFerias(motoristaId, dataViagem) {
+    if (!motoristaId || !dataViagem || !funcionariosStatus || funcionariosStatus.length === 0) return false;
+    const mId = parseInt(motoristaId);
+    return funcionariosStatus.some(s =>
+        s.tipo === 'motorista' &&
+        parseInt(s.funcionario_id) === mId &&
+        isDataNoPeriodoFerias(dataViagem, s.ferias)
+    );
+}
+
 function mostrarToast(mensagem, tipo = 'success') {
     const cores = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
     const toast = document.createElement('div');
@@ -209,6 +264,12 @@ async function carregarDados() {
             .select('*');
         precos = precosData || [];
 
+        // 🔧 CARREGAR STATUS DOS FUNCIONÁRIOS (FÉRIAS)
+        const { data: statusData } = await supabaseClient
+            .from('funcionarios_status')
+            .select('*');
+        funcionariosStatus = statusData || [];
+
         const { data: escalasData } = await supabaseClient
             .from('view_escalas_completas')
             .select('*')
@@ -216,7 +277,7 @@ async function carregarDados() {
         escalas = escalasData || [];
 
         atualizarSelects();
-        
+
         setTimeout(() => {
             const veiculoSelecionado = document.getElementById('escalaVeiculo').value;
             if (veiculoSelecionado) {
@@ -224,10 +285,10 @@ async function carregarDados() {
                 atualizarMotoristasPorVeiculo(veiculoSelecionado);
             }
         }, 200);
-        
+
         renderizarEscalas();
         document.getElementById('totalEscalasBadge').textContent = escalas.length;
-        
+
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
         mostrarToast('Erro ao carregar dados', 'error');
@@ -240,16 +301,16 @@ async function carregarDados() {
 
 function preencherMotoristas(selectElement, veiculoId) {
     if (!selectElement) return;
-    
+
     const value = selectElement.value;
     let motoristasDisponiveis = [];
-    
+
     if (veiculoId) {
         const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
-        
+
         if (veiculo?.proprietario_id) {
             const proprietario = motoristas.find(m => m.id === veiculo.proprietario_id);
-            
+
             if (proprietario) {
                 motoristasDisponiveis.push({
                     id: proprietario.id,
@@ -260,17 +321,17 @@ function preencherMotoristas(selectElement, veiculoId) {
                     grupo: 'proprietario',
                     nomeExibicao: proprietario.nome
                 });
-                
+
                 if (proprietario.motoristas_terceiros) {
                     let terceiros = proprietario.motoristas_terceiros;
                     if (typeof terceiros === 'string') {
-                        try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
+                        try { terceiros = JSON.parse(terceiros); } catch (e) { terceiros = []; }
                     }
                     if (!Array.isArray(terceiros)) terceiros = [];
-                    
+
                     terceiros.forEach(nomeTerceiro => {
                         const nomeExibicao = `${proprietario.nome} (${nomeTerceiro})`;
-                        
+
                         const motoristaExistente = motoristas.find(m => m.nome === nomeTerceiro);
                         if (motoristaExistente) {
                             motoristasDisponiveis.push({
@@ -298,7 +359,7 @@ function preencherMotoristas(selectElement, veiculoId) {
                         }
                     });
                 }
-                
+
                 const funcionarios = motoristas
                     .filter(m => m.tipo === 'funcionario' && m.ativo === true)
                     .map(m => ({
@@ -310,7 +371,7 @@ function preencherMotoristas(selectElement, veiculoId) {
                         grupo: 'funcionario',
                         nomeExibicao: m.nome
                     }));
-                
+
                 motoristasDisponiveis = [...motoristasDisponiveis, ...funcionarios];
             }
         } else {
@@ -339,22 +400,22 @@ function preencherMotoristas(selectElement, veiculoId) {
                 nomeExibicao: m.nome
             }));
     }
-    
+
     selectElement.innerHTML = '<option value="">Selecione...</option>';
-    
+
     const grupos = {
         proprietario: [],
         terceirizado: [],
         funcionario: [],
         agregado: []
     };
-    
+
     motoristasDisponiveis.forEach(m => {
         if (m.grupo) {
             grupos[m.grupo].push(m);
         }
     });
-    
+
     if (grupos.proprietario.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '👨‍💼 Proprietário';
@@ -368,7 +429,7 @@ function preencherMotoristas(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (grupos.terceirizado.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '🔶 Terceirizados';
@@ -382,7 +443,7 @@ function preencherMotoristas(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (grupos.funcionario.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '👷 Funcionários';
@@ -396,7 +457,7 @@ function preencherMotoristas(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (grupos.agregado.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '👨‍💼 Agregados';
@@ -410,7 +471,7 @@ function preencherMotoristas(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (value) {
         const optionExists = Array.from(selectElement.options).some(opt => opt.value === value);
         if (optionExists) {
@@ -421,16 +482,16 @@ function preencherMotoristas(selectElement, veiculoId) {
 
 function preencherMotoristasModal(selectElement, veiculoId) {
     if (!selectElement) return;
-    
+
     const value = selectElement.value;
     let motoristasDisponiveis = [];
-    
+
     if (veiculoId) {
         const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
-        
+
         if (veiculo?.proprietario_id) {
             const proprietario = motoristas.find(m => m.id === veiculo.proprietario_id);
-            
+
             if (proprietario) {
                 motoristasDisponiveis.push({
                     id: proprietario.id,
@@ -441,17 +502,17 @@ function preencherMotoristasModal(selectElement, veiculoId) {
                     grupo: 'proprietario',
                     nomeExibicao: proprietario.nome
                 });
-                
+
                 if (proprietario.motoristas_terceiros) {
                     let terceiros = proprietario.motoristas_terceiros;
                     if (typeof terceiros === 'string') {
-                        try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
+                        try { terceiros = JSON.parse(terceiros); } catch (e) { terceiros = []; }
                     }
                     if (!Array.isArray(terceiros)) terceiros = [];
-                    
+
                     terceiros.forEach(nomeTerceiro => {
                         const nomeExibicao = `${proprietario.nome} (${nomeTerceiro})`;
-                        
+
                         const motoristaExistente = motoristas.find(m => m.nome === nomeTerceiro);
                         if (motoristaExistente) {
                             motoristasDisponiveis.push({
@@ -479,7 +540,7 @@ function preencherMotoristasModal(selectElement, veiculoId) {
                         }
                     });
                 }
-                
+
                 const funcionarios = motoristas
                     .filter(m => m.tipo === 'funcionario' && m.ativo === true)
                     .map(m => ({
@@ -491,7 +552,7 @@ function preencherMotoristasModal(selectElement, veiculoId) {
                         grupo: 'funcionario',
                         nomeExibicao: m.nome
                     }));
-                
+
                 motoristasDisponiveis = [...motoristasDisponiveis, ...funcionarios];
             }
         } else {
@@ -520,22 +581,22 @@ function preencherMotoristasModal(selectElement, veiculoId) {
                 nomeExibicao: m.nome
             }));
     }
-    
+
     selectElement.innerHTML = '<option value="">Selecione...</option>';
-    
+
     const grupos = {
         proprietario: [],
         terceirizado: [],
         funcionario: [],
         agregado: []
     };
-    
+
     motoristasDisponiveis.forEach(m => {
         if (m.grupo) {
             grupos[m.grupo].push(m);
         }
     });
-    
+
     if (grupos.proprietario.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '👨‍💼 Proprietário';
@@ -549,7 +610,7 @@ function preencherMotoristasModal(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (grupos.terceirizado.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '🔶 Terceirizados';
@@ -563,7 +624,7 @@ function preencherMotoristasModal(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (grupos.funcionario.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '👷 Funcionários';
@@ -577,7 +638,7 @@ function preencherMotoristasModal(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (grupos.agregado.length > 0) {
         const optgroup = document.createElement('optgroup');
         optgroup.label = '👨‍💼 Agregados';
@@ -591,7 +652,7 @@ function preencherMotoristasModal(selectElement, veiculoId) {
         });
         selectElement.appendChild(optgroup);
     }
-    
+
     if (value) {
         const optionExists = Array.from(selectElement.options).some(opt => opt.value === value);
         if (optionExists) {
@@ -622,7 +683,7 @@ function atualizarSelects() {
             document.getElementById('escalaPeso').value = '';
             document.getElementById('escalaProprietario').value = '';
         }
-        
+
         selectVeiculo.removeEventListener('change', handleVeiculoChange);
         selectVeiculo.addEventListener('change', handleVeiculoChange);
     }
@@ -668,7 +729,7 @@ function atualizarSelects() {
             modalVeiculo.value = value;
             setTimeout(() => atualizarCamposVeiculoModal(), 100);
         }
-        
+
         modalVeiculo.removeEventListener('change', handleModalVeiculoChange);
         modalVeiculo.addEventListener('change', handleModalVeiculoChange);
     }
@@ -715,21 +776,21 @@ function handleModalVeiculoChange() {
 function atualizarCamposVeiculo() {
     const select = document.getElementById('escalaVeiculo');
     const selected = select.options[select.selectedIndex];
-    
+
     const placa = selected?.dataset?.placa || '';
     const peso = selected?.dataset?.peso || '';
     const proprietarioId = selected?.dataset?.proprietario || '';
-    
+
     document.getElementById('escalaPlaca').value = placa;
     document.getElementById('escalaPeso').value = peso;
-    
+
     if (proprietarioId) {
         const proprietario = motoristas.find(m => m.id === parseInt(proprietarioId));
         document.getElementById('escalaProprietario').value = proprietario?.nome || 'Frota Própria';
     } else {
         document.getElementById('escalaProprietario').value = 'Frota Própria';
     }
-    
+
     if (select.value) {
         atualizarMotoristasPorVeiculo(select.value);
     }
@@ -738,10 +799,10 @@ function atualizarCamposVeiculo() {
 function atualizarCamposVeiculoModal() {
     const select = document.getElementById('modalVeiculo');
     const selected = select.options[select.selectedIndex];
-    
+
     const placa = selected?.dataset?.placa || '';
     const peso = selected?.dataset?.peso || '';
-    
+
     document.getElementById('modalPlaca').value = placa;
     document.getElementById('modalPeso').value = peso;
 }
@@ -750,7 +811,48 @@ function atualizarCamposVeiculoModal() {
 // VALIDAÇÃO DE DUPLICIDADE (MOTORISTA E AJUDANTE)
 // =====================================================
 
-function verificarDuplicidadeEscala(data, escalaIdAtual, motoristaNome, motoristaId, ajudantesIds, celular) {
+let callbackConfirmacaoDuplicidade = null;
+
+function fecharModalDuplicidade() {
+    const modal = document.getElementById('modalDuplicidade');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    callbackConfirmacaoDuplicidade = null;
+}
+
+function abrirModalDuplicidade(mensagem, onConfirm) {
+    const modal = document.getElementById('modalDuplicidade');
+    const msgElement = document.getElementById('msgDuplicidade');
+    const btnConfirmar = document.getElementById('btnConfirmarDuplicidade');
+
+    if (!modal) {
+        // Fallback para confirm se o modal não existir por algum motivo
+        if (confirm(`${mensagem}\n\nDeseja adicionar mesmo assim?`)) {
+            onConfirm();
+        }
+        return;
+    }
+
+    if (msgElement) {
+        msgElement.innerText = mensagem;
+    }
+
+    callbackConfirmacaoDuplicidade = onConfirm;
+
+    btnConfirmar.onclick = function () {
+        fecharModalDuplicidade();
+        if (typeof callbackConfirmacaoDuplicidade === 'function') {
+            callbackConfirmacaoDuplicidade();
+        }
+    };
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function verificarDuplicidadeEscala(data, escalaIdAtual, motoristaNome, motoristaId, veiculoId, ajudantesIds, celular) {
     if (!data || !escalas || escalas.length === 0) return null;
 
     const idAtual = escalaIdAtual ? parseInt(escalaIdAtual) : null;
@@ -775,12 +877,26 @@ function verificarDuplicidadeEscala(data, escalaIdAtual, motoristaNome, motorist
 
             if (conflito) {
                 const nomeExibir = esc.motorista_nome || esc.motorista_nome_completo || motoristaNome;
-                return `O motorista "${nomeExibir}" já está escalado no dia ${formatarData(data)} na ${escPlaca}!`;
+                const rotaEsc = esc.rota ? ` (Rota: ${esc.rota})` : '';
+                return `O motorista "${nomeExibir}" já está escalado no dia ${formatarData(data)} na ${escPlaca}${rotaEsc}!`;
             }
         }
     }
 
-    // 2. Verificar Ajudante(s)
+    // 2. Verificar Veículo
+    if (veiculoId) {
+        const vIdNum = parseInt(veiculoId);
+        for (const esc of escalasDoDia) {
+            if (esc.veiculo_id === vIdNum) {
+                const escPlaca = esc.veiculo_placa ? `placa ${esc.veiculo_placa}` : `veículo ${esc.veiculo_nome || 'N/A'}`;
+                const motoristaAtualEsc = esc.motorista_nome || esc.motorista_nome_completo || 'N/A';
+                const rotaEsc = esc.rota ? ` (Rota: ${esc.rota})` : '';
+                return `O ${escPlaca} já está escalado no dia ${formatarData(data)} com o motorista "${motoristaAtualEsc}"${rotaEsc}!`;
+            }
+        }
+    }
+
+    // 3. Verificar Ajudante(s)
     if (ajudantesIds && ajudantesIds.length > 0) {
         for (const aId of ajudantesIds) {
             const ajudanteObj = ajudantes.find(a => a.id === parseInt(aId));
@@ -792,21 +908,23 @@ function verificarDuplicidadeEscala(data, escalaIdAtual, motoristaNome, motorist
                 if (esc.nomes_ajudantes) {
                     const nomesEscala = esc.nomes_ajudantes.split(',').map(n => n.trim().toUpperCase());
                     if (nomesEscala.includes(nomeAjudante)) {
-                        return `O ajudante "${ajudanteObj.nome}" já está escalado no dia ${formatarData(data)} na ${escPlaca}!`;
+                        const rotaEsc = esc.rota ? ` (Rota: ${esc.rota})` : '';
+                        return `O ajudante "${ajudanteObj.nome}" já está escalado no dia ${formatarData(data)} na ${escPlaca}${rotaEsc}!`;
                     }
                 }
             }
         }
     }
 
-    // 3. Verificar Celular
+    // 4. Verificar Celular
     if (celular && celular.trim()) {
         const celAlvo = celular.trim().toUpperCase();
         for (const esc of escalasDoDia) {
             const escCelular = (esc.celular || '').trim().toUpperCase();
             if (escCelular && escCelular === celAlvo) {
                 const escPlaca = esc.veiculo_placa ? `placa ${esc.veiculo_placa}` : `veículo ${esc.veiculo_nome || 'N/A'}`;
-                return `O celular "${celular.trim()}" já está em uso no dia ${formatarData(data)} na ${escPlaca}!`;
+                const rotaEsc = esc.rota ? ` (Rota: ${esc.rota})` : '';
+                return `O celular "${celular.trim()}" já está em uso no dia ${formatarData(data)} na ${escPlaca}${rotaEsc}!`;
             }
         }
     }
@@ -818,16 +936,18 @@ function verificarDuplicidadeEscala(data, escalaIdAtual, motoristaNome, motorist
 // SALVAR ESCALA
 // =====================================================
 
-async function salvarEscala(event) {
-    event.preventDefault();
+async function salvarEscala(event, ignorarDuplicidade = false) {
+    if (event && event.preventDefault) {
+        event.preventDefault();
+    }
     const id = document.getElementById('editEscalaId').value;
-    
+
     const veiculoId = document.getElementById('escalaVeiculo').value;
     const motoristaSelect = document.getElementById('escalaMotorista');
     const motoristaId = motoristaSelect.value;
     const ajudanteSelect = document.getElementById('escalaAjudante');
     const ajudantesIds = Array.from(ajudanteSelect.selectedOptions).map(opt => opt.value).filter(v => v);
-    
+
     const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
     const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
     const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
@@ -839,7 +959,7 @@ async function salvarEscala(event) {
         // Buscar o veículo para achar o proprietário
         const veiculoSelecionado = veiculos.find(v => v.id === parseInt(veiculoId));
         const proprietario = motoristas.find(m => m.id === veiculoSelecionado?.proprietario_id);
-        
+
         if (proprietario) {
             motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
             motoristaIdReal = proprietario.id; // 🔧 Usa o ID do proprietário
@@ -851,7 +971,7 @@ async function salvarEscala(event) {
         motoristaNome = motorista?.nome || '';
         motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
     }
-    
+
     const dados = {
         data: document.getElementById('escalaData').value,
         veiculo_id: parseInt(veiculoId),
@@ -874,11 +994,15 @@ async function salvarEscala(event) {
         return;
     }
 
-    // 🛑 Validação de duplicidade no mesmo dia
-    const erroDuplicidade = verificarDuplicidadeEscala(dados.data, id, dados.motorista_nome, dados.motorista_id, ajudantesIds, dados.celular);
-    if (erroDuplicidade) {
-        mostrarToast(erroDuplicidade, 'error');
-        return;
+    // 🛑 Validação de duplicidade no mesmo dia (com modal de exceção)
+    if (!ignorarDuplicidade) {
+        const erroDuplicidade = verificarDuplicidadeEscala(dados.data, id, dados.motorista_nome, dados.motorista_id, dados.veiculo_id, ajudantesIds, dados.celular);
+        if (erroDuplicidade) {
+            abrirModalDuplicidade(erroDuplicidade, () => {
+                salvarEscala(null, true);
+            });
+            return;
+        }
     }
 
     try {
@@ -902,19 +1026,19 @@ async function salvarEscala(event) {
             if (!id && result.data) {
                 escalaId = result.data[0].id;
             }
-            
+
             if (id) {
                 await supabaseClient
                     .from('escala_ajudantes')
                     .delete()
                     .eq('escala_id', parseInt(id));
             }
-            
+
             const ajudantesInsert = ajudantesIds.map(aId => ({
                 escala_id: parseInt(escalaId),
                 ajudante_id: parseInt(aId)
             }));
-            
+
             if (ajudantesInsert.length > 0) {
                 await supabaseClient
                     .from('escala_ajudantes')
@@ -937,7 +1061,7 @@ async function salvarEscala(event) {
 
 async function abrirModalConfirmar(id) {
     const item = escalas.find(e => e.id === id);
-    
+
     if (!item) {
         mostrarToast('Escala não encontrada', 'error');
         return;
@@ -969,17 +1093,18 @@ async function abrirModalConfirmar(id) {
 
     const veiculo = veiculos.find(v => v.id === item.veiculo_id);
     const proprietario = veiculo?.proprietario_id ? motoristas.find(m => m.id === veiculo.proprietario_id) : null;
-    
+
     const isFuncionario = motorista?.tipo === 'funcionario';
     const isProprietario = motorista?.id === veiculo?.proprietario_id;
-    
+    const isEmFerias = item.motorista_id && verificarMotoristaEmFerias(item.motorista_id, item.data);
+
     let isTerceirizado = false;
     if (veiculo?.proprietario_id && motorista && !isProprietario) {
         const proprietarioVeiculo = motoristas.find(m => m.id === veiculo.proprietario_id);
         if (proprietarioVeiculo?.motoristas_terceiros) {
             let terceiros = proprietarioVeiculo.motoristas_terceiros;
             if (typeof terceiros === 'string') {
-                try { terceiros = JSON.parse(terceiros); } catch(e) { terceiros = []; }
+                try { terceiros = JSON.parse(terceiros); } catch (e) { terceiros = []; }
             }
             if (!Array.isArray(terceiros)) terceiros = [];
             isTerceirizado = terceiros.includes(motorista?.nome || '');
@@ -989,24 +1114,30 @@ async function abrirModalConfirmar(id) {
     document.getElementById('confEscalaId').value = item.id;
     document.getElementById('confMotoristaId').value = item.motorista_id || '';
     document.getElementById('confProprietarioId').value = veiculo?.proprietario_id || '';
-    
+
     document.getElementById('confIsFuncionario').value = isFuncionario ? 'true' : 'false';
     document.getElementById('confIsTerceirizado').value = isTerceirizado ? 'true' : 'false';
-    
-    document.getElementById('modalConfMotorista').textContent = item.motorista_nome || motorista?.nome || 'N/A';
+
+    const textoMotorista = item.motorista_nome || motorista?.nome || 'N/A';
+    document.getElementById('modalConfMotorista').innerHTML = isEmFerias
+        ? `${textoMotorista} <span class="text-xs bg-amber-500 text-white font-semibold px-2 py-0.5 rounded-full ml-1">🏖️ Férias (Agregado)</span>`
+        : textoMotorista;
     document.getElementById('modalConfData').textContent = formatarData(item.data);
     document.getElementById('modalConfRota').textContent = item.rota;
     document.getElementById('modalConfVeiculo').textContent = veiculo?.nome || 'N/A';
-    document.getElementById('modalConfProprietario').textContent = proprietario?.nome || 'Frota Própria (Empresa)';
-    
-    const deveCobrarChapa = isFuncionario && veiculo?.proprietario_id && !isProprietario;
-    
+    document.getElementById('modalConfProprietario').textContent = isEmFerias
+        ? `${motorista?.nome || 'Funcionário'} (Pagamento como Agregado em Férias)`
+        : (proprietario?.nome || 'Frota Própria (Empresa)');
+
+    // Se o funcionário estiver em férias, a diária vai integral para ele (sem cobrança de chapa)
+    const deveCobrarChapa = !isEmFerias && isFuncionario && veiculo?.proprietario_id && !isProprietario;
+
     document.getElementById('confChapa').required = deveCobrarChapa;
     document.getElementById('confChapa').placeholder = deveCobrarChapa ? 'Valor da chapa (obrigatório)' : '0.00';
     if (!deveCobrarChapa) {
         document.getElementById('confChapa').value = 0;
     }
-    
+
     // 🔧 CALCULAR VALOR AUTOMÁTICO (Preço da rota, ou maior rota + 200 se for combo)
     let valorSugerido = 550; // Valor fallback caso não encontre nada
 
@@ -1034,7 +1165,9 @@ async function abrirModalConfirmar(id) {
     document.getElementById('confPedagio').value = 0;
     document.getElementById('confAlmoco').value = 0;
     document.getElementById('confDesconto').value = 0;
-    document.getElementById('confObservacao').value = `Viagem confirmada - ${item.rota}`;
+    document.getElementById('confObservacao').value = isEmFerias
+        ? `Viagem confirmada - ${item.rota} (Funcionário em Férias)`
+        : `Viagem confirmada - ${item.rota}`;
 
     const modalConfirmar = document.getElementById('modalConfirmarViagem');
     modalConfirmar.classList.remove('hidden');
@@ -1051,13 +1184,13 @@ function fecharModalConfirmar() {
 
 async function confirmarViagem(event) {
     event.preventDefault();
-    
+
     const escalaId = document.getElementById('confEscalaId').value;
     const motoristaId = document.getElementById('confMotoristaId').value;
     const proprietarioId = document.getElementById('confProprietarioId').value;
     const isFuncionario = document.getElementById('confIsFuncionario').value === 'true';
     const isTerceirizado = document.getElementById('confIsTerceirizado').value === 'true';
-    
+
     const valorDiaria = parseFloat(document.getElementById('confValorDiaria').value) || 0;
     const pedagio = parseFloat(document.getElementById('confPedagio').value) || 0;
     const almoco = parseFloat(document.getElementById('confAlmoco').value) || 0;
@@ -1077,13 +1210,18 @@ async function confirmarViagem(event) {
         const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
         const veiculo = veiculos.find(v => v.id === escala.veiculo_id);
         const motoristaNome = escala?.motorista_nome || motorista?.nome || '';
+        const isEmFerias = motoristaId && verificarMotoristaEmFerias(motoristaId, escala.data);
 
         let proprietario_id = null;
         let chapaValor = 0;
-        
-        if (veiculo && veiculo.proprietario_id) {
+
+        if (isEmFerias) {
+            // Funcionário em férias trabalhando: pagamento total integral vai para ele no Controle de Agregados
+            proprietario_id = parseInt(motoristaId);
+            chapaValor = 0;
+        } else if (veiculo && veiculo.proprietario_id) {
             proprietario_id = veiculo.proprietario_id;
-            
+
             if (isFuncionario && !isTerceirizado) {
                 chapaValor = chapa;
                 if (chapaValor <= 0) {
@@ -1129,9 +1267,11 @@ async function confirmarViagem(event) {
 
         fecharModalConfirmar();
         await carregarDados();
-        
+
         let mensagem = 'Viagem confirmada! ';
-        if (proprietario_id) {
+        if (isEmFerias) {
+            mensagem += `Pagamento integral como Agregado em Férias para ${motorista?.nome || 'funcionário'} (R$ ${valorDiaria.toFixed(2)})`;
+        } else if (proprietario_id) {
             const proprietario = motoristas.find(m => m.id === proprietario_id);
             mensagem += `Pagamento para ${proprietario?.nome || 'agregado'}`;
             if (chapaValor > 0) {
@@ -1146,7 +1286,7 @@ async function confirmarViagem(event) {
         } else {
             mensagem += `Pagamento para ${motorista?.nome || 'motorista'} (R$ ${valorDiaria.toFixed(2)})`;
         }
-        
+
         mostrarToast(mensagem);
     } catch (error) {
         console.error('Erro ao confirmar viagem:', error);
@@ -1162,17 +1302,17 @@ function editarEscala(id) {
     const idNum = parseInt(id);
     const idStr = String(id);
     let item = escalas.find(e => e.id === idNum || e.id === idStr || String(e.id) === idStr);
-    
+
     if (!item) {
         mostrarToast('Escala não encontrada', 'error');
         return;
     }
-    
+
     document.getElementById('modalEditId').value = item.id;
     document.getElementById('modalData').value = item.data;
     document.getElementById('modalVeiculo').value = item.veiculo_id || '';
     document.getElementById('modalStatus').value = item.status || 'ESCALADO';
-    
+
     // 🔧 Pré-selecionar rotas no select múltiplo
     if (item.rota) {
         const rotasEdit = item.rota.split(' \\ ');
@@ -1183,7 +1323,7 @@ function editarEscala(id) {
             }
         });
     }
-    
+
     document.getElementById('modalCelular').value = item.celular || '';
     document.getElementById('modalMaquina').value = item.maquina_cartao || 0;
     document.getElementById('modalNF').value = item.nf || '';
@@ -1192,39 +1332,39 @@ function editarEscala(id) {
     document.getElementById('modalCarregamento').value = item.carregamento || '';
     document.getElementById('modalObs').value = item.observacao || '';
     document.getElementById('modalTitle').textContent = `✏️ Editar Escala - ${item.veiculo_nome || 'N/A'}`;
-    
+
     const veiculoSelecionado = document.getElementById('modalVeiculo');
     const selectedOption = veiculoSelecionado.options[veiculoSelecionado.selectedIndex];
     if (selectedOption) {
         document.getElementById('modalPlaca').value = selectedOption?.dataset?.placa || '';
         document.getElementById('modalPeso').value = selectedOption?.dataset?.peso || '';
     }
-    
-                const modalMotorista = document.getElementById('modalMotorista');
-            if (item.veiculo_id) {
-                preencherMotoristasModal(modalMotorista, item.veiculo_id);
-                // 🔧 CORREÇÃO: Pré-selecionar com base no NOME SALVO (ex: "FRANCISCO (JOSE CARLOS)")
-                // 1. Se for um nome composto com parênteses (terceirizado)
-                if (item.motorista_nome && item.motorista_nome.includes('(')) {
-                    // Procurar a opção no select que tenha exatamente esse texto
-                    const opcaoEncontrada = Array.from(modalMotorista.options).find(opt => 
-                        opt.textContent.trim().toUpperCase() === item.motorista_nome.trim().toUpperCase()
-                    );
-                    if (opcaoEncontrada) {
-                        modalMotorista.value = opcaoEncontrada.value;
-                    }
-                } 
-                // 2. Se for apenas o nome do proprietário ou funcionário
-                else if (item.motorista_id) {
-                    modalMotorista.value = item.motorista_id;
-                }
-            } else {
-                preencherMotoristasModal(modalMotorista, null);
-                if (item.motorista_id) {
-                    modalMotorista.value = item.motorista_id;
-                }
+
+    const modalMotorista = document.getElementById('modalMotorista');
+    if (item.veiculo_id) {
+        preencherMotoristasModal(modalMotorista, item.veiculo_id);
+        // 🔧 CORREÇÃO: Pré-selecionar com base no NOME SALVO (ex: "FRANCISCO (JOSE CARLOS)")
+        // 1. Se for um nome composto com parênteses (terceirizado)
+        if (item.motorista_nome && item.motorista_nome.includes('(')) {
+            // Procurar a opção no select que tenha exatamente esse texto
+            const opcaoEncontrada = Array.from(modalMotorista.options).find(opt =>
+                opt.textContent.trim().toUpperCase() === item.motorista_nome.trim().toUpperCase()
+            );
+            if (opcaoEncontrada) {
+                modalMotorista.value = opcaoEncontrada.value;
             }
-    
+        }
+        // 2. Se for apenas o nome do proprietário ou funcionário
+        else if (item.motorista_id) {
+            modalMotorista.value = item.motorista_id;
+        }
+    } else {
+        preencherMotoristasModal(modalMotorista, null);
+        if (item.motorista_id) {
+            modalMotorista.value = item.motorista_id;
+        }
+    }
+
     const modalAjudante = document.getElementById('modalAjudante');
     if (item.nomes_ajudantes) {
         const nomesAjudantes = item.nomes_ajudantes.split(',').map(n => n.trim());
@@ -1234,7 +1374,7 @@ function editarEscala(id) {
             }
         });
     }
-    
+
     const modalEdicao = document.getElementById('modalEdicao');
     modalEdicao.classList.remove('hidden');
     modalEdicao.style.display = 'flex';
@@ -1248,39 +1388,41 @@ function fecharModal() {
     document.body.style.overflow = 'auto';
 }
 
-async function salvarEdicaoModal(event) {
-    event.preventDefault();
+async function salvarEdicaoModal(event, ignorarDuplicidade = false) {
+    if (event && event.preventDefault) {
+        event.preventDefault();
+    }
     const id = document.getElementById('modalEditId').value;
-    
+
     const veiculoId = document.getElementById('modalVeiculo').value;
     const motoristaSelect = document.getElementById('modalMotorista');
     const motoristaId = motoristaSelect.value;
     const ajudanteSelect = document.getElementById('modalAjudante');
     const ajudantesIds = Array.from(ajudanteSelect.selectedOptions).map(opt => opt.value).filter(v => v);
-    
-     const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
-            const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
-            const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
-            let motoristaNome = '';
-            let motoristaIdReal = null; // 🔧 RESETA PARA NULL
-            
-            if (isTerceirizado && nomeTerceiro) {
-                // 🔧 CORREÇÃO CRÍTICA: Se for terceirizado, o motorista_id DEVE ser o ID do PROPRIETÁRIO
-                const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
-                const proprietario = motoristas.find(m => m.id === veiculo?.proprietario_id);
-                
-                if (proprietario) {
-                    motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
-                    motoristaIdReal = proprietario.id; // 🔧 Usa o ID do proprietário
-                } else {
-                    motoristaNome = `Desconhecido (${nomeTerceiro})`;
-                }
-            } else if (motoristaId) {
-                const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
-                motoristaNome = motorista?.nome || '';
-                motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
-            }
-    
+
+    const selectedOption = motoristaSelect.options[motoristaSelect.selectedIndex];
+    const isTerceirizado = selectedOption?.dataset?.terceirizado === 'true';
+    const nomeTerceiro = selectedOption?.dataset?.nomeTerceiro || '';
+    let motoristaNome = '';
+    let motoristaIdReal = null; // 🔧 RESETA PARA NULL
+
+    if (isTerceirizado && nomeTerceiro) {
+        // 🔧 CORREÇÃO CRÍTICA: Se for terceirizado, o motorista_id DEVE ser o ID do PROPRIETÁRIO
+        const veiculo = veiculos.find(v => v.id === parseInt(veiculoId));
+        const proprietario = motoristas.find(m => m.id === veiculo?.proprietario_id);
+
+        if (proprietario) {
+            motoristaNome = `${proprietario.nome} (${nomeTerceiro})`;
+            motoristaIdReal = proprietario.id; // 🔧 Usa o ID do proprietário
+        } else {
+            motoristaNome = `Desconhecido (${nomeTerceiro})`;
+        }
+    } else if (motoristaId) {
+        const motorista = motoristas.find(m => m.id === parseInt(motoristaId));
+        motoristaNome = motorista?.nome || '';
+        motoristaIdReal = motoristaId ? parseInt(motoristaId) : null;
+    }
+
     const dados = {
         data: document.getElementById('modalData').value,
         veiculo_id: parseInt(veiculoId),
@@ -1302,11 +1444,15 @@ async function salvarEdicaoModal(event) {
         return;
     }
 
-    // 🛑 Validação de duplicidade no mesmo dia
-    const erroDuplicidade = verificarDuplicidadeEscala(dados.data, id, dados.motorista_nome, dados.motorista_id, ajudantesIds, dados.celular);
-    if (erroDuplicidade) {
-        mostrarToast(erroDuplicidade, 'error');
-        return;
+    // 🛑 Validação de duplicidade no mesmo dia (com modal de exceção)
+    if (!ignorarDuplicidade) {
+        const erroDuplicidade = verificarDuplicidadeEscala(dados.data, id, dados.motorista_nome, dados.motorista_id, dados.veiculo_id, ajudantesIds, dados.celular);
+        if (erroDuplicidade) {
+            abrirModalDuplicidade(erroDuplicidade, () => {
+                salvarEdicaoModal(null, true);
+            });
+            return;
+        }
     }
 
     try {
@@ -1318,7 +1464,7 @@ async function salvarEdicaoModal(event) {
         if (error) throw error;
 
         await supabaseClient.from('escala_ajudantes').delete().eq('escala_id', parseInt(id));
-        
+
         if (ajudantesIds.length > 0) {
             const ajudantesInsert = ajudantesIds.map(aId => ({
                 escala_id: parseInt(id),
@@ -1350,7 +1496,7 @@ function excluirEscala(id) {
     document.getElementById('confirmMessage').textContent = 'Deseja realmente excluir esta escala?';
     document.getElementById('confirmSubmessage').textContent = `${item?.veiculo_nome || 'Item'} - ${item?.data ? formatarData(item.data) : ''}`;
     document.getElementById('btnConfirmarExclusao').onclick = executarExclusao;
-    
+
     const modalExclusao = document.getElementById('modalConfirmacao');
     modalExclusao.classList.remove('hidden');
     modalExclusao.style.display = 'flex';
@@ -1367,13 +1513,13 @@ function fecharConfirmacao() {
 
 async function executarExclusao() {
     if (!itemParaExcluir) return;
-    
+
     try {
         await supabaseClient
             .from('escalas')
             .delete()
             .eq('id', parseInt(itemParaExcluir));
-        
+
         itemParaExcluir = null;
         fecharConfirmacao();
         if (document.getElementById('modalEdicao').style.display === 'flex') fecharModal();
@@ -1398,7 +1544,7 @@ function limparFormEscala() {
     document.getElementById('escalaPeso').value = '';
     document.getElementById('escalaMotorista').value = '';
     document.getElementById('escalaProprietario').value = '';
-    
+
     const ajudanteSelect = document.getElementById('escalaAjudante');
     if (ajudanteSelect) {
         Array.from(ajudanteSelect.options).forEach(opt => opt.selected = false);
@@ -1448,9 +1594,21 @@ function renderizarEscalas() {
     if (filtroStatus) dados = dados.filter(e => e.status === filtroStatus);
 
     if (filtroTipo === 'agregado') {
-        dados = dados.filter(e => e.veiculo_proprietario_id !== null && e.veiculo_proprietario_id !== undefined);
+        dados = dados.filter(e => {
+            const isAgregadoTradicional = e.veiculo_proprietario_id !== null && e.veiculo_proprietario_id !== undefined;
+            const isFuncEmFerias = e.motorista_id && verificarMotoristaEmFerias(e.motorista_id, e.data);
+            return isAgregadoTradicional || isFuncEmFerias;
+        });
+    } else if (filtroTipo === 'ferias') {
+        dados = dados.filter(e => {
+            return e.motorista_id && verificarMotoristaEmFerias(e.motorista_id, e.data);
+        });
     } else if (filtroTipo === 'frota') {
-        dados = dados.filter(e => e.veiculo_proprietario_id === null || e.veiculo_proprietario_id === undefined);
+        dados = dados.filter(e => {
+            const isAgregadoTradicional = e.veiculo_proprietario_id !== null && e.veiculo_proprietario_id !== undefined;
+            const isFuncEmFerias = e.motorista_id && verificarMotoristaEmFerias(e.motorista_id, e.data);
+            return !isAgregadoTradicional && !isFuncEmFerias;
+        });
     }
 
     if (dados.length === 0) {
@@ -1489,11 +1647,12 @@ function renderizarEscalas() {
         const veiculoNome = e.veiculo_nome || 'Sem veículo';
         const placa = e.veiculo_placa || '';
         const peso = e.veiculo_peso || '';
-        
+
         const veiculoProprietario = e.veiculo_proprietario_id !== null && e.veiculo_proprietario_id !== undefined;
         const isTerceirizado = e.motorista_nome_completo && e.motorista_nome_completo.includes('(');
         const isChapa = veiculoProprietario && e.motorista_id && e.motorista_id !== e.veiculo_proprietario_id;
-        
+        const isEmFerias = e.motorista_id && verificarMotoristaEmFerias(e.motorista_id, e.data);
+
         let borderColor = 'border-blue-600';
         let cardBgClass = 'bg-white';
         let badgeAgregado = '';
@@ -1506,18 +1665,21 @@ function renderizarEscalas() {
         else if (e.status === 'DISPONÍVEL') borderColor = 'border-purple-500';
         else if (e.status === 'ESCALADO') borderColor = 'border-blue-600';
 
-        if (veiculoProprietario) {
+        if (isEmFerias) {
+            cardBgClass = 'bg-amber-100/80';
+            badgeAgregado = '<span class="text-xs bg-amber-500 text-white font-semibold px-2 py-0.5 rounded-full shadow-sm">🏖️ Férias (Agregado)</span>';
+        } else if (veiculoProprietario) {
             if (isChapa) {
                 cardBgClass = 'bg-orange-200';
                 badgeAgregado = '<span class="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full shadow-sm">🟧 CHAPA</span>';
-                
+
                 if (isTerceirizado) {
                     badgeTerceirizado = '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">🔶 Terceirizado</span>';
                 }
             } else {
                 cardBgClass = 'bg-blue-50/80';
                 badgeAgregado = '<span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">🔵 Agregado</span>';
-                
+
                 if (isTerceirizado) {
                     badgeTerceirizado = '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">🔶 Terceirizado</span>';
                 }
@@ -1526,7 +1688,7 @@ function renderizarEscalas() {
             cardBgClass = 'bg-white';
         }
 
-        const btnConfirmar = e.confirmado 
+        const btnConfirmar = e.confirmado
             ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ Confirmado</span>'
             : `<button onclick="abrirModalConfirmar(${e.id})" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition">✅</button>`;
 
@@ -1585,21 +1747,24 @@ function renderizarEscalas() {
 // ESCUTADORES DE EVENTO E INICIALIZAÇÃO
 // =====================================================
 
-window.onclick = function(event) {
+window.onclick = function (event) {
     const modalEdicao = document.getElementById('modalEdicao');
     const modalConfirmacao = document.getElementById('modalConfirmacao');
     const modalConfirmarViagem = document.getElementById('modalConfirmarViagem');
-    
+    const modalDuplicidade = document.getElementById('modalDuplicidade');
+
     if (event.target === modalEdicao) fecharModal();
     if (event.target === modalConfirmacao) fecharConfirmacao();
     if (event.target === modalConfirmarViagem) fecharModalConfirmar();
+    if (event.target === modalDuplicidade) fecharModalDuplicidade();
 };
 
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         fecharModal();
         fecharConfirmacao();
         fecharModalConfirmar();
+        fecharModalDuplicidade();
     }
 });
 

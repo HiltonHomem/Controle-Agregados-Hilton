@@ -15,6 +15,46 @@ function buscarDadosFuncionarios() {
     }
 }
 
+function converterDataBrParaIso(dataBr) {
+    if (!dataBr) return '';
+    const partes = dataBr.trim().split('/');
+    if (partes.length === 3) {
+        return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+    }
+    return '';
+}
+
+function extrairDatasPeriodo(texto) {
+    if (!texto) return { inicio: '', fim: '' };
+    const partes = texto.split(/\s+a\s+|\s+à\s+|\s+ate\s+|\s+até\s+/i);
+    if (partes.length === 2) {
+        const parte1 = partes[0].trim();
+        const parte2 = partes[1].trim();
+        const data1 = parte1.includes('/') ? converterDataBrParaIso(parte1) : (parte1.includes('-') ? parte1 : '');
+        const data2 = parte2.includes('/') ? converterDataBrParaIso(parte2) : (parte2.includes('-') ? parte2 : '');
+        return { inicio: data1, fim: data2 };
+    }
+    if (partes.length === 1 && partes[0].trim()) {
+        const p = partes[0].trim();
+        const d = p.includes('/') ? converterDataBrParaIso(p) : (p.includes('-') ? p : '');
+        return { inicio: d, fim: d };
+    }
+    return { inicio: '', fim: '' };
+}
+
+function isDataNoPeriodoFerias(data, feriasTexto) {
+    if (!data || !feriasTexto) return false;
+    const { inicio, fim } = extrairDatasPeriodo(feriasTexto);
+    if (!inicio && !fim) return false;
+    const dataAlvo = data.split('T')[0];
+    if (inicio && fim) {
+        return dataAlvo >= inicio && dataAlvo <= fim;
+    }
+    if (inicio) return dataAlvo === inicio;
+    if (fim) return dataAlvo === fim;
+    return false;
+}
+
 function encontrarStatusFuncionario(statusRegistros, data, funcionarioId, tipo) {
     if (!statusRegistros || !data || !funcionarioId) return null;
     
@@ -58,12 +98,22 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
     const corPrimaria = [26, 115, 232];
     const corAgregado = [52, 168, 83];
     const corFrota = [156, 163, 175];
+    const corFerias = [217, 119, 6]; // Âmbar para funcionários em férias
     const corStatus = [128, 0, 128]; // Roxo
     
     const dataExemplo = dados[0].data;
     const dataFormatada = formatarData(dataExemplo);
     const diaSemana = getDiaSemanaExtenso(dataExemplo);
     
+    const motoristasEmFeriasIds = new Set();
+    if (statusRegistros && statusRegistros.length > 0) {
+        statusRegistros.forEach(s => {
+            if (s.tipo === 'motorista' && s.funcionario_id && isDataNoPeriodoFerias(dataFiltro || dataExemplo, s.ferias)) {
+                motoristasEmFeriasIds.add(parseInt(s.funcionario_id));
+            }
+        });
+    }
+
     const agregados = dados.filter(e => e.veiculo_proprietario_id !== null && e.veiculo_proprietario_id !== undefined);
     const frota = dados.filter(e => e.veiculo_proprietario_id === null || e.veiculo_proprietario_id === undefined);
     
@@ -107,10 +157,15 @@ async function exportarEscalaPDF(escalas, dataFiltro) {
             const pesoValue = parseFloat(e.peso_carga);
             if (!isNaN(pesoValue)) totalPesoGeral += pesoValue;
 
+            let nomeMotorista = e.motorista_nome || e.motorista_nome_completo || '-';
+            if (e.motorista_id && motoristasEmFeriasIds.has(parseInt(e.motorista_id))) {
+                nomeMotorista = `${nomeMotorista} (Férias)`;
+            }
+
             return [
                 limparTexto(e.veiculo_nome || '-'),
                 limparTexto(e.veiculo_placa || '-'),
-                limparTexto(e.motorista_nome || e.motorista_nome_completo || '-'),
+                limparTexto(nomeMotorista),
                 limparTexto(e.nomes_ajudantes || '-'),
                 limparTexto(e.rota || '-'),
                 limparTexto(e.celular || '-'),

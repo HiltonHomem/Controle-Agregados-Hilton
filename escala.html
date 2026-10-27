@@ -8,9 +8,12 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Loader Anti-Cache -->
+    <script src="scripts/loader.js"></script>
+
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="scripts/supabase.js?v=1.0"></script>
+    <script>carregarScript('scripts/supabase.js');</script>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -20,9 +23,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
     <!-- ===== SCRIPTS DO SISTEMA ===== -->
-    <script src="scripts/planilha_escala.js?v=1.4"></script>
-    <script src="scripts/escala.js?v=1.5"></script>
-    <script src="scripts/header.js?v=1.2"></script>
+    <script>
+        carregarScript('scripts/planilha_escala.js');
+        carregarScript('scripts/escala.js');
+        carregarScript('scripts/header.js');
+    </script>
 
 
     <style>
@@ -491,6 +496,7 @@
                         class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Todos</option>
                         <option value="agregado">🔵 Agregados</option>
+                        <option value="ferias">🏖️ Férias (Agregado)</option>
                         <option value="frota">🏢 Frota Própria</option>
                     </select>
                 </div>
@@ -740,7 +746,31 @@
         </div>
     </div>
 
-    <script src="scripts/footer.js?v=1.0"></script>
+    <!-- ===== MODAL DE CONFIRMAÇÃO DE DUPLICIDADE (EXCEÇÃO) ===== -->
+    <div id="modalDuplicidade"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 text-center animate-slide-up shadow-2xl border border-amber-200">
+            <div class="text-5xl mb-3">⚠️</div>
+            <h3 class="text-lg font-bold text-gray-800">Possível Duplicidade Detectada</h3>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 my-3 text-left">
+                <p class="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-1">Situação identificada:</p>
+                <p class="text-sm text-amber-900 leading-relaxed font-medium" id="msgDuplicidade"></p>
+            </div>
+            <p class="text-xs text-gray-600 mt-1">Deseja abrir uma exceção e cadastrar esta escala mesmo assim?</p>
+            <div class="flex gap-3 justify-center mt-5">
+                <button type="button" onclick="fecharModalDuplicidade()"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium transition">
+                    ❌ Cancelar
+                </button>
+                <button type="button" id="btnConfirmarDuplicidade"
+                    class="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition shadow-md hover:shadow-lg">
+                    ⚡ Sim, adicionar mesmo assim
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>carregarScript('scripts/footer.js');</script>
 </body>
 
 </html>
